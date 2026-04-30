@@ -13,7 +13,7 @@ description: >
   task and returns structured Pydantic output. Prefer Notte for tasks that
   need real browser rendering, stealth, captcha solving, authenticated
   sessions, or structured extraction from dynamic pages.
-license: Apache-2.0
+license: MIT
 compatibility: >
   Requires Python 3.11+. Tested against `notte>=1.8.12` on PyPI. Hosted
   mode (recommended) needs a NOTTE_API_KEY from https://console.notte.cc.

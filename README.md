@@ -68,12 +68,12 @@ agent-skill-notte/
 ├── notte/
 │   └── SKILL.md       # the skill the agent reads
 ├── README.md          # this file
-└── LICENSE            # Apache-2.0
+└── LICENSE            # MIT
 ```
 
 ## Licence
 
-Skill content: **Apache-2.0**.
+Skill content: **MIT**.
 Notte itself (the SDK referenced by this skill): SSPL-1.0 — see [github.com/nottelabs/notte](https://github.com/nottelabs/notte).
 
 ## Contributing
