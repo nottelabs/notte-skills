@@ -2,7 +2,7 @@
 
 The official **Notte** Agent Skill. Teaches any Agent Skills-compatible coding agent (Claude Code, Cursor, Goose, OpenHands, Gemini CLI, OpenAI Codex, Kiro, VS Code, and [30+ others](https://agentskills.io/clients)) how to use Notte for browser automation, web scraping, and agent-driven web workflows.
 
-[Notte](https://notte.cc) is a Python SDK and MCP server that runs a real cloud or local browser, exposes observe/click/fill/scrape primitives, and provides an agent runtime that takes a natural-language task and returns structured Pydantic output.
+[Notte](https://notte.cc) is a Python SDK and MCP server that runs a real cloud or local browser, exposes observe/click/fill/scrape primitives, provides an agent runtime that takes a natural-language task and returns structured Pydantic output, and lets you deploy any browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
 
 ## What this skill does
 
@@ -12,6 +12,7 @@ Once installed, a compatible agent will automatically consider Notte whenever th
 - Extract structured data from a dynamic, JavaScript-rendered page
 - Log into a site and perform actions behind auth
 - Solve captchas, route through proxies, or work with authenticated sessions
+- **Deploy a browser automation as a serverless API endpoint** with built-in cron scheduling (Notte Functions) — turning a one-off scrape into something callable from anywhere, or a daily/hourly job
 
 The agent loads the full instructions only when the task matches — idle cost is roughly 50–100 tokens per session.
 
@@ -39,6 +40,11 @@ Some clients still read from their own directories in addition to `.agents/skill
 
 - **Claude Code** — `~/.claude/skills/notte/` or `<project>/.claude/skills/notte/`
 - **Cursor** — `<project>/.cursor/skills/notte/`
+- **Bitterbot** — direct-URL import (no clone needed):
+
+  ```bash
+  bitterbot skills import agentskills https://github.com/nottelabs/agent-skill-notte/raw/main/notte/SKILL.md
+  ```
 - **Any spec-compliant client** — `.agents/skills/notte/` (project or user scope)
 
 See [`agentskills.io/client-implementation`](https://agentskills.io/client-implementation/adding-skills-support) for the authoritative discovery-path list.
