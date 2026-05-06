@@ -1,6 +1,6 @@
 # agent-skill-notte
 
-The official **Notte** Agent Skill. Teaches any Agent Skills-compatible coding agent (Claude Code, Cursor, Goose, OpenHands, Gemini CLI, OpenAI Codex, Kiro, VS Code, and [30+ others](https://agentskills.io/clients)) how to use Notte for browser automation, web scraping, and agent-driven web workflows.
+The official **Notte** Agent Skill. Teaches any Agent Skills-compatible coding agent (Claude Code, Cursor, Goose, OpenHands, Gemini CLI, OpenAI Codex, Kiro, VS Code, **Bitterbot** (ships natively as of [Bitterbot-AI/bitterbot-desktop#30](https://github.com/Bitterbot-AI/bitterbot-desktop/pull/30)), and [30+ others](https://agentskills.io/clients)) how to use Notte for browser automation, web scraping, and agent-driven web workflows.
 
 [Notte](https://notte.cc) is a Python SDK and MCP server that runs a real cloud or local browser, exposes observe/click/fill/scrape primitives, provides an agent runtime that takes a natural-language task and returns structured Pydantic output, and lets you deploy any browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
 
@@ -40,7 +40,7 @@ Some clients still read from their own directories in addition to `.agents/skill
 
 - **Claude Code** — `~/.claude/skills/notte/` or `<project>/.claude/skills/notte/`
 - **Cursor** — `<project>/.cursor/skills/notte/`
-- **Bitterbot** — direct-URL import (no clone needed):
+- **Bitterbot** — bundled natively as of [Bitterbot-AI/bitterbot-desktop#30](https://github.com/Bitterbot-AI/bitterbot-desktop/pull/30) (merged 2026-05-05). On any Bitterbot version that includes that PR, the skill loads automatically and shows up in `bitterbot skills list` as `notte`. On older versions, fall back to direct-URL import:
 
   ```bash
   bitterbot skills import agentskills https://github.com/nottelabs/agent-skill-notte/raw/main/notte/SKILL.md
