@@ -1,0 +1,27 @@
+{
+  "name": "notte",
+  "displayName": "Notte",
+  "version": "1.0.0",
+  "description": "Browser automation for AI agents — real cloud or local browsers, observe/click/fill/scrape primitives, structured Pydantic extraction from dynamic pages, captcha solving and stealth mode, authenticated sessions via Vault, and one-command deployment of any browser automation as a scheduled, API-callable Notte Function.",
+  "author": {
+    "name": "Notte",
+    "email": "support@notte.cc"
+  },
+  "homepage": "https://notte.cc",
+  "repository": "https://github.com/nottelabs/skills",
+  "license": "MIT",
+  "logo": "assets/logo_black_notte.png",
+  "keywords": [
+    "browse", "browser", "browser-automation", "web-scraping", "scrape",
+    "playwright", "patchright", "cloud-browser", "mcp", "ai-agents",
+    "screenshots", "stealth", "captcha", "headless", "python-sdk",
+    "authentication", "vault", "functions", "serverless", "cron"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "browse", "browser-automation", "cloud-browsers",
+    "web-scraping", "mcp", "ai-agents", "developer-tools"
+  ],
+  "skills": ["./plugins/notte-cli/skills/", "./plugins/notte-sdks/skills/"],
+  "rules": "./rules/"
+}

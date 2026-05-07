@@ -1,0 +1,11 @@
+{
+  "name": "notte-cli",
+  "version": "1.0.0",
+  "description": "CLI commands for managing browser sessions, accounts, and Functions with the Notte CLI",
+  "author": {
+    "name": "Notte",
+    "url": "https://notte.cc"
+  },
+  "repository": "https://github.com/nottelabs/skills",
+  "license": "MIT"
+}

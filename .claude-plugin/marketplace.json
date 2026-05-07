@@ -1,0 +1,27 @@
+{
+  "$schema": "https://plugins.claude.ai/schema/marketplace.json",
+  "name": "notte",
+  "description": "Browser automation and AI agent skills for Notte. Run real cloud or local browsers, scrape JavaScript-rendered pages with Pydantic-typed output, drive multi-step workflows behind auth and captchas, and deploy any browser automation as a scheduled, API-callable Notte Function. Use when building browser automations, web scraping pipelines, or agent-driven web workflows.",
+  "owner": {
+    "name": "Notte",
+    "url": "https://notte.cc"
+  },
+  "plugins": [
+    {
+      "name": "notte-cli",
+      "author": {
+        "name": "Notte"
+      },
+      "description": "CLI commands for managing browser sessions, accounts, and Functions with the Notte CLI. Use when working with the notte command-line tool.",
+      "source": "./plugins/notte-cli"
+    },
+    {
+      "name": "notte-sdks",
+      "author": {
+        "name": "Notte"
+      },
+      "description": "SDK skills for building browser automation and agent workflows with Notte's Python SDK and MCP server. Use when writing code to control browsers programmatically with Notte.",
+      "source": "./plugins/notte-sdks"
+    }
+  ]
+}

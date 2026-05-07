@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "notte": {
+      "url": "http://localhost:8001/sse"
+    }
+  }
+}

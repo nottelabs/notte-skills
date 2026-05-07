@@ -1,0 +1,17 @@
+---
+description: best practices for Notte browser automation, scraping, and Function deployment
+alwaysApply: false
+---
+
+- always use `Session` as a context manager (`with client.Session() as session: ...`) so the cloud browser is released; never leak sessions across requests.
+- prefer `client.scrape(url=...)` over an agent when the task is "read this URL and give me X". Agents cost 5–10x more per run.
+- when the user wants structured output, define a Pydantic model and pass it as `response_format` to `agent.run` or `client.scrape`. Don't parse free-text answers.
+- script the deterministic parts with `session.execute(type=...)` and only hand the ambiguous step to the agent. This is Notte's biggest reliability + cost win.
+- enable `solve_captchas=True` and `proxies=True` on `Session` (not `Agent`) when scraping anti-bot sites. Putting them on `Agent` silently does nothing.
+- store credentials in `client.Vault()` — never paste them into the agent's `task` string. They will leak into logs.
+- `notte` (local) and `notte_sdk` (hosted) are two different imports, not aliases. Don't mix them in one file.
+- `reasoning_model` is a LiteLLM model string ("gemini/gemini-2.5-flash"), not a provider name.
+- `max_steps` is a hard stop. If the agent runs out, raise it rather than rephrasing the task.
+- the second time a task runs successfully and the page hasn't changed, promote it to a Notte Function for fast/cheap deterministic reruns.
+- after a successful agent run, `agent.workflow.code()` returns a deterministic Python script you can deploy as a Function with no LLM tokens per invocation.
+- `session.observe()` is required before `session.execute(type="click"|"fill", id=...)`. Re-observe after navigation or major page changes.
