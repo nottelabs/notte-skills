@@ -1,0 +1,11 @@
+{
+  "name": "notte-sdks",
+  "version": "1.0.0",
+  "description": "SDK skills for building browser automation and agent workflows with Notte's Python SDK and MCP server",
+  "author": {
+    "name": "Notte",
+    "url": "https://notte.cc"
+  },
+  "repository": "https://github.com/nottelabs/notte-skills",
+  "license": "MIT"
+}
