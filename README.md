@@ -10,7 +10,7 @@ Notte runs a real cloud or local browser, exposes observe/click/fill/scrape prim
 
 ```bash
 # Add the Notte skills marketplace
-/plugin marketplace add nottelabs/skills
+/plugin marketplace add nottelabs/notte-skills
 
 # Install the CLI skill
 /plugin install notte-cli
@@ -32,13 +32,13 @@ The Cursor plugin includes all skills, an MCP server for cloud browser managemen
 ### Any agent
 
 ```bash
-npx skills add nottelabs/skills
+npx skills add nottelabs/notte-skills
 ```
 
 ### Manual installation
 
 ```bash
-git clone https://github.com/nottelabs/skills.git
+git clone https://github.com/nottelabs/notte-skills.git
 cp -r notte-skills/plugins/notte-cli ~/.claude/skills/
 cp -r notte-skills/plugins/notte-sdks ~/.claude/skills/
 ```
@@ -103,7 +103,7 @@ If the agent proceeds without consulting the skill, check: the skill files live 
 
 ## Support
 
-- [GitHub Issues](https://github.com/nottelabs/skills/issues)
+- [GitHub Issues](https://github.com/nottelabs/notte-skills/issues)
 
 ## License
 
