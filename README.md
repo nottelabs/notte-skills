@@ -1,8 +1,22 @@
-# Notte Skills
+# Notte Skills - Official AI agent skills for browser automation
 
-Official AI agent skills from [Notte](https://notte.cc) for using our CLI and Python SDK from any Agent Skills-compatible coding agent (Claude Code, Cursor, Goose, OpenHands, Gemini CLI, OpenAI Codex, Kiro, VS Code, **Bitterbot** (ships natively as of [Bitterbot-AI/bitterbot-desktop#30](https://github.com/Bitterbot-AI/bitterbot-desktop/pull/30)), and [30+ others](https://agentskills.io/clients)).
+<div align="center">
+  <p>
+    Official AI agent skills from <strong>Notte</strong> — teach any Agent Skills-compatible coding agent (Claude Code, Cursor, Goose, OpenHands, Gemini CLI, OpenAI Codex, Kiro, VS Code, <strong>Bitterbot</strong>, and <a href="https://agentskills.io/clients" target="_blank" rel="noopener noreferrer">30+ others</a>) how to drive a real browser <br/>
+    → Read more at: <a href="https://notte.cc?ref=github" target="_blank" rel="noopener noreferrer">Landing</a> • <a href="https://console.notte.cc/?ref=github" target="_blank" rel="noopener noreferrer">Console</a> • <a href="https://docs.notte.cc?ref=github" target="_blank" rel="noopener noreferrer">Docs</a> • <a href="https://x.com/nottecore?ref=github" target="_blank" rel="noopener noreferrer">X</a> • <a href="https://www.linkedin.com/company/nottelabsinc/?ref=github" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+  </p>
+</div>
 
-Notte runs a real cloud or local browser, exposes observe/click/fill/scrape primitives, provides an agent runtime that takes a natural-language task and returns structured Pydantic output, and lets you deploy any browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
+[![GitHub stars](https://img.shields.io/github/stars/nottelabs/notte-skills?style=social)](https://github.com/nottelabs/notte-skills/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Agent Skills](https://img.shields.io/badge/agent--skills-compatible-blue.svg)](https://agentskills.io/clients)
+[![Bitterbot native](https://img.shields.io/badge/Bitterbot-native-blue.svg)](https://github.com/Bitterbot-AI/bitterbot-desktop/pull/30)
+
+---
+
+# What is Notte Skills?
+
+This repository ships the official AI agent skills for [notte.cc](https://notte.cc?ref=github), letting your coding agent drive a real cloud or local browser. The bundled skills expose observe/click/fill/scrape primitives, an agent runtime that takes a natural-language task and returns structured Pydantic output, and the ability to deploy any browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
 
 ## Installation
 
@@ -107,5 +121,15 @@ If the agent proceeds without consulting the skill, check: the skill files live 
 
 ## License
 
-Skill content: **MIT**.
-Notte itself (the SDK referenced by these skills): SSPL-1.0 — see [github.com/nottelabs/notte](https://github.com/nottelabs/notte).
+Skill content is licensed under the **MIT License**.
+Notte itself (the SDK referenced by these skills) is licensed under SSPL-1.0 — see [github.com/nottelabs/notte](https://github.com/nottelabs/notte).
+
+## Links
+
+- [Landing](https://notte.cc?ref=github)
+- [Console](https://console.notte.cc/?ref=github)
+- [Documentation](https://docs.notte.cc?ref=github)
+- [Main repository (nottelabs/notte)](https://github.com/nottelabs/notte)
+- [Agent Skills specification](https://agentskills.io/specification)
+
+Copyright © 2026 Notte Labs, Inc.
