@@ -102,9 +102,9 @@ SDK skills for building browser automation and agent workflows with the Notte Py
 
 Ask your agent:
 
-> *"Go to news.ycombinator.com and give me the top 5 posts as JSON with title, url, and points."*
+> *"/notte-browser Go to news.ycombinator.com and give me the top 5 posts as JSON with title, url, and points."*
 
-A skill-aware agent should (1) recognise this as a Notte-shaped task, (2) load the appropriate skill into its context, and (3) produce a working Python snippet using `NotteClient` + a Pydantic `response_format`.
+A skill-aware agent should (1) load `notte-browser/SKILL.md` into its context, and (2) produce a working `notte` CLI invocation that scrapes the page and returns the result in the requested shape.
 
 If the agent proceeds without consulting the skill, check: the skill files live at the expected scan path, the folder names match the `name:` field in each `SKILL.md` frontmatter, and your client supports Agent Skills ([see the list](https://agentskills.io/clients)).
 
