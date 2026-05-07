@@ -1,0 +1,29 @@
+name: Test Skills
+
+on:
+  push:
+    paths:
+      - 'plugins/**/templates/**'
+  pull_request:
+    paths:
+      - 'plugins/**/templates/**'
+
+jobs:
+  lint-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell scripts syntax
+        run: |
+          shopt -s globstar nullglob
+          for script in plugins/**/templates/*.sh; do
+            echo "Checking syntax: $script"
+            bash -n "$script"
+          done
+
+      - name: Lint with shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './plugins'
+          severity: warning
