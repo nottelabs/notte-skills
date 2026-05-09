@@ -1,13 +1,17 @@
 ---
 name: notte-browser
-description: Command-line interface for browser automation, web scraping, and AI-powered web interactions using the notte.cc platform.
+description: >
+  Command-line interface for launching and controlling Notte cloud browser
+  sessions: start and stop remote browsers, navigate pages, observe/click/fill
+  elements, scrape web content, manage vaults and personas, capture replays,
+  and deploy browser workflows as Notte Functions.
 version: 1.0.0
 allowed-tools: Bash(notte:*)
 ---
 
 # Notte Browser CLI Skill
 
-Command-line interface for browser automation, web scraping, and AI-powered web interactions using the notte.cc platform.
+Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows.
 
 ## Quick Start
 
@@ -274,6 +278,7 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
+For repeated work, build once interactively, export with `notte sessions workflow-code` or `notte agents workflow-code`, then deploy the generated workflow as a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
 
@@ -537,6 +542,8 @@ Don't pass real secrets as CLI arguments. `--password` and `--mfa-secret` read f
 - [Session Management Reference](references/session-management.md) - Detailed session lifecycle guide
 - [Function Management Reference](references/function-management.md) - Workflow automation guide
 - [Account Management Reference](references/account-management.md) - Personas and vaults guide
+- [Browser Patterns](references/browser-patterns.md) - Routing and workflow patterns for browser tasks
+- [Python SDK Interop](references/python-sdk-interop.md) - Minimal SDK notes for exported workflows and Functions
 
 ### Templates
 
