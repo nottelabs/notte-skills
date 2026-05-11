@@ -9,7 +9,7 @@ Use this only when editing `notte sessions workflow-code` exports or writing a N
 
 ## Function Shape
 
-Notte Functions are Python files with a `run()` entry point. Parameters on `run()` become invocation inputs; returned dicts/lists are available from `notte functions run-metadata`.
+Notte Functions are Python files with a `run()` entry point. Parameters on `run()` become invocation inputs for the CLI, SDK, and HTTP endpoint; returned dicts/lists are available from `notte functions run-metadata`.
 
 ```python
 from notte_sdk import NotteClient
@@ -32,6 +32,22 @@ Deploy with:
 notte functions create --file workflow.py --name "Search Workflow"
 notte functions run
 notte functions run-metadata --run-id <run-id>
+```
+
+Invoke the deployed Function as an API endpoint:
+
+```bash
+curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+  -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "function_id": "{function_id}",
+    "variables": {
+      "url": "https://example.com",
+      "query": "laptop"
+    }
+  }'
 ```
 
 ## Practical Rules

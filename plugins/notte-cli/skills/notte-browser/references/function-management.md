@@ -9,12 +9,14 @@ Complete guide to creating, managing, and scheduling workflow functions with the
 
 ## Overview
 
-Functions are reusable python workflows that can be:
-- Run on-demand (serverless) 
+Functions are reusable Python workflows that can be:
+- Invoked as HTTP API endpoints
+- Run on-demand from the CLI or SDK (serverless)
 - Scheduled with cron expressions
 - Shared publicly and forked by others
 - Tracked with run history and metadata
-- Can be triggered via HTTP POST requests
+
+Think of a Function as the endpoint version of a browser task. A tested `notte page ...` session proves the task works; `notte sessions workflow-code` turns that task into code; `notte functions create` deploys that code behind a stable Function ID that can be triggered repeatedly.
 
 ## Development Workflow
 
@@ -32,7 +34,7 @@ Do not hand-write a Notte Function from scratch before exporting `workflow-code`
 2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session
 3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
 4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` (becomes current function)
-5. **Test in cloud** - Run `notte functions run --var key=value` to execute remotely and get a run ID
+5. **Test in cloud** - Run `notte functions run` to execute remotely and get a run ID, or invoke the Function with an HTTP POST request
 6. **Monitor logs** - Check execution output with `notte functions run-metadata --run-id <run-id>` and inspect the `logs` field
 7. **Iterate** - Update your code based on results, then use `notte functions update --file my_function.py`
 8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
@@ -222,21 +224,29 @@ if __name__ == "__main__":
 
 **Triggering with Parameters:**
 
-When running the function, pass parameters as JSON in the POST body or via the CLI:
+When running the function, pass parameters as Function variables. The CLI is convenient for local iteration; the HTTP POST endpoint is what another service can call to reproduce the same browser task.
 
 ```bash
 # Run with default parameters
 notte functions run
 
-# The function will be triggered via HTTP POST with parameters in body:
-# POST /functions/{id}/run
-# {
-#   "url": "https://example.com/products",
-#   "max_items": 5,
-#   "only_discounted": true,
-#   "categories": ["electronics"]
-# }
+# Invoke the same Function over HTTP
+curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+  -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "function_id": "{function_id}",
+    "variables": {
+      "url": "https://example.com/products",
+      "max_items": 5,
+      "only_discounted": true,
+      "categories": ["electronics"]
+    }
+  }'
 ```
+
+The HTTP response returns a run identifier. Use `notte functions run-metadata --run-id <run-id>` to fetch logs and the value returned by `run(...)`.
 
 **Accessing Return Values:**
 
@@ -305,6 +315,8 @@ notte functions run
 ```
 
 Starts a new function run and returns the run ID.
+
+This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. Use the HTTP example in "Triggering with Parameters" when the user asks for an "endpoint" for a browser task; do not create a separate local web server unless they explicitly ask for one.
 
 ### Check Run Status
 
