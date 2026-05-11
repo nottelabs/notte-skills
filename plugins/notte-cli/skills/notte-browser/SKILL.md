@@ -61,10 +61,15 @@ notte page fill "I1" "hello world"
 
 # 5. Scrape content
 notte page scrape --instructions "Extract all product names and prices"
-
-# 6. Stop the session
-notte sessions stop
 ```
+
+By default, leave interactive sessions running after the requested browser task
+so the user can inspect, continue, export, or replay the session. Notte sessions
+already have idle and maximum-duration timeouts. Stop a session only when the
+user asks, when a script or CI job must clean up deterministically, when a
+session contains sensitive authenticated state that should not remain live, or
+when you need to restart with different session options such as proxy,
+captcha-solving, viewport, or file storage.
 
 ## Command Categories
 
@@ -412,7 +417,7 @@ Session ID is resolved in this order:
 notte sessions start --headless
 notte page goto "https://news.ycombinator.com"
 notte page scrape --instructions "Extract top 10 story titles"
-notte sessions stop
+# Leave the session open for inspection or follow-up commands.
 
 # Multi-page scraping
 notte sessions start --headless
@@ -421,7 +426,7 @@ notte page observe
 notte page scrape --instructions "Extract product names and prices"
 notte page click "L3"
 notte page scrape --instructions "Extract product names and prices"
-notte sessions stop
+# Leave the session open for inspection or follow-up commands.
 ```
 
 ### Form Automation
@@ -432,7 +437,7 @@ notte page goto "https://example.com/signup"
 notte page fill "#email-field" "user@example.com"
 notte page fill "#password-field" "securepassword"
 notte page click "#submit-button"
-notte sessions stop
+# Leave the session open unless the user asks you to close it.
 ```
 
 ### Authenticated Session with Vault
@@ -455,7 +460,7 @@ notte page goto "https://myservice.com/login"
 notte page fill "input[name='email']" "user@example.org"
 notte page fill "input[name='password']" "mycoolpassword"
 notte page fill "input[name='otp']" "999779"
-notte sessions stop
+# Stop this session only if the user asks, or if authenticated state should not remain live.
 ```
 
 **Sentinel placeholders.** Use these exact strings as the value for `notte page fill` (and agent fill actions); they're replaced with the matching vault credential before the keystrokes hit the page. Any other string is filled as-is, so the match must be exact.
@@ -561,7 +566,7 @@ If you're getting blocked or seeing CAPTCHAs, try enabling our residential proxi
  notte sessions start --proxy
  ```
 
-**Note**: Always stop the current session before starting a new one with different parameters. Session configuration cannot be changed mid-session.
+**Note**: If you need different session parameters, stop the current session before starting a new one. Session configuration cannot be changed mid-session.
 
 ## Security Notes
 
