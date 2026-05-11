@@ -457,7 +457,7 @@ def run(dashboard_url: str = "https://dashboard.example.com"):
         report = session.scrape(instructions="Extract the weekly summary statistics")
 
         # Download PDF report
-        session.execute(type="click", selector="@download-pdf-button")
+        session.execute(type="click", selector="#download-pdf-button")
 
         return report
 

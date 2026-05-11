@@ -21,11 +21,11 @@ LOGIN_URL="https://example.com/login"
 DASHBOARD_URL="https://example.com/dashboard"  # URL after successful login
 VAULT_ID="${NOTTE_VAULT_ID:-}"  # Set via env or edit here
 
-# Login form selectors (use @ID from observe or CSS selectors)
-EMAIL_SELECTOR="@email"
-PASSWORD_SELECTOR="@password"
-SUBMIT_SELECTOR="@login-button"
-MFA_SELECTOR="@mfa-code"  # Optional: selector for MFA input
+# Login form selectors (use IDs from observe or CSS selectors)
+EMAIL_SELECTOR="I1"
+PASSWORD_SELECTOR="I2"
+SUBMIT_SELECTOR="B1"
+MFA_SELECTOR="I3"  # Optional: selector for MFA input
 
 # Credentials - leave empty to use vault auto-fill
 EMAIL=""

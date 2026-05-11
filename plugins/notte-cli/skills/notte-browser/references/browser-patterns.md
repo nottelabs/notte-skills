@@ -16,7 +16,7 @@ Use deterministic CLI commands when the next step is known:
 ```bash
 notte page goto "https://example.com"
 notte page observe
-notte page click "@B3"
+notte page click "B3"
 notte page fill "input[name='email']" "user@example.com"
 notte page scrape --instructions "Extract title, price, and URL as JSON"
 ```

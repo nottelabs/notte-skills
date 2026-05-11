@@ -55,22 +55,32 @@ cp -r notte-skills/plugins/notte-cli ~/.claude/skills/
 
 ## Prerequisites
 
-Before using this skill, ensure you have:
+Before using this skill, ensure the agent can run the `notte` CLI and authenticate with a Notte API key.
 
-1. **Python 3.11+** in whatever environment the agent shells into.
-2. **A Notte API key** for hosted mode (recommended):
+Install the CLI:
 
-   ```bash
-   pip install notte
-   export NOTTE_API_KEY=...   # from https://console.notte.cc
-   ```
+```bash
+brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
+brew install notte
+```
 
-   Or **local mode** (no API key, runs Chromium on the user's machine):
+Or install with Go:
 
-   ```bash
-   pip install notte
-   patchright install --with-deps chromium
-   ```
+```bash
+go install github.com/nottelabs/notte-cli/cmd/notte@latest
+```
+
+Authenticate:
+
+```bash
+# Recommended for local development
+notte auth login
+
+# Or for CI/CD and non-interactive agents
+export NOTTE_API_KEY=...
+
+notte auth status
+```
 
 Once installed, your coding agent will automatically know how to use Notte.
 

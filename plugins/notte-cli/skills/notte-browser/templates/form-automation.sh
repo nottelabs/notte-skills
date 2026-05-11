@@ -16,18 +16,18 @@ set -euo pipefail
 TARGET_URL="https://example.com/contact"
 FORM_DATA=(
     # Format: "selector|value"
-    # Use @ID for element IDs from observe, or Playwright selectors
+    # Use IDs from observe, or Playwright selectors
     # Examples:
-    #   "@I1|value"                    - Element ID from observe
+    #   "I1|value"                     - Element ID from observe
     #   "#name|value"                  - CSS ID selector
     #   "input[name='email']|value"    - Attribute selector
     #   ".form-input >> nth=0|value"   - First match when multiple elements
-    "@name|John Doe"
-    "@email|john@example.com"
-    "@message|Hello, this is a test message."
+    "I1|John Doe"
+    "I2|john@example.com"
+    "I3|Hello, this is a test message."
 )
-# Tip: If @submit doesn't work, try: "button:has-text('Submit')" or "#submit-button"
-SUBMIT_SELECTOR="@submit"
+# Tip: If the observe ID doesn't work, try: "button:has-text('Submit')" or "#submit-button"
+SUBMIT_SELECTOR="B1"
 SUCCESS_INDICATOR="Thank you"  # Text that appears on success
 
 # Optional: Screenshot settings

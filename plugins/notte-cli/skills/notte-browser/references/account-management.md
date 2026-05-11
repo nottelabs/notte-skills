@@ -114,8 +114,8 @@ notte sessions start
 # Fill signup form
 notte page goto "https://example.com/signup"
 notte page observe
-notte page fill "@email" "$EMAIL"
-notte page click "@submit"
+notte page fill "I1" "$EMAIL"
+notte page click "B1"
 
 # Wait for verification email
 sleep 10
@@ -127,8 +127,8 @@ CODE=$(notte personas emails --persona-id "$PERSONA_ID" -o json | \
 
 # Enter verification code
 notte page observe
-notte page fill "@verification-code" "$CODE"
-notte page click "@verify"
+notte page fill "I1" "$CODE"
+notte page click "B1"
 
 # Cleanup
 notte sessions stop
@@ -337,7 +337,7 @@ notte sessions start
 
 # Navigate to login - vault credentials auto-fill
 notte page goto "https://analytics.example.com/login"
-notte page click "@submit-login"
+notte page click "B1"
 
 # Wait for MFA (TOTP auto-generated from vault)
 notte page wait 2000

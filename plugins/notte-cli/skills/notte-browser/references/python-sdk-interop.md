@@ -40,31 +40,28 @@ notte functions run-metadata --run-id <run-id>
 - Use `client.Session(...)` as a context manager.
 - Put `solve_captchas=True` and `proxies=True` on `Session`, not on `Agent`.
 - Use `session.execute(...)` for known URLs/selectors and `client.Agent(session=session).run(...)` only for ambiguous steps.
-- If using observe IDs in Python, call `session.observe()` first. CLI IDs look like `@B3`; SDK IDs are usually passed without `@`.
+- If using observe IDs in Python, call `session.observe()` first. Pass the plain ID, such as `B3` or `I1`.
 - If an agent reports that it ran out of steps, raise `max_steps`; retrying the same config usually repeats the failure.
 - Do not put credentials in task strings. Use vaults or environment-backed setup.
 
 ## Structured Extraction
 
-For CLI scraping, prefer narrow instructions such as `Extract title, price, and URL as JSON`. For Python agent runs that require validation, use a Pydantic model as `response_format` and validate `response.answer`.
+For CLI scraping, prefer narrow instructions:
+
+```bash
+notte page scrape --instructions "Extract title, price, and URL as JSON"
+```
+
+For Python SDK scraping, use `client.scrape(...)` for one-shot extraction or `session.scrape(...)` after navigation/authentication. Keep the instructions narrow and skip an agent unless the task requires judgment or interaction.
 
 ```python
-from pydantic import BaseModel
+from notte_sdk import NotteClient
 
 
-class Product(BaseModel):
-    name: str
-    price: str
-    url: str
-
-
-class Products(BaseModel):
-    products: list[Product]
-
-
-result = client.Agent(session=session, max_steps=15).run(
-    task="Extract the visible products",
-    response_format=Products,
+client = NotteClient()
+products = client.scrape(
+    "https://example.com/products",
+    instructions="Extract visible products with name, price, and URL as JSON",
 )
-products = Products.model_validate_json(result.answer)
+print(products)
 ```

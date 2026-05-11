@@ -33,7 +33,7 @@ ONLY_MAIN_CONTENT=true
 # Pagination settings
 PAGINATE=false
 MAX_PAGES=5
-NEXT_PAGE_SELECTOR="@next"  # Selector for next page button
+NEXT_PAGE_SELECTOR="L2"  # Observe ID or selector for next page button
 
 # Colors for output
 RED='\033[0;31m'

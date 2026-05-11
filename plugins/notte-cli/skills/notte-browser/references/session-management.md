@@ -77,7 +77,7 @@ notte sessions start
 
 # These commands use the current session automatically:
 notte page observe
-notte page click "@B3"
+notte page click "B3"
 notte page scrape
 notte sessions stop
 ```
@@ -131,11 +131,11 @@ Example response (JSON output):
 }
 ```
 
-Use these IDs with the `@` prefix in page commands:
+Use these IDs directly in page commands:
 ```bash
-notte page fill "@B1" "user@example.com"
-notte page fill "@B2" "password"
-notte page click "@B3"
+notte page fill "B1" "user@example.com"
+notte page fill "B2" "password"
+notte page click "B3"
 ```
 
 ## Executing Actions
@@ -147,13 +147,13 @@ Use the `page` commands for interacting with the browser:
 notte page goto "https://example.com"
 
 # Click
-notte page click "@B3"
+notte page click "B3"
 
 # Fill
-notte page fill "@B1" "hello"
+notte page fill "B1" "hello"
 
 # Select dropdown
-notte page select "@dropdown" "Option 1"
+notte page select "S1" "Option 1"
 
 # Press key
 notte page press "Enter"
@@ -342,7 +342,7 @@ Always observe to get current element IDs:
 notte page goto "https://example.com"
 notte page observe
 # Now you know the element IDs
-notte page click "@B3"
+notte page click "B3"
 ```
 
 ### 4. Use JSON Output for Scripts
@@ -356,9 +356,9 @@ URL=$(echo "$RESULT" | jq -r '.url')
 ### 5. Handle Errors Gracefully
 
 ```bash
-if ! notte page click "@submit"; then
+if ! notte page click "B3"; then
   echo "Click failed, retrying..."
   notte page wait 1000
-  notte page click "@submit"
+  notte page click "B3"
 fi
 ```
