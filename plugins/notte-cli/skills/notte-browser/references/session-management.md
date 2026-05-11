@@ -11,8 +11,8 @@ Complete guide to managing browser sessions with the notte CLI.
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   start     │ -> │   observe   │ -> │    page     │ -> │    stop     │
-│  sessions   │    │   (page)    │    │  commands   │    │  sessions   │
+│   start     │ -> │   observe   │ -> │    page     │ -> │  optional   │
+│  sessions   │    │   (page)    │    │  commands   │    │    stop     │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
@@ -79,6 +79,7 @@ notte sessions start
 notte page observe
 notte page click "B3"
 notte page scrape
+# Stop only when closing the session is intentional:
 notte sessions stop
 ```
 
@@ -300,6 +301,11 @@ notte sessions list --page 2 --page-size 10 --only-active
 
 ## Stopping Sessions
 
+Stopping is optional for interactive agent work. Prefer leaving the session open
+after a user-requested browser task so the user can inspect the page, continue
+from the current state, export workflow code, or view the replay. Sessions close
+automatically when their idle timeout or max-duration limit is reached.
+
 ```bash
 # Stop current session
 notte sessions stop
@@ -313,9 +319,16 @@ notte sessions stop --yes
 
 ## Best Practices
 
-### 1. Always Stop Sessions
+### 1. Do Not Stop Interactive Sessions Reflexively
 
-Sessions consume resources. Always stop when done:
+For interactive use, keep the session alive after completing the requested task
+unless the user asks you to close it, the session contains sensitive
+authenticated state that should not remain live, or you need to restart with
+different session options. Mention the session status in your final response
+when it matters.
+
+In scripts, CI jobs, and reusable automation, deterministic cleanup is still
+useful:
 
 ```bash
 # In scripts, use trap for cleanup
