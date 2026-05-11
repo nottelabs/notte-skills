@@ -23,7 +23,7 @@ Think of a Function as the endpoint version of a browser task. A tested `notte p
 Building a function should start from a tested CLI session. The easiest and most reliable path is:
 
 1. Try the browser task directly with `notte sessions start` and `notte page ...` commands until it works.
-2. Export the successful session with `notte sessions workflow-code`.
+2. Export the successful session with `notte sessions workflow-code`. If the current-session pointer is gone, or the session has already been stopped, pass the captured session ID explicitly with `notte sessions workflow-code --session-id <session-id>`.
 3. Use the exported script as the implementation base for the Function.
 
 Do not hand-write a Notte Function from scratch before exporting `workflow-code` unless there is no successful session to export or the user explicitly asks for handwritten SDK code. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser.
@@ -31,7 +31,7 @@ Do not hand-write a Notte Function from scratch before exporting `workflow-code`
 ### Step-by-Step Process
 
 1. **Build interactively** - Use `notte sessions start` and `notte page` commands to develop your automation step-by-step in the terminal
-2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session
+2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session. If the session is no longer current, use `notte sessions workflow-code --session-id <session-id>`.
 3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
 4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` (becomes current function)
 5. **Test in cloud** - Run `notte functions run` to execute remotely and get a run ID, or invoke the Function with an HTTP POST request
@@ -42,17 +42,20 @@ Do not hand-write a Notte Function from scratch before exporting `workflow-code`
 ### Complete Example
 
 ```bash
-# 1. Build your automation interactively
-notte sessions start --headless
+# 1. Build your automation interactively and keep the session ID
+SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
 notte page goto "https://news.ycombinator.com"
 notte page observe
 notte page scrape --instructions "Extract top 5 story titles and URLs"
-notte sessions stop
 
-# 2. Export the session as Python code
-notte sessions workflow-code > hn_scraper.py
+# 2. Stop the session when the interactive test is done
+notte sessions stop --session-id "$SESSION_ID"
 
-# 3. Edit the exported file to add the run() function and parameters
+# 3. Export the session as Python code.
+# This still works after stop because the session ID is explicit.
+notte sessions workflow-code --session-id "$SESSION_ID" > hn_scraper.py
+
+# 4. Edit the exported file to add the run() function and parameters
 # hn_scraper.py should look like:
 # from notte_sdk import NotteClient
 # 
@@ -65,7 +68,7 @@ notte sessions workflow-code > hn_scraper.py
 #         data = session.scrape(instructions=f"Extract top {max_stories} story titles and URLs")
 #         return {"stories": data, "count": max_stories}
 
-# 4. Create the function (automatically becomes current function)
+# 5. Create the function (automatically becomes current function)
 notte functions create \
   --file hn_scraper.py \
   --name "HN Top Stories" \
@@ -155,12 +158,9 @@ client = NotteClient()
 def run(url: str):
     """Simple function with one required parameter."""
     with client.Session() as session:
-        session.goto(url)
+        session.execute(type="goto", url=url)
         data = session.scrape()
         return data
-
-if __name__ == "__main__":
-    run("https://notte.cc/pricing")
 ```
 
 **Advanced Example with Variables:**
@@ -187,7 +187,7 @@ def run(
         categories: Optional list
     """
     with client.Session() as session:
-        session.goto(url)
+        session.execute(type="goto", url=url)
         
         # Build extraction instructions dynamically
         instructions = f"Extract up to {max_items} products"
@@ -211,15 +211,6 @@ def run(
             }
         }
 
-if __name__ == "__main__":
-    # Test locally with default values
-    result = run(
-        url="https://example.com/products",
-        max_items=5,
-        only_discounted=True,
-        categories=["electronics", "accessories"]
-    )
-    print(result)
 ```
 
 **Triggering with Parameters:**
@@ -440,12 +431,9 @@ client = NotteClient()
 
 def run(competitor_url: str = "https://competitor.com/products"):
     with client.Session() as session:
-        session.goto(competitor_url)
+        session.execute(type="goto", url=competitor_url)
         prices = session.scrape(instructions="Extract all product prices as JSON")
         return {"prices": prices, "count": len(prices) if prices else 0}
-
-if __name__ == "__main__":
-    run()
 ```
 
 ```bash
@@ -467,12 +455,12 @@ vault = client.Vault("my-vault-id")
 def run(dashboard_url: str = "https://dashboard.example.com"):
     with client.Session(enable_file_storage=True) as session:
         # Login using vault credentials (vault auto-fills credentials)
-        session.goto(f"{dashboard_url}/login")
+        session.execute(type="goto", url=f"{dashboard_url}/login")
 
         agent = client.Agent(session, vault=vault, max_steps=5)
         agent.run(task="Login to dashboard")
 
-        session.goto(f"{dashboard_url}/reports/weekly")
+        session.execute(type="goto", url=f"{dashboard_url}/reports/weekly")
 
         report = session.scrape(instructions="Extract the weekly summary statistics")
 
@@ -481,8 +469,6 @@ def run(dashboard_url: str = "https://dashboard.example.com"):
 
         return report
 
-if __name__ == "__main__":
-    run()
 ```
 
 ```bash
@@ -504,7 +490,7 @@ def run(status_url: str = "https://app.example.com/status", max_retries: int = 3
     for attempt in range(max_retries):
         try:
             with client.Session() as session:
-                session.goto(status_url)
+                session.execute(type="goto", url=status_url)
                 status = session.scrape(instructions="Extract system status as JSON")
 
                 if status and status.get("healthy"):
@@ -518,8 +504,6 @@ def run(status_url: str = "https://app.example.com/status", max_retries: int = 3
             else:
                 return {"success": False, "error": f"Failed after {max_retries} attempts: {e}"}
 
-if __name__ == "__main__":
-    run()
 ```
 
 ## Best Practices

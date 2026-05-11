@@ -13,6 +13,6 @@ alwaysApply: false
 - `reasoning_model` is a LiteLLM model string ("gemini/gemini-2.5-flash"), not a provider name.
 - `max_steps` is a hard stop. If the agent runs out, raise it rather than rephrasing the task.
 - the second time a task runs successfully and the page hasn't changed, promote it to a Notte Function for fast/cheap deterministic reruns.
-- when creating a reusable Notte Function from browser automation, first test the flow interactively with CLI session commands, then run `notte sessions workflow-code` and use the exported script as the base. Don't hand-write the Function first unless no successful session exists.
+- when creating a reusable Notte Function from browser automation, first test the flow interactively with CLI session commands, then run `notte sessions workflow-code` and use the exported script as the base. Capture the session ID; if the session is stopped or no longer current, export with `notte sessions workflow-code --session-id <session-id>`. Don't hand-write the Function first unless no successful session exists.
 - after a successful agent run, `agent.workflow.code()` returns a deterministic Python script you can deploy as a Function with no LLM tokens per invocation.
 - `session.observe()` is required before `session.execute(type="click"|"fill", id=...)`. Re-observe after navigation or major page changes.
