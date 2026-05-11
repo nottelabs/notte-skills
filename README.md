@@ -38,7 +38,7 @@ Install from the Cursor Marketplace:
 2. Search for "Notte"
 3. Install the plugin
 
-The Cursor plugin includes the Notte browser skill, an MCP server for cloud browser management, and best-practice rules.
+The Cursor plugin includes the Notte browser skill and best-practice rules.
 
 ### Any agent
 
