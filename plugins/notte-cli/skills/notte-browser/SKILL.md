@@ -209,6 +209,13 @@ notte page screenshot
 notte page scrape --instructions "Extract all links" [--only-main-content]
 ```
 
+`--only-main-content` can reduce output size and token cost by filtering out
+navigation, sidebars, footers, and other page chrome. It can also reduce recall,
+especially on dynamic pages or layouts where important content is not classified
+as main content. When completeness matters, try scraping without
+`--only-main-content` first, then add it only if the full-page output is too
+noisy or expensive.
+
 **Utilities:**
 ```bash
 # Wait for specified duration
