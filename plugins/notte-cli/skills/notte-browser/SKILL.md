@@ -4,8 +4,9 @@ description: >
   Command-line interface for launching and controlling Notte cloud browser
   sessions: start and stop remote browsers, navigate pages, observe/click/fill
   elements, scrape web content, manage vaults and personas, capture replays,
-  and deploy browser workflows as Notte Functions.
-version: 1.0.0
+  and deploy browser workflows as Notte Functions for callable, scheduled, or
+  reusable automations such as endpoints, APIs, webhooks, jobs, workflows, and
+  services.
 allowed-tools: Bash(notte:*)
 ---
 
@@ -271,7 +272,7 @@ notte agents replay
 
 ### Functions (Workflow Automation and API Endpoints)
 
-Create, manage, invoke, and schedule reusable workflows. Use Functions when the user wants a browser task turned into something repeatable or externally callable, for example "make an endpoint for this scrape", "run this every day", or "let another service trigger this automation".
+Use Notte Functions to create callable, scheduled, or reusable browser automations. This is the path for turning a browser task or scrape into an endpoint, API, webhook, job, workflow, or service.
 
 A Notte Function is the deployed endpoint form of a browser workflow: `run(...)` parameters become invocation variables, and its returned JSON-serializable value becomes the run result.
 
