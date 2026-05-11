@@ -153,7 +153,7 @@ notte page click "B3"
 notte page fill "B1" "hello"
 
 # Select dropdown
-notte page select "S1" "Option 1"
+notte page select "select[name='country']" "Option 1"
 
 # Press key
 notte page press "Enter"
