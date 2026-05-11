@@ -37,10 +37,17 @@ notte functions run-metadata --run-id <run-id>
 Invoke the deployed Function as an API endpoint:
 
 ```bash
-curl -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"variables": {"url": "https://example.com", "query": "laptop"}}'
+  -d '{
+    "function_id": "{function_id}",
+    "variables": {
+      "url": "https://example.com",
+      "query": "laptop"
+    }
+  }'
 ```
 
 ## Practical Rules

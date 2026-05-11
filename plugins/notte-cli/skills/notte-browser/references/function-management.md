@@ -231,10 +231,12 @@ When running the function, pass parameters as Function variables. The CLI is con
 notte functions run
 
 # Invoke the same Function over HTTP
-curl -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
+    "function_id": "{function_id}",
     "variables": {
       "url": "https://example.com/products",
       "max_items": 5,
@@ -314,18 +316,7 @@ notte functions run
 
 Starts a new function run and returns the run ID.
 
-This is the CLI equivalent of hitting the Function's HTTP invocation endpoint.
-
-### Invoke as an HTTP Endpoint
-
-```bash
-curl -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
-  -H "Authorization: Bearer $NOTTE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"variables": {"url": "https://example.com"}}'
-```
-
-Use this when the user asks for an "endpoint" for a browser task. Do not create a separate local web server unless they explicitly ask for one; deploy a Notte Function and return the Function ID plus invocation shape.
+This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. Use the HTTP example in "Triggering with Parameters" when the user asks for an "endpoint" for a browser task; do not create a separate local web server unless they explicitly ask for one.
 
 ### Check Run Status
 

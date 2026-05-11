@@ -286,10 +286,12 @@ notte functions delete
 notte functions run
 
 # Invoke the deployed Function over HTTP from another service
-curl -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
+    "function_id": "{function_id}",
     "variables": {
       "url": "https://example.com",
       "max_items": 10
