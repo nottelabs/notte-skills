@@ -5,7 +5,7 @@ description: Minimal Python SDK guidance for exported workflows and Notte Functi
 
 # Python SDK Interop
 
-Use this only when editing `notte sessions workflow-code`, `notte agents workflow-code`, or writing a Notte Function file by hand. Keep ordinary browser tasks in the CLI skill.
+Use this only when editing `notte sessions workflow-code` exports or writing a Notte Function file by hand. Keep ordinary browser tasks in the CLI skill.
 
 ## Function Shape
 
