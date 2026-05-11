@@ -264,15 +264,7 @@ notte agents replay
 
 Create, manage, invoke, and schedule reusable workflows. Use Functions when the user wants a browser task turned into something repeatable or externally callable, for example "make an endpoint for this scrape", "run this every day", or "let another service trigger this automation".
 
-Mental model:
-
-1. Develop the browser task in a normal session with `notte sessions start` and `notte page ...`.
-2. Export the working session with `notte sessions workflow-code`.
-3. Wrap or edit the export into a Python `run(...)` function.
-4. Deploy it with `notte functions create --file workflow.py`.
-5. Reproduce the task by invoking the Function from the CLI, SDK, schedule, or HTTP POST endpoint.
-
-The `run(...)` function is the endpoint contract: its parameters become invocation variables, and its returned JSON-serializable value becomes the run result.
+A Notte Function is the deployed endpoint form of a browser workflow: `run(...)` parameters become invocation variables, and its returned JSON-serializable value becomes the run result.
 
 ```bash
 # List all functions (with optional pagination and filters)
@@ -325,7 +317,7 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
-For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. The expected flow is to build once interactively, export the tested session with `notte sessions workflow-code`, then deploy the generated workflow as the Function base and expose it as an invokable endpoint. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
+For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
 
