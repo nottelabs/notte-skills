@@ -11,7 +11,7 @@ allowed-tools: Bash(notte:*)
 
 # Notte Browser CLI Skill
 
-Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows.
+Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows as Notte Functions. A Function is the deployment form of a tested browser task: it can be invoked later as an HTTP API endpoint, run from the CLI/SDK, or scheduled.
 
 ## General Documentation
 
@@ -260,9 +260,19 @@ notte agents replay
 2. `NOTTE_AGENT_ID` environment variable
 3. `~/.notte/cli/current_agent` file (lowest priority)
 
-### Functions (Workflow Automation)
+### Functions (Workflow Automation and API Endpoints)
 
-Create, manage, and schedule reusable workflows:
+Create, manage, invoke, and schedule reusable workflows. Use Functions when the user wants a browser task turned into something repeatable or externally callable, for example "make an endpoint for this scrape", "run this every day", or "let another service trigger this automation".
+
+Mental model:
+
+1. Develop the browser task in a normal session with `notte sessions start` and `notte page ...`.
+2. Export the working session with `notte sessions workflow-code`.
+3. Wrap or edit the export into a Python `run(...)` function.
+4. Deploy it with `notte functions create --file workflow.py`.
+5. Reproduce the task by invoking the Function from the CLI, SDK, schedule, or HTTP POST endpoint.
+
+The `run(...)` function is the endpoint contract: its parameters become invocation variables, and its returned JSON-serializable value becomes the run result.
 
 ```bash
 # List all functions (with optional pagination and filters)
@@ -282,6 +292,17 @@ notte functions delete
 
 # Run current function
 notte functions run
+
+# Invoke the deployed Function over HTTP from another service
+curl -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
+  -H "Authorization: Bearer $NOTTE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": {
+      "url": "https://example.com",
+      "max_items": 10
+    }
+  }'
 
 # List runs for current function (with optional pagination and filters)
 notte functions runs [--page N] [--page-size N] [--only-active]
@@ -304,7 +325,7 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
-For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. The expected flow is to build once interactively, export the tested session with `notte sessions workflow-code`, then deploy the generated workflow as the Function base. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
+For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. The expected flow is to build once interactively, export the tested session with `notte sessions workflow-code`, then deploy the generated workflow as the Function base and expose it as an invokable endpoint. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
 
