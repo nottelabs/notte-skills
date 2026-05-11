@@ -560,7 +560,6 @@ Don't pass real secrets as CLI arguments. `--password` and `--mfa-secret` read f
 - [Session Management Reference](references/session-management.md) - Detailed session lifecycle guide
 - [Function Management Reference](references/function-management.md) - Workflow automation guide
 - [Account Management Reference](references/account-management.md) - Personas and vaults guide
-- [Browser Patterns](references/browser-patterns.md) - Routing and workflow patterns for browser tasks
 - [Python SDK Interop](references/python-sdk-interop.md) - Minimal SDK notes for exported workflows and Functions
 
 ### Templates
