@@ -13,6 +13,14 @@ allowed-tools: Bash(notte:*)
 
 Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows.
 
+## General Documentation
+
+For broader Notte concepts, current docs, and internet-search entry points, start with the documentation index:
+
+```text
+https://docs.notte.cc/llms.txt
+```
+
 ## Setup
 
 Use this skill after the `notte` CLI is installed and authenticated.
