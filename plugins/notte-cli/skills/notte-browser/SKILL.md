@@ -108,8 +108,10 @@ notte sessions network
 # Get replay URL/data
 notte sessions replay
 
-# Export session steps as Python workflow code
+# Export session steps as Python workflow code.
+# Use --session-id to export a specific session, including one that has been stopped.
 notte sessions workflow-code
+notte sessions workflow-code --session-id <session-id>
 ```
 
 Cookie management:
