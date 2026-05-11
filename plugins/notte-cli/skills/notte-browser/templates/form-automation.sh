@@ -22,12 +22,12 @@ FORM_DATA=(
     #   "#name|value"                  - CSS ID selector
     #   "input[name='email']|value"    - Attribute selector
     #   ".form-input >> nth=0|value"   - First match when multiple elements
-    "I1|John Doe"
-    "I2|john@example.com"
-    "I3|Hello, this is a test message."
+    "input[name='name']|John Doe"
+    "input[type='email']|john@example.com"
+    "textarea[name='message']|Hello, this is a test message."
 )
 # Tip: If the observe ID doesn't work, try: "button:has-text('Submit')" or "#submit-button"
-SUBMIT_SELECTOR="B1"
+SUBMIT_SELECTOR="button[type='submit']"
 SUCCESS_INDICATOR="Thank you"  # Text that appears on success
 
 # Optional: Screenshot settings

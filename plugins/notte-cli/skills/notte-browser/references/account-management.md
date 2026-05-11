@@ -337,7 +337,7 @@ notte sessions start
 
 # Navigate to login - vault credentials auto-fill
 notte page goto "https://analytics.example.com/login"
-notte page click "B1"
+notte page click "button[type='submit']"
 
 # Wait for MFA (TOTP auto-generated from vault)
 notte page wait 2000

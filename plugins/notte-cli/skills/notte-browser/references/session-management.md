@@ -356,9 +356,9 @@ URL=$(echo "$RESULT" | jq -r '.url')
 ### 5. Handle Errors Gracefully
 
 ```bash
-if ! notte page click "B3"; then
+if ! notte page click "button[type='submit']"; then
   echo "Click failed, retrying..."
   notte page wait 1000
-  notte page click "B3"
+  notte page click "button[type='submit']"
 fi
 ```
