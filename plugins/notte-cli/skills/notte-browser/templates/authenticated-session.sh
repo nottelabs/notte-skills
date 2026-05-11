@@ -21,11 +21,11 @@ LOGIN_URL="https://example.com/login"
 DASHBOARD_URL="https://example.com/dashboard"  # URL after successful login
 VAULT_ID="${NOTTE_VAULT_ID:-}"  # Set via env or edit here
 
-# Login form selectors (use @ID from observe or CSS selectors)
-EMAIL_SELECTOR="@email"
-PASSWORD_SELECTOR="@password"
-SUBMIT_SELECTOR="@login-button"
-MFA_SELECTOR="@mfa-code"  # Optional: selector for MFA input
+# Login form selectors (use Playwright-compatible selectors, or IDs from observe)
+EMAIL_SELECTOR="input[type='email']"
+PASSWORD_SELECTOR="input[type='password']"
+SUBMIT_SELECTOR="button[type='submit']"
+MFA_SELECTOR="input[name='otp']"  # Optional: selector for MFA input
 
 # Credentials - leave empty to use vault auto-fill
 EMAIL=""

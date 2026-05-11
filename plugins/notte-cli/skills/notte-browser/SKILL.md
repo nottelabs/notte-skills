@@ -1,13 +1,35 @@
 ---
 name: notte-browser
-description: Command-line interface for browser automation, web scraping, and AI-powered web interactions using the notte.cc platform.
+description: >
+  Command-line interface for launching and controlling Notte cloud browser
+  sessions: start and stop remote browsers, navigate pages, observe/click/fill
+  elements, scrape web content, manage vaults and personas, capture replays,
+  and deploy browser workflows as Notte Functions.
 version: 1.0.0
 allowed-tools: Bash(notte:*)
 ---
 
 # Notte Browser CLI Skill
 
-Command-line interface for browser automation, web scraping, and AI-powered web interactions using the notte.cc platform.
+Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows.
+
+## Setup
+
+Use this skill after the `notte` CLI is installed and authenticated.
+
+```bash
+# Install with Homebrew
+brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
+brew install notte
+
+# Or install with Go
+go install github.com/nottelabs/notte-cli/cmd/notte@latest
+
+# Authenticate locally, or set NOTTE_API_KEY for CI/non-interactive agents
+notte auth login
+# export NOTTE_API_KEY=...
+notte auth status
+```
 
 ## Quick Start
 
@@ -23,10 +45,10 @@ notte page goto "https://example.com"
 notte page observe
 notte page screenshot
 
-# 4. Execute actions (use @IDs from observe, or Playwright selectors)
-notte page click "@B3"
-notte page fill "@I1" "hello world"
-# If @IDs don't work, use Playwright selectors:
+# 4. Execute actions (use IDs from observe, or Playwright selectors)
+notte page click "B3"
+notte page fill "I1" "hello world"
+# If observe IDs don't work, use Playwright selectors:
 # notte page click "button:has-text('Submit')"
 
 # 5. Scrape content
@@ -98,14 +120,14 @@ Simplified commands for page interactions:
 
 **Element Interactions:**
 ```bash
-# Click an element (use either the ids from an observe, or a selector)
-notte page click "@B3"
+# Click an element (use either the IDs from observe, or a selector)
+notte page click "B3"
 notte page click "#submit-button"
   --timeout     Timeout in milliseconds
   --enter       Press Enter after clicking
 
 # Fill an input field
-notte page fill "@I1" "hello world"
+notte page fill "I1" "hello world"
   --clear       Clear field before filling
   --enter       Press Enter after filling
 
@@ -117,7 +139,7 @@ notte page check "#my-checkbox"
 notte page select "#dropdown-element" "Option 1"
 
 # Download file by clicking element
-notte page download "@L5"
+notte page download "L5"
 
 # Upload file to input
 notte page upload "#file-input" --file /path/to/file
@@ -274,6 +296,7 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
+For repeated work, build once interactively, export with `notte sessions workflow-code` or `notte agents workflow-code`, then deploy the generated workflow as a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
 
@@ -364,7 +387,7 @@ notte sessions start --headless
 notte page goto "https://example.com/products"
 notte page observe
 notte page scrape --instructions "Extract product names and prices"
-notte page click "@L3"
+notte page click "L3"
 notte page scrape --instructions "Extract product names and prices"
 notte sessions stop
 ```
@@ -438,7 +461,7 @@ notte functions runs --function-id <function-id>
 The `observe` command may sometimes return stale or partial DOM state, especially with dynamic content, modals, or single-page applications. If the output seems wrong:
 
 1. **Use screenshots to verify**: `notte page screenshot` always shows the current visual state
-2. **Fall back to Playwright selectors**: Instead of `@ID` references, use standard selectors like `#id`, `.class`, or `button:has-text('Submit')`
+2. **Fall back to Playwright selectors**: Instead of observe IDs, use standard selectors like `#id`, `.class`, or `button:has-text('Submit')`
 3. **Add a brief wait**: `notte page wait 500` before observing can help with dynamic content
 
 ### Selector Syntax
@@ -447,10 +470,10 @@ Both element IDs from `observe` and Playwright selectors are supported:
 
 ```bash
 # Using element IDs from observe output
-notte page click "@B3"
-notte page fill "@I1" "text"
+notte page click "B3"
+notte page fill "I1" "text"
 
-# Using Playwright selectors (recommended when @IDs don't work)
+# Using Playwright selectors (recommended when observe IDs don't work)
 notte page click "#submit-button"
 notte page click ".btn-primary"
 notte page click "button:has-text('Submit')"
@@ -537,6 +560,7 @@ Don't pass real secrets as CLI arguments. `--password` and `--mfa-secret` read f
 - [Session Management Reference](references/session-management.md) - Detailed session lifecycle guide
 - [Function Management Reference](references/function-management.md) - Workflow automation guide
 - [Account Management Reference](references/account-management.md) - Personas and vaults guide
+- [Python SDK Interop](references/python-sdk-interop.md) - Minimal SDK notes for exported workflows and Functions
 
 ### Templates
 

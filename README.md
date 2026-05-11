@@ -16,7 +16,7 @@
 
 # What is Notte Skills?
 
-This repository ships the official AI agent skills for [notte.cc](https://notte.cc?ref=github), letting your coding agent drive a real cloud or local browser. The bundled skills expose observe/click/fill/scrape primitives, an agent runtime that takes a natural-language task and returns structured Pydantic output, and the ability to deploy any browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
+This repository ships the official AI agent skill for [notte.cc](https://notte.cc?ref=github), letting your coding agent drive a real cloud or local browser. The bundled skill exposes observe/click/fill/scrape primitives, AI browser agents, and the ability to deploy browser automation as a scheduled, API-callable [Function](https://docs.notte.cc/concepts/functions).
 
 ## Installation
 
@@ -28,9 +28,6 @@ This repository ships the official AI agent skills for [notte.cc](https://notte.
 
 # Install the CLI skill
 /plugin install notte-cli
-
-# Install the SDK skills
-/plugin install notte-sdks
 ```
 
 ### Cursor
@@ -41,7 +38,7 @@ Install from the Cursor Marketplace:
 2. Search for "Notte"
 3. Install the plugin
 
-The Cursor plugin includes all skills, an MCP server for cloud browser management, and best-practice rules.
+The Cursor plugin includes the Notte browser skill and best-practice rules.
 
 ### Any agent
 
@@ -54,29 +51,36 @@ npx skills add nottelabs/notte-skills
 ```bash
 git clone https://github.com/nottelabs/notte-skills.git
 cp -r notte-skills/plugins/notte-cli ~/.claude/skills/
-cp -r notte-skills/plugins/notte-sdks ~/.claude/skills/
 ```
 
 ## Prerequisites
 
-Before using these skills, ensure you have:
+Before using this skill, ensure the agent can run the `notte` CLI and authenticate with a Notte API key.
 
-1. **Python 3.11+** in whatever environment the agent shells into.
-2. **A Notte API key** for hosted mode (recommended):
+Install the CLI:
 
-   ```bash
-   pip install notte
-   export NOTTE_API_KEY=...   # from https://console.notte.cc
-   ```
+```bash
+brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
+brew install notte
+```
 
-   Or **local mode** (no API key, runs Chromium on the user's machine):
+Or install with Go:
 
-   ```bash
-   pip install notte
-   patchright install --with-deps chromium
-   ```
+```bash
+go install github.com/nottelabs/notte-cli/cmd/notte@latest
+```
 
-3. If you use `notte.Agent(...)` in local mode, an LLM provider key such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or an OpenRouter key.
+Authenticate:
+
+```bash
+# Recommended for local development
+notte auth login
+
+# Or for CI/CD and non-interactive agents
+export NOTTE_API_KEY=...
+
+notte auth status
+```
 
 Once installed, your coding agent will automatically know how to use Notte.
 
@@ -89,14 +93,6 @@ CLI skills for using Notte CLI commands.
 | Skill | Description |
 |-------|-------------|
 | **notte-browser** | Manage browser sessions, accounts, and deploy Notte Functions from the command line |
-
-### notte-sdks
-
-SDK skills for building browser automation and agent workflows with the Notte Python SDK.
-
-| Skill | Description |
-|-------|-------------|
-| **notte** | Drive a real browser from Python: observe / click / fill / scrape, run agent tasks against natural-language goals, return Pydantic-typed output, and deploy automations as serverless Notte Functions |
 
 ## Verify it's wired up
 
