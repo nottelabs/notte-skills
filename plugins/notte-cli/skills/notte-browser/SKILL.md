@@ -304,7 +304,7 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
-For repeated work, build once interactively, export with `notte sessions workflow-code` or `notte agents workflow-code`, then deploy the generated workflow as a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
+For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. The expected flow is to build once interactively, export the tested session with `notte sessions workflow-code`, then deploy the generated workflow as the Function base. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
 

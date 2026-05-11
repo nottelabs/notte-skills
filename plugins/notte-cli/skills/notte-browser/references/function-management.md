@@ -18,17 +18,24 @@ Functions are reusable python workflows that can be:
 
 ## Development Workflow
 
-Building a function follows this iterative process:
+Building a function should start from a tested CLI session. The easiest and most reliable path is:
+
+1. Try the browser task directly with `notte sessions start` and `notte page ...` commands until it works.
+2. Export the successful session with `notte sessions workflow-code`.
+3. Use the exported script as the implementation base for the Function.
+
+Do not hand-write a Notte Function from scratch before exporting `workflow-code` unless there is no successful session to export or the user explicitly asks for handwritten SDK code. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser.
 
 ### Step-by-Step Process
 
 1. **Build interactively** - Use `notte sessions start` and `notte page` commands to develop your automation step-by-step in the terminal
 2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session
-3. **Create function** - Save the exported code as `my_function.py`, then upload it with `notte functions create --file my_function.py` (becomes current function)
-4. **Test in cloud** - Run `notte functions run` to execute remotely and get a run ID
-5. **Monitor logs** - Check execution output with `notte functions run-metadata --run-id <run-id>` and inspect the `logs` field
-6. **Iterate** - Update your code based on results, then use `notte functions update --file my_function.py`
-7. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
+3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
+4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` (becomes current function)
+5. **Test in cloud** - Run `notte functions run --var key=value` to execute remotely and get a run ID
+6. **Monitor logs** - Check execution output with `notte functions run-metadata --run-id <run-id>` and inspect the `logs` field
+7. **Iterate** - Update your code based on results, then use `notte functions update --file my_function.py`
+8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
 
 ### Complete Example
 
@@ -43,7 +50,7 @@ notte sessions stop
 # 2. Export the session as Python code
 notte sessions workflow-code > hn_scraper.py
 
-# 3. Edit the file to add the run() function and parameters
+# 3. Edit the exported file to add the run() function and parameters
 # hn_scraper.py should look like:
 # from notte_sdk import NotteClient
 # 
@@ -51,7 +58,8 @@ notte sessions workflow-code > hn_scraper.py
 # 
 # def run(max_stories: int = 5):
 #     with client.Session() as session:
-#         session.goto("https://news.ycombinator.com")
+#         session.execute(type="goto", url="https://news.ycombinator.com")
+#         session.execute(type="wait", time_ms=1000)
 #         data = session.scrape(instructions=f"Extract top {max_stories} story titles and URLs")
 #         return {"stories": data, "count": max_stories}
 
