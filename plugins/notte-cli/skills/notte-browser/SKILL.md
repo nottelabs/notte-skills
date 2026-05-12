@@ -24,7 +24,7 @@ https://docs.notte.cc/llms.txt
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed and authenticated.
+Use this skill after the `notte` CLI is installed. If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
 ```bash
 # Install with Homebrew
@@ -40,11 +40,30 @@ notte auth login
 notte auth status
 ```
 
+## Authentication Handling
+
+Missing authentication is an interactive setup step, not a blocker and not a reason to switch to SDK code.
+
+If `notte auth status` reports that authentication is missing, you MUST run:
+
+```bash
+notte auth login
+```
+
+Tell the user to complete the browser login flow. Then poll authentication status every 5 seconds for up to 5 minutes:
+
+```bash
+notte auth status
+```
+
+Do not write SDK code, switch to SDK docs, or build a fallback script because auth is missing. SDK code uses the same Notte authentication and does not solve this problem. Continue only after CLI authentication succeeds, or ask the user for help if login does not complete after 5 minutes.
+
 ## Quick Start
 
 ```bash
-# 1. Authenticate
+# 1. Authenticate. If this opens a browser login, wait for the user to finish.
 notte auth login
+notte auth status
 
 # 2. Start a browser session
 notte sessions start
