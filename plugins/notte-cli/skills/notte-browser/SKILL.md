@@ -117,7 +117,9 @@ notte sessions stop
 notte sessions list [--page N] [--page-size N] [--only-active]
 ```
 
-**Note:** When you start a session, it automatically becomes the "current" session (i.e NOTTE_SESSION_ID environment variable is set). All subsequent commands use this session by default. Use `--session-id <session-id>` only when you need to manage multiple sessions simultaneously or reference a specific session.
+**Note (interactive terminal):** When you start a session from an interactive shell, it automatically becomes the "current" session (recorded in `~/.notte/cli/current_session`) and subsequent commands pick it up by default. Use `--session-id <session-id>` only when you need to manage multiple sessions simultaneously or reference a specific session.
+
+**Note (scripts, subagents, CI, parallel workers):** In non-interactive contexts the CLI does **not** write `~/.notte/cli/current_session`. This is intentional - the file is a single shared slot, so writing it from parallel workers caused sibling processes to read each other's IDs and stop each other's sessions. **You must capture the session ID from `sessions start` output and thread it explicitly** via `--session-id` or `NOTTE_SESSION_ID` on every follow-up call. See [Scripted and parallel use](#scripted-and-parallel-use) below.
 
 Session debugging and export:
 
@@ -282,7 +284,7 @@ notte agents workflow-code
 notte agents replay
 ```
 
-**Note:** When you start an agent, it automatically becomes the "current" agent (saved to `~/.notte/cli/current_agent`). All subsequent commands use this agent by default. Use `--agent-id <agent-id>` only when you need to manage multiple agents simultaneously or reference a specific agent.
+**Note:** In an interactive terminal, starting an agent makes it the "current" agent (saved to `~/.notte/cli/current_agent`) and follow-up commands pick it up by default. **In non-interactive contexts the CLI does not write that file** (same race-avoidance reason as sessions). Scripted callers must capture the agent ID from the start response and thread it explicitly via `--agent-id` or `NOTTE_AGENT_ID`. Use `--agent-id <agent-id>` interactively only when you need to manage multiple agents simultaneously or reference a specific one.
 
 **Agent ID Resolution:**
 1. `--agent-id` flag (highest priority)
@@ -421,7 +423,62 @@ Available on all commands:
 Session ID is resolved in this order:
 1. `--session-id` flag
 2. `NOTTE_SESSION_ID` environment variable
-3. Current session file (set automatically by `sessions start`)
+3. `~/.notte/cli/current_session` file (written automatically by `sessions start` **only in interactive terminals** - scripts and subagents must use option 1 or 2)
+
+## Scripted and parallel use
+
+The `~/.notte/cli/current_session` file is a single shared slot. If two scripts run `notte sessions start` in parallel without isolating their session IDs, they race to overwrite that file and end up stopping each other's sessions on the next `sessions start`. To prevent that footgun, the CLI does not write the file when stdin is not a terminal.
+
+In scripts, subagents, CI, and parallel workers, always capture the session ID from the start output and pass it explicitly. JSON output makes this trivial:
+
+```bash
+SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+
+notte page goto "https://example.com" --session-id "$SESSION_ID"
+notte page observe --session-id "$SESSION_ID"
+notte page scrape --instructions "Extract titles" --session-id "$SESSION_ID"
+notte sessions stop --session-id "$SESSION_ID" --yes
+```
+
+Or, if you want to avoid passing `--session-id` on every line, export it:
+
+```bash
+export NOTTE_SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+
+notte page goto "https://example.com"
+notte page observe
+notte sessions stop --yes
+unset NOTTE_SESSION_ID
+```
+
+**Cleanup pattern** - sessions consume resources, so always stop them. The trap below works even if your script errors out partway through:
+
+```bash
+set -euo pipefail
+SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+trap 'notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true' EXIT
+
+# ... rest of your script using --session-id "$SESSION_ID" ...
+```
+
+**Parallel workers** - each worker manages its own session ID. Never share a session ID across workers (the underlying browser session is single-tenant), and never rely on the current-session file to communicate between them.
+
+```bash
+run_one_worker() {
+  SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+  trap 'notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true' EXIT
+
+  notte page goto "$1" --session-id "$SESSION_ID"
+  notte page scrape --instructions "Extract main content" --session-id "$SESSION_ID"
+}
+
+for url in "$@"; do
+  run_one_worker "$url" &
+done
+wait
+```
+
+The same contract applies to agents: capture `agent_id` from `notte agents start -o json` and pass `--agent-id` (or set `NOTTE_AGENT_ID`) on every follow-up call.
 
 ## Examples
 

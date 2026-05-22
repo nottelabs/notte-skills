@@ -67,9 +67,9 @@ notte sessions start --cdp-url "ws://localhost:9222/devtools/browser/..."
 
 ## Session ID Management
 
-### Current Session
+### Current Session (interactive terminal only)
 
-When you start a session, it becomes the "current session" automatically:
+When you start a session from an interactive terminal, it becomes the "current session" automatically:
 
 ```bash
 notte sessions start
@@ -81,6 +81,8 @@ notte page click "B3"
 notte page scrape
 notte sessions stop
 ```
+
+This convenience is **only available in an interactive terminal**. In scripts, subagents, CI, and parallel workers, the CLI does not write `~/.notte/cli/current_session` - the file is a single shared slot and parallel workers used to race on it, stopping each other's sessions. Scripted callers must capture the session ID explicitly (see [Scripted use](#scripted-use) below).
 
 ### Explicit Session ID
 
@@ -97,7 +99,34 @@ notte page observe
 
 1. `--session-id` flag (highest)
 2. `NOTTE_SESSION_ID` environment variable
-3. Current session file (set by `sessions start`)
+3. `~/.notte/cli/current_session` file (only written by `sessions start` in interactive terminals)
+
+### Scripted use
+
+In any non-interactive context (script, subagent, CI, parallel worker), capture the session ID from `sessions start -o json` and pass it explicitly on every follow-up call:
+
+```bash
+set -euo pipefail
+
+SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+trap 'notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true' EXIT
+
+notte page goto "https://example.com" --session-id "$SESSION_ID"
+notte page observe --session-id "$SESSION_ID"
+notte page scrape --instructions "Extract titles" --session-id "$SESSION_ID"
+```
+
+To avoid repeating `--session-id` on every line, export `NOTTE_SESSION_ID` for the duration of the script:
+
+```bash
+export NOTTE_SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
+trap 'notte sessions stop --yes 2>/dev/null || true; unset NOTTE_SESSION_ID' EXIT
+
+notte page goto "https://example.com"
+notte page observe
+```
+
+For parallel workers, give each worker its own local `SESSION_ID` - never share a session across workers (the underlying browser session is single-tenant) and never rely on the current-session file to communicate between them.
 
 ## Observing Page State
 
