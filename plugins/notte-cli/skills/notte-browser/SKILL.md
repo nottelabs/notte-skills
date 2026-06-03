@@ -101,6 +101,8 @@ notte sessions start [flags]
   --proxy                    Use default proxies
   --proxy-country <code>     Proxy country code (e.g. us, gb, fr)
   --solve-captchas           Automatically solve captchas
+  --profile-id <profile-id>  Load browser state from a profile
+  --profile-persist          Save browser state back to the profile on session close
   --viewport-width           Viewport width in pixels
   --viewport-height          Viewport height in pixels
   --user-agent               Custom user agent string
@@ -118,6 +120,8 @@ notte sessions list [--page N] [--page-size N] [--only-active]
 ```
 
 **Note:** When you start a session, it automatically becomes the "current" session (i.e NOTTE_SESSION_ID environment variable is set). All subsequent commands use this session by default. Use `--session-id <session-id>` only when you need to manage multiple sessions simultaneously or reference a specific session.
+
+**Browser profiles:** Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
 
 Session debugging and export:
 
