@@ -51,11 +51,17 @@ notte sessions start \
   --max-duration-minutes 60 \     # Maximum 60 min session lifetime
   --proxy \                       # Use rotating proxies
   --solve-captchas \              # Auto-solve CAPTCHAs
+  --profile-id <profile-id> \     # Load browser state from a profile
+  --profile-persist \             # Save browser state on session close
   --viewport-width 1920 \         # Custom viewport
   --viewport-height 1080 \
   --user-agent "Custom UA" \      # Custom user agent
   --use-file-storage              # Enable file storage for downloads
 ```
+
+### Browser Profiles
+
+Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
 
 ### Remote Browser Connection
 
