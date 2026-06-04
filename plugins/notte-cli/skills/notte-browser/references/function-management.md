@@ -57,16 +57,23 @@ notte sessions workflow-code --session-id "$SESSION_ID" > hn_scraper.py
 
 # 4. Edit the exported file to add the run() function and parameters
 # hn_scraper.py should look like:
-# from notte_sdk import NotteClient
-# 
-# client = NotteClient()
-# 
-# def run(max_stories: int = 5):
-#     with client.Session() as session:
-#         session.execute(type="goto", url="https://news.ycombinator.com")
-#         session.execute(type="wait", time_ms=1000)
-#         data = session.scrape(instructions=f"Extract top {max_stories} story titles and URLs")
-#         return {"stories": data, "count": max_stories}
+from notte_sdk import NotteClient
+
+client = NotteClient()
+
+
+def run(max_stories: int = 5):
+    with client.Session() as session:
+        session.execute(type="goto", url="https://news.ycombinator.com")
+        session.execute(type="wait", time_ms=1000)
+
+        data = session.scrape(instructions=f"Extract top {max_stories} story titles and URLs")
+        # data equals {'stories': [{'title': 'VoidZero Is Joining Cloudflare', 'url': 'https://blog.cloudflare.com/voidzero-joins-cloudflare/'}, ...]}
+
+        return {"stories": data, "count": max_stories}
+
+run()
+
 
 # 5. Create the function (automatically becomes current function)
 notte functions create \
