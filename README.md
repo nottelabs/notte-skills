@@ -93,6 +93,8 @@ CLI skills for using Notte CLI commands.
 | Skill | Description |
 |-------|-------------|
 | **notte-browser** | Manage browser sessions, accounts, and deploy Notte Functions from the command line |
+| **notte-functions-forge** | Explore a site once and deploy it as a reusable, parameterized Notte Function (a scheduled, API-callable endpoint). Explore once, run at scale forever |
+| **notte-functions-doctor** | Diagnose and repair a broken or failing Notte Function - recover its contract, find what changed on the site, verify a fix in isolation, and promote it behind a confirmation gate |
 
 ## Verify it's wired up
 
