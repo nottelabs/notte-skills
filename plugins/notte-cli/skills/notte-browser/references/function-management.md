@@ -82,7 +82,7 @@ notte functions create \
   --description "Scrapes top stories from Hacker News"
 
 # 5. Test the function
-RUN_ID=$(notte functions run -o json | jq -r '.run_id')
+RUN_ID=$(notte functions run -o json | jq -r '.function_run_id')
 echo "Started run: $RUN_ID"
 
 # Wait a few seconds for execution
@@ -100,7 +100,7 @@ notte functions run-metadata --run-id "$RUN_ID" -o json | jq '{
 notte functions update --file hn_scraper.py
 
 # Test again
-RUN_ID=$(notte functions run -o json | jq -r '.run_id')
+RUN_ID=$(notte functions run -o json | jq -r '.function_run_id')
 sleep 10
 notte functions run-metadata --run-id "$RUN_ID"
 
@@ -115,6 +115,7 @@ notte functions schedule --cron "0 9 * * *"
 - **Monitor logs**: The `logs` field in run-metadata shows print statements and errors
 - **Use variables**: Add function parameters for flexibility (e.g., `max_stories` in the example)
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
+- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A script error may report `status: "failed"`, but an error inside `run()` can also come back as `status: "closed"` with the traceback in `result`. So treat a `result` that is a JSON object as success, and a `result` that is an error string (`Script execution failed` / `Traceback`) as a failure - do not rely on `status` alone. The run id field in the JSON is `function_run_id`.
 
 ## Creating Functions
 
@@ -534,8 +535,10 @@ notte functions run-metadata --run-id <run-id> -o json
 ### 3. Monitor Run History
 
 ```bash
-# Check for failed runs
-notte functions runs -o json | jq '.[] | select(.status == "failed")'
+# Check for failed runs. A script error may report status "failed", but an error
+# inside run() can also come back as status "closed" with the error string in
+# `result`, so match both.
+notte functions runs -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
 ```
 
 ### 4. Test Before Scheduling
