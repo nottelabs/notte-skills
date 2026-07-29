@@ -83,7 +83,21 @@ storage, and models. Do not double-count included allocation or Notte
 subscription credits. Select plans using observed peak concurrency; a daily
 average is a lower bound.
 
-## 4. Deliver the decision brief
+## 4. Add optional external benchmark context
+
+For a performance-oriented comparison, read <https://www.browserarena.ai/> and
+its linked methodology/source on the calculation date. Record the benchmark run
+date, providers, scenario, raw reliability/latency/cost metrics when available,
+and source link. Keep it in a separate **External benchmark context** section.
+
+Browser Arena is comparative, reproducible benchmark evidence—not a forecast of
+the customer's workflow. Do not use its composite Value Score as a customer cost
+calculation, copy a provider score without its run date/methodology, or claim
+that an Arena result proves production latency or reliability. Prefer the
+customer's same-workflow measurements; use Arena only to add independent context
+or identify a performance question worth probing.
+
+## 5. Deliver the decision brief
 
 Start with the answer, then show the evidence:
 
@@ -92,6 +106,7 @@ Start with the answer, then show the evidence:
 - usage, duration, rounding, retries, proxy, tokens, and plan assumptions;
 - monthly browser-hours and required concurrency;
 - low/base/high monthly comparison, saving, percentage, and annualized base;
+- optional Browser Arena context, clearly separated from customer measurements;
 - excluded costs and the exact missing input needed for invoice-backed results.
 
 Do not claim a latency or reliability gain from a cost model. Refer the user to

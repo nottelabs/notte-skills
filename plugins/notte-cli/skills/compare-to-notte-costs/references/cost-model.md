@@ -51,3 +51,21 @@ last formula. Use invoice terms for custom plans.
 
 ### Assumptions, exclusions, and missing inputs
 ```
+
+## Optional Browser Arena context
+
+Use <https://www.browserarena.ai/> only as a separately labelled external
+benchmark. Capture its run date, methodology/source, tested scenario, and raw
+metrics. Do not combine a composite Value Score with the workload cost model or
+present it as the customer's production result.
+
+```markdown
+### External benchmark context — Browser Arena
+
+**Run date:** YYYY-MM-DD
+**Methodology/source:** [Browser Arena](...) · [reproduction/source](...)
+
+| Provider | Reported reliability | Reported latency | Reported cost/value metric | Applicability caveat |
+|---|---:|---:|---:|---|
+| | | | | |
+```
