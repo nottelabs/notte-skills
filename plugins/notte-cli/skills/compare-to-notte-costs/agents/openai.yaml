@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cost Comparison to Notte"
+  short_description: "Compare any browser provider’s costs with Notte."
+  default_prompt: "Use $compare-to-notte-costs to scan this codebase and estimate provider-to-Notte cost savings with explicit assumptions."
