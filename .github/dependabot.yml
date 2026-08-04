@@ -4,3 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Wait before proposing a brand-new release, so a compromised or yanked
+    # version has time to be caught upstream rather than landing here the hour
+    # it is published. Security updates are exempt from cooldown, so CVE fixes
+    # still arrive immediately.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
