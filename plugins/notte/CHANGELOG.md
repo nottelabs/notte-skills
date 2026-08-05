@@ -107,9 +107,10 @@ from the default branch will need the new invocation.
   of Phase 2, where it was too late to be useful
 * `[doctor-verify]` throwaway Functions leaked. Cleanup only ran in Phase 6,
   after the contract passed *and* the user approved, so an abandoned or rejected
-  repair left copies behind. Phase 5 now reuses an existing throwaway rather than
-  stacking new ones, and states that the name-guarded delete runs however the
-  repair ends
+  repair left copies behind. Phase 5 now states that the delete runs however the
+  repair ends - including when verification never passes or the user declines at
+  the gate - and that an orphan left behind has to be cleared by a human, since
+  a later run deliberately will not adopt it (see the ownership entry above)
 * `notte-functions-doctor` Phase 6 re-runs the live Function to confirm health,
   which writes again if the Function writes. It now says to let the user decide
   for a Function with side effects, rather than invoking it reflexively
