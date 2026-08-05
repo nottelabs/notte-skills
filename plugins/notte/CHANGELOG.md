@@ -63,12 +63,26 @@ output does not state.
 * **one name for file storage.** `use_file_storage=True` was written three ways
   across four files (`enable_file_storage=True`, `storage=...`). Standardised on
   the real keyword, which matches the `--use-file-storage` flag
-* **settle the trailing `run()` question.** Examples disagreed on whether a
-  Function file should call `run()` at module level, with no note either way.
-  It is optional — the runtime invokes `run()` itself, so keeping or removing
-  the call makes no difference. Said so explicitly in the reference, the interop
-  notes, the skeleton, the forge cleanup step, and the rules, so the next reader
-  does not infer a rule from the inconsistency
+* **settle the trailing `run()` question — verified by deploying and running
+  real Functions.** Examples disagreed on whether a Function file should call
+  `run()` at module level, with no note either way. It is optional: a Function
+  with no trailing call returned its value normally (the runtime invokes `run()`
+  itself), and one *with* a trailing call logged exactly one invocation, so
+  there is no double execution either. Said so explicitly in the reference, the
+  interop notes, the skeleton, the forge cleanup step, and the rules, so the
+  next reader does not infer a rule from the inconsistency
+* **document the two `result` shapes.** `notte functions run` returns the value
+  of `run()` serialized to JSON, so a `dict` arrives as a real nested object
+  addressable with `jq`. `run-metadata`'s `result` is a Python `repr`
+  (single-quoted, not valid JSON) — which is why contract validation should read
+  `functions run` and use `run-metadata` for logs
+* **stop routing agents through `notte functions runs` to find a run id.** That
+  list returned `[]` for a Function with three completed runs, so the skills no
+  longer discover run ids through it: `functions run` returns `function_run_id`
+  directly, and that is what `run-metadata` should be given. `notte-functions-doctor`
+  now treats empty run history as uninformative rather than as evidence that a
+  Function never worked, and falls back to the health contract
+* document that `functions run` returns no logs — they come from `run-metadata`
 * **fix `len()` on a scrape result.** Four examples called `len()` on
   `session.scrape(...)` output to produce a `count`, which counts dict *keys*
   rather than rows. Rewritten to use `response_format` and count the typed list

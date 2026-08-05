@@ -461,16 +461,25 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
-**Reading a run result.** `notte functions run` blocks server-side and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone: a JSON payload matching your schema is a pass, and a string containing `Script execution failed` or a `Traceback` is a failure - an error raised inside `run()` can still report `status: "closed"`. Depending on the endpoint, `result` may arrive as a JSON-encoded string rather than a nested object, so parse defensively.
+**Reading a run result.** `notte functions run` blocks server-side and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone - a successful run reports `status: "closed"`, and so does a run that raised inside `run()`, with the error text in `result`. `result` is the return value of `run()` serialized to JSON: a `dict` comes back as a real nested object, a `str` as a JSON string. A string containing `Script execution failed` or a `Traceback` is a failure.
 
-**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it (`notte functions run --timeout 600`) or drop the blocking call and poll instead:
+The response also carries `function_run_id`, `session_id`, and `workflow_run_id`:
 
-```bash
-notte functions runs --function-id "$FUNCTION_ID" -o json | jq -r '.[0].function_run_id'
-notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json
+```json
+{"function_id": "...", "function_run_id": "...", "result": {"count": 1},
+ "session_id": null, "status": "closed", "workflow_id": "...", "workflow_run_id": "..."}
 ```
 
-`functions runs` prints a top-level JSON **array** of runs, newest first; the run id field is `function_run_id`, not `run_id`.
+**Getting logs.** `functions run` does not return logs. Take the `function_run_id` from its response and read the metadata:
+
+```bash
+RID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
+notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RID" -o json | jq -r '.logs[]'
+```
+
+Two things to know about `run-metadata`: its `result` is a Python `repr` (single-quoted, **not** valid JSON) rather than the clean object `functions run` gives you, so use it for logs and history and take the result from `functions run`. And `notte functions runs` may return an empty array `[]` even for a Function with completed runs - do not rely on it to discover a run id; keep the one `functions run` handed you.
+
+**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
 
 For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 

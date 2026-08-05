@@ -114,10 +114,10 @@ FUNCTION_ID=$(notte functions create \
 # Test it. This blocks until the run completes - no sleep/poll needed.
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
-# If you need execution logs, list runs and read the metadata.
-# Note the run id field is `function_run_id`, not `run_id`.
-RUN_ID=$(notte functions runs --function-id "$FUNCTION_ID" -o json | jq -r '.[0].function_run_id')
-notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq '{status, logs, result}'
+# If you need execution logs, take the run id from the run you just did.
+# (`notte functions runs` can come back empty, so don't discover it that way.)
+RUN_ID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
+notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 
 # If needed, update and iterate
 notte functions update --function-id "$FUNCTION_ID" --file hn_scraper.py
@@ -134,8 +134,10 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 - **Monitor logs**: The `logs` field in run-metadata shows print statements and errors
 - **Use variables**: Add function parameters for flexibility (e.g., `max_stories` in the example)
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
-- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A script error may report `status: "failed"`, but an error inside `run()` can also come back as `status: "closed"` with the traceback in `result`. So treat a `result` that is a JSON payload as success, and a `result` that is an error string (`Script execution failed` / `Traceback`) as a failure - do not rely on `status` alone. The run id field in the JSON is `function_run_id`. Note that `result` may arrive as a JSON-encoded string rather than a nested object, so parse defensively.
-- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Raise it (`notte functions run --timeout 600`) or skip the blocking call and poll `notte functions runs` / `run-metadata` instead.
+- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
+- **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
+- **Do not rely on `notte functions runs` to find a run id**: it can return an empty array `[]` even for a Function with completed runs. Keep the `function_run_id` from the `functions run` response.
+- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
 
 ## Creating Functions
 
@@ -660,6 +662,9 @@ notte functions run-metadata --run-id <run-id> -o json
 # `result`, so match both.
 notte functions runs -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
 ```
+
+Note this list can return `[]` even for a Function with completed runs, so an
+empty result here is not evidence that the Function never ran.
 
 ### 4. Test Before Scheduling
 
