@@ -82,13 +82,12 @@ session_scrape() {
         # shellcheck disable=SC2086
         page_result=$(notte page scrape --instructions "$instructions" $flags -o json)
 
-        # `notte page scrape -o json` returns {markdown, structured}; the parsed
-        # extraction lives at .structured.data. Pull that out, normalise it to an
-        # array, and append.
+        # With --instructions, `notte page scrape -o json` returns the extracted
+        # object at the TOP LEVEL (the requested fields are the JSON keys) - there
+        # is no wrapper to unpack. Normalise to an array and append.
         if command -v jq &> /dev/null; then
             all_results=$(jq -s '
-                .[0] + ((.[1].structured.data // .[1])
-                        | if type == "array" then . else [.] end)
+                .[0] + (.[1] | if type == "array" then . else [.] end)
             ' <(echo "$all_results") <(echo "$page_result"))
         else
             # Fallback: just append
@@ -140,10 +139,11 @@ batch_scrape() {
         # shellcheck disable=SC2086
         result=$(notte page scrape --instructions "$EXTRACTION_INSTRUCTIONS" $flags -o json)
 
-        # Unwrap .structured.data, tag each row with its source URL, and append
+        # Tag each row with its source URL and append. The scrape result is the
+        # extracted object itself (see note above), not a wrapper.
         if command -v jq &> /dev/null; then
             all_results=$(jq -s --arg url "$url" '
-                .[0] + ((.[1].structured.data // .[1])
+                .[0] + (.[1]
                         | if type == "array" then . else [.] end
                         | map(. + {source_url: $url}))
             ' <(echo "$all_results") <(echo "$result"))

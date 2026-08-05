@@ -103,6 +103,14 @@ output does not state.
   sentinel strings. The sentinel mechanism is correct — the reference now
   documents it, and its worked example attaches the vault it declares instead of
   setting `VAULT_ID` and never using it
+* **correct the documented `scrape -o json` shape.** `exploration.md` said the
+  parsed extraction lived under `.structured.data` with a `{markdown,
+  structured}` wrapper. Checked against a live scrape: with `--instructions` the
+  extracted object comes back **at the top level** (the requested fields are the
+  JSON keys), and without them you get `{"markdown": "..."}` and nothing else.
+  There is no wrapper. `templates/data-extraction.sh` unwrapped the phantom
+  `.structured.data` and only worked by falling through its own `//` fallback;
+  both merge steps now use the object directly
 * remove `notte page observe https://example.com` — `observe` takes no arguments
 * remove `--browser-type firefox`, which v0.0.29 no longer supports (only
   `chromium` and `chrome`; `chrome-nightly` / `chrome-turbo` are legacy aliases)
