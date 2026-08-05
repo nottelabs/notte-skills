@@ -27,6 +27,7 @@ import queue
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 MARKETPLACE = "notte"
 PLUGIN_ID = "notte@notte"
@@ -142,19 +143,49 @@ def validate_plugins(server: AppServer, repo_root: str) -> None:
         ok(f"{PLUGIN_ID} exposes {len(plugin['keywords'])} keywords")
 
 
+def shipped_skills(repo_root: str) -> set[str]:
+    """Every skill this repo ships, named the way Codex namespaces them.
+
+    Derived from disk rather than from the API response: checking only the
+    skills the API happened to return would pass while a skill was silently
+    missing, which is the more serious failure of the two.
+    """
+    plugins = Path(repo_root) / "plugins"
+    return {
+        f"{plugin.name}:{skill.parent.name}"
+        for plugin in plugins.iterdir()
+        if plugin.is_dir()
+        for skill in plugin.glob("skills/*/SKILL.md")
+    }
+
+
 def validate_skills(server: AppServer, repo_root: str) -> None:
-    result = server.call("skills/list", {"cwds": [repo_root]})
-    skills = [s for group in result.get("data", []) for s in group.get("skills", [])]
-    ours = {s["name"]: s for s in skills if s.get("name", "").startswith(("notte:", "notte-migrate:"))}
-    if not ours:
-        fail("app-server exposes none of our skills")
+    expected = shipped_skills(repo_root)
+    if not expected:
+        fail(f"found no plugins/*/skills/*/SKILL.md under {repo_root} to check against")
         return
 
-    # Every skill we ship, not just a sampled one: the failure this guards against
-    # is a new skill landing without an agents/openai.yaml, which is invisible
-    # until someone opens the plugin browser.
-    for name in sorted(ours):
-        check_interface(f"skill {name}", ours[name].get("interface"), SKILL_INTERFACE_FIELDS)
+    result = server.call("skills/list", {"cwds": [repo_root]})
+    returned = {
+        s["name"]: s
+        for group in result.get("data", [])
+        for s in group.get("skills", [])
+        if s.get("name")
+    }
+
+    for name in sorted(expected - returned.keys()):
+        fail(f"app-server does not expose skill {name}, which this repo ships")
+    present = expected & returned.keys()
+    if present:
+        ok(f"app-server exposes all {len(present)}/{len(expected)} shipped skills"
+           if present == expected else
+           f"app-server exposes {len(present)}/{len(expected)} shipped skills")
+
+    # Checked per skill, because the failure this guards against is one new skill
+    # landing without an agents/openai.yaml - invisible until someone opens the
+    # plugin browser.
+    for name in sorted(present):
+        check_interface(f"skill {name}", returned[name].get("interface"), SKILL_INTERFACE_FIELDS)
 
 
 def main() -> int:

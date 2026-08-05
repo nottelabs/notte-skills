@@ -89,11 +89,26 @@ jobs:
       # The Cursor CLI has no offline install-and-inspect surface, so the live
       # check boots a real agent session and costs model tokens. Keep it off the
       # PR path: pull requests get the manifest resolution check only.
-      - name: Install cursor-agent
+      #
+      # Deliberately not `curl https://cursor.com/install | bash`: the next step
+      # hands this binary a real API key, so it must not be a mutable remote
+      # artifact. The installer is a generated script that pins one version and
+      # downloads it from the URL below, so fetching that URL directly and
+      # checking its digest gets the same binary without trusting the script.
+      # Bump VERSION and SHA256 together; see the workflow README note.
+      - name: Install cursor-agent (pinned and checksum-verified)
         if: github.event_name != 'pull_request'
+        env:
+          CURSOR_AGENT_VERSION: 2026.07.23-e383d2b
+          CURSOR_AGENT_SHA256: 702ad595213bee5df0268be9f80a19f29fcceaa2a42fc55e39f2b5199051f0c4
         run: |
-          curl https://cursor.com/install -fsS | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          set -euo pipefail
+          url="https://downloads.cursor.com/lab/${CURSOR_AGENT_VERSION}/linux/x64/agent-cli-package.tar.gz"
+          curl -fsSL "$url" -o /tmp/cursor-agent.tar.gz
+          echo "${CURSOR_AGENT_SHA256}  /tmp/cursor-agent.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/cursor-agent"
+          tar --strip-components=1 -xzf /tmp/cursor-agent.tar.gz -C "$HOME/.local/cursor-agent"
+          echo "$HOME/.local/cursor-agent" >> "$GITHUB_PATH"
 
       # Also runnable locally: scripts/verify-install-cursor.sh
       - name: Verify skill and MCP server

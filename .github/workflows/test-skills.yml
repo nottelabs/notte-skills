@@ -57,13 +57,19 @@ jobs:
           done
 
       - name: Lint with shellcheck
-        uses: ludeeus/action-shellcheck@master
+        # Pinned: @master is a mutable branch, so an upstream push would
+        # change what runs in CI without a commit here. SHA is master as of
+        # 2024-06-20, the revision this repo has been running.
+        uses: ludeeus/action-shellcheck@00b27aa7cb85167568cb48a3838b75f4265f2bca
         with:
           scandir: './plugins'
           severity: warning
 
       - name: Lint repo scripts with shellcheck
-        uses: ludeeus/action-shellcheck@master
+        # Pinned: @master is a mutable branch, so an upstream push would
+        # change what runs in CI without a commit here. SHA is master as of
+        # 2024-06-20, the revision this repo has been running.
+        uses: ludeeus/action-shellcheck@00b27aa7cb85167568cb48a3838b75f4265f2bca
         with:
           scandir: './scripts'
           severity: warning
