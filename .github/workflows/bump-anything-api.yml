@@ -1,0 +1,123 @@
+name: Bump anything-api skill pin
+
+# The notte-browser skill is consumed by nottelabs/anything-api, which installs
+# it into its agent sandbox snapshot. That consumer pins an exact commit of this
+# repo in notte-skill.pin.json, so changes here do NOT reach its production
+# agent until the pin moves. This workflow moves it: every push to main opens
+# (or updates) a PR there bumping the pin, so an upstream doc change lands as a
+# reviewable diff downstream instead of silently, or never.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'
+  workflow_dispatch:
+
+concurrency:
+  group: bump-anything-api
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out anything-api
+        uses: actions/checkout@v4
+        with:
+          repository: nottelabs/anything-api
+          # Needs contents:write + pull-requests:write on nottelabs/anything-api.
+          token: ${{ secrets.ANYTHING_API_BUMP_TOKEN }}
+          path: anything-api
+
+      - name: Check out notte-skills (for the changelog range)
+        uses: actions/checkout@v4
+        with:
+          path: notte-skills
+          fetch-depth: 0
+
+      - name: Bump the pin
+        id: bump
+        working-directory: anything-api
+        run: |
+          set -euo pipefail
+          PIN_FILE=notte-skill.pin.json
+          if [ ! -f "$PIN_FILE" ]; then
+            echo "::error::$PIN_FILE not found in anything-api — has the pin moved or been removed?"
+            exit 1
+          fi
+
+          OLD_REF=$(jq -r .ref "$PIN_FILE")
+          NEW_REF=${{ github.sha }}
+          echo "old=$OLD_REF" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW_REF" >> "$GITHUB_OUTPUT"
+
+          if [ "$OLD_REF" = "$NEW_REF" ]; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "Pin already at $NEW_REF, nothing to do."
+            exit 0
+          fi
+
+          # Rewrite only .ref — repo/subdir are human-owned and must not be
+          # clobbered by automation (a rename downstream is a reviewed change).
+          jq --arg ref "$NEW_REF" '.ref = $ref' "$PIN_FILE" > "$PIN_FILE.tmp"
+          mv "$PIN_FILE.tmp" "$PIN_FILE"
+          echo "already=false" >> "$GITHUB_OUTPUT"
+
+      - name: Build the changelog for this bump
+        if: steps.bump.outputs.already == 'false'
+        id: log
+        working-directory: notte-skills
+        run: |
+          set -euo pipefail
+          OLD="${{ steps.bump.outputs.old }}"
+          {
+            echo 'body<<PRBODY'
+            echo "Bumps the pinned \`notte-browser\` skill in \`notte-skill.pin.json\`."
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| from | \`${OLD}\` |"
+            echo "| to | \`${{ steps.bump.outputs.new }}\` |"
+            echo
+            echo "### Upstream commits"
+            echo
+            # If the old ref is unreachable (force-push, or a first-ever bump),
+            # fall back to naming the head commit rather than failing the job.
+            if git cat-file -e "${OLD}^{commit}" 2>/dev/null; then
+              git log --no-merges --pretty='- %h %s' "${OLD}..${{ github.sha }}" -- plugins/ || true
+            else
+              echo "- (previous ref \`${OLD}\` not reachable; showing head only)"
+              git log -1 --pretty='- %h %s'
+            fi
+            echo
+            echo "### Review focus"
+            echo
+            echo "Skill guidance shapes how the build agent writes Notte Functions."
+            echo "Read the diff for changes to **implementation-path guidance** —"
+            echo "anything that shifts the agent between reconstructing an HTTP API,"
+            echo "parsing HTML deterministically, and calling \`session.scrape()\`."
+            echo "A wording change there moves production latency and cost."
+            echo
+            echo "Merging this PR does not deploy the skill. It reaches production on"
+            echo "the next snapshot rebuild."
+            echo
+            echo "Opened automatically by \`bump-anything-api.yml\` in nottelabs/notte-skills."
+            echo 'PRBODY'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the PR
+        if: steps.bump.outputs.already == 'false'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: anything-api
+          token: ${{ secrets.ANYTHING_API_BUMP_TOKEN }}
+          branch: chore/bump-notte-skill-pin
+          base: main
+          commit-message: |
+            chore: bump notte-browser skill pin to ${{ steps.bump.outputs.new }}
+
+            Co-Authored-By: nottelabs/notte-skills CI <noreply@notte.cc>
+          title: 'chore: bump notte-browser skill pin'
+          body: ${{ steps.log.outputs.body }}
+          labels: dependencies, notte-skills
+          delete-branch: true
