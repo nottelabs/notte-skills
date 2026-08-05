@@ -26,7 +26,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** the path still ran, but produced no data. Usually the site moved the data (renamed a CSS class, changed an internal endpoint, restructured the response). It can equally be a **pure code defect** in the Function (a bad filter, a wrong field name, an over-narrow query) that drops the data even though the page is fine. Re-exploration tells you which: if the live page still has the data, the bug is in the Function's code and the fix is the code, not the path.
 
-**Action:** re-explore the live site (forge exploration). If the data moved, find the new path; if the page is fine, fix the code that drops it. Then patch, verify, promote.
+**Action:** re-explore the live site, per `notte-functions-build`'s exploration reference. If the data moved, find the new path; if the page is fine, fix the code that drops it. Then patch, verify, promote.
 
 ### 2. Hard exception  -  CODE-FIXABLE
 
@@ -60,7 +60,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** this is past "drift" - the Function's assumptions about the site are void.
 
-**Action:** report to the user and confirm the new target or intent. A restructure this deep is closer to re-forging than repairing - consider handing back to [notte-functions-forge](../../notte-functions-forge/SKILL.md) with the user's confirmation of the new target.
+**Action:** report to the user and confirm the new target or intent. A restructure this deep is closer to re-building than repairing - consider handing back to [notte-functions-build](../../notte-functions-build/SKILL.md) with the user's confirmation of the new target.
 
 ## Disambiguating empty results
 

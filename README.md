@@ -63,7 +63,7 @@ disable them interactively, and `codex mcp list` to confirm the hosted MCP
 servers registered.
 
 Codex namespaces plugin skills by plugin name, so invoke them as
-`$notte:notte-browser`, `$notte:notte-functions-forge`,
+`$notte:notte-browser`, `$notte:notte-functions-build`,
 `$notte:notte-functions-doctor`, and `$notte-migrate:migrate-to-notte`.
 
 ### Any agent
@@ -159,7 +159,7 @@ Everything you need to drive a real browser with Notte.
 | Skill | Description |
 |-------|-------------|
 | **notte-browser** | Manage browser sessions, accounts, and deploy Notte Functions from the command line |
-| **notte-functions-forge** | Explore a site once and deploy it as a reusable, parameterized Notte Function (a scheduled, API-callable endpoint). Explore once, run at scale forever |
+| **notte-functions-build** | Explore a site once and deploy it as a reusable, parameterized Notte Function (a scheduled, API-callable endpoint). Explore once, run at scale forever |
 | **notte-functions-doctor** | Diagnose and repair a broken or failing Notte Function - recover its contract, find what changed on the site, verify a fix in isolation, and promote it behind a confirmation gate |
 
 ### notte-migrate (opt-in plugin)

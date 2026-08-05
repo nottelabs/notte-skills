@@ -8,7 +8,7 @@ description: >
   or "diagnose why my scheduled function stopped working". The user supplies the
   Function that is broken; this skill finds the root cause, re-explores the
   changed surface, verifies a fix in isolation, and promotes it behind a
-  confirmation gate. Pairs with notte-functions-forge, which builds Functions.
+  confirmation gate. Pairs with notte-functions-build, which builds Functions.
 allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Bash(diff:*), Read, Write, Edit
 ---
 
@@ -16,9 +16,9 @@ allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Bash(diff:*), Read, Writ
 
 A user-triggered repair tool for a broken [Notte Function](https://docs.notte.cc/concepts/functions). The user already knows a Function is failing - this skill's job is to find out *why*, fix it when it is fixable, verify the fix without disturbing the live Function, and promote it only with explicit approval.
 
-The hard part of repair is not editing code - it is **diagnosis**. A broken scrape usually does not error; it silently returns `[]` or garbage because a selector or endpoint moved. This skill leans on the Function's health contract (stamped by [notte-functions-forge](../notte-functions-forge/SKILL.md)) and its last good run to know what "correct" looks like, then works backward from the failure.
+The hard part of repair is not editing code - it is **diagnosis**. A broken scrape usually does not error; it silently returns `[]` or garbage because a selector or endpoint moved. This skill leans on the Function's health contract (stamped by [notte-functions-build](../notte-functions-build/SKILL.md)) and its last good run to know what "correct" looks like, then works backward from the failure.
 
-> **Relationship to forge.** Doctor reuses forge's two engines - **exploration** (find the new stable path) and **self-test** (verify against the contract) - pointed at an *existing* Function instead of a blank one. It also builds on the base [notte-browser skill](../notte-browser/SKILL.md). Load those for the full command reference.
+> **Relationship to notte-functions-build.** Doctor reuses that skill's two engines - **exploration** (find the new stable path) and **self-test** (verify against the contract) - pointed at an *existing* Function instead of a blank one. It also builds on the base [notte-browser skill](../notte-browser/SKILL.md). Load those for the full command reference.
 
 ## What this skill can and cannot fix
 
@@ -63,9 +63,20 @@ If auth is missing, follow the [notte-browser auth handling](../notte-browser/SK
 Locate the Function from whatever the user gave (an id, a name, "my Indeed function"):
 
 ```bash
-notte functions list
+# `functions list` pages at 10 by default, so a bare call will not show a
+# Function on any busy account. Widen it, or filter by name.
+notte functions list --page-size 100 -o json | jq -r '.[] | "\(.function_id)  \(.name)"'
 notte functions show --function-id "{function_id}" -o json
 ```
+
+**If you cannot find it, check whether it was deleted rather than broken.**
+`functions list` hides deleted records by default:
+
+```bash
+notte functions list --page-size 100 --include-deleted -o json | jq -r '.[] | "\(.function_id)  \(.name)"'
+```
+
+A deleted Function is not a repair job - report it and ask the user whether to recreate it.
 
 `notte functions show` returns the Function's metadata plus a **download URL** for its workflow file (the `url` field) - it does not inline the source. Record the **name** and **description**, then download the current source so you can read its contract and diff your fix against it later:
 
@@ -82,7 +93,7 @@ curl -L "$URL" -o current_function.py
 
 You cannot repair toward an unknown target. Recover it from two sources:
 
-1. **The health contract** - read the `=== HEALTH CONTRACT ===` block and the response model in `current_function.py`. This is the explicit target (forged Functions carry it).
+1. **The health contract** - read the `=== HEALTH CONTRACT ===` block and the response model in `current_function.py`. This is the explicit target (built Functions carry it).
 2. **The last good run** - the strongest evidence of correct output, when you can get it:
 
    ```bash
@@ -98,11 +109,9 @@ You cannot repair toward an unknown target. Recover it from two sources:
 
    If history is genuinely empty even with `--only-active=false`, treat that as uninformative rather than as evidence the Function never worked: fall back to the health contract and the response model, and say in your report that no run history was available.
 
-   **If the Function itself is missing from `notte functions list`,** it may have been deleted rather than broken - `functions list` hides deleted records by default. Check with `notte functions list --include-deleted` (or `--only-active=false` on older CLIs) before concluding anything. A deleted Function is not a repair job: report it and ask the user whether to recreate it.
-
 If the Function has **no** contract (older or hand-written), infer one: the response model gives the schema, and the last good run gives realistic bounds (field presence, typical counts). Note that you inferred it, and offer to stamp a real contract as part of the repair so the next failure is easier.
 
-For the full contract format, read -> **[notte-functions-forge health-contract reference](../notte-functions-forge/references/health-contract.md)**.
+For the full contract format, read -> **[notte-functions-build health-contract reference](../notte-functions-build/references/health-contract.md)**.
 
 ---
 
@@ -126,7 +135,7 @@ Decide: is this **code-fixable** (drift / exception) or **not** (auth / block / 
 
 ## Phase 4 - Re-explore the changed surface
 
-For drift or an exception, find what changed by driving the **current** live site - exactly the forge exploration discipline, but scoped to the step that broke:
+For drift or an exception, find what changed by driving the **current** live site - exactly the exploration discipline `notte-functions-build` uses, but scoped to the step that broke:
 
 ```bash
 notte sessions start --headless
@@ -136,7 +145,7 @@ notte page wait 1500
 notte sessions network        # has the internal API endpoint moved or changed shape?
 ```
 
-Find the new stable path (API-first, DOM fallback). For the full method, read -> **[notte-functions-forge exploration reference](../notte-functions-forge/references/exploration.md)**.
+Find the new stable path (API-first, DOM fallback). For the full method, read -> **[notte-functions-build exploration reference](../notte-functions-build/references/exploration.md)**.
 
 ---
 
@@ -149,14 +158,29 @@ Produce the repaired code, then verify it **without touching the live Function**
 2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its id**, and from here on pass `--function-id "$VERIFY_ID"` on every command - never rely on the implicit "current function" pointer, which `create` and `delete` move around. This keeps testing fully isolated from the live Function:
 
    ```bash
-   VERIFY_ID=$(notte functions create --file repaired_function.py \
-     --name "[doctor-verify] {original name}" -o json | jq -r '.function_id')
+   # Reuse a throwaway left by an earlier attempt instead of stacking up copies.
+   VERIFY_ID=$(notte functions list --page-size 100 -o json \
+     | jq -r --arg n "[doctor-verify] {original name}" '.[] | select(.name == $n) | .function_id' | head -1)
+
+   if [ -z "$VERIFY_ID" ]; then
+     VERIFY_ID=$(notte functions create --file repaired_function.py \
+       --name "[doctor-verify] {original name}" -o json | jq -r '.function_id')
+   else
+     notte functions update --function-id "$VERIFY_ID" --file repaired_function.py
+   fi
 
    # functions run blocks and returns status + result inline:
    notte functions run --function-id "$VERIFY_ID" -o json | jq '{status, result}'
    ```
 
-   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-forge self-test reference](../notte-functions-forge/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` (`status` is `"closed"` either way): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
+   **Delete the throwaway however this ends.** Cleanup is written up in Phase 6
+   because that is the common path, but it is not conditional on promoting: if
+   verification never passes, or the user declines at the gate, or you abandon
+   the repair, still run the name-guarded delete from
+   [Phase 6 step 3](#phase-6---promote-behind-a-gate---gate). Otherwise
+   `[doctor-verify]` copies accumulate in the user's account.
+
+   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` (`status` is `"closed"` either way): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
 
    > **Alternative isolation:** if the Function is shared/forkable, `notte functions fork --function-id {function_id}` gives an isolated copy to test on instead of a throwaway. The throwaway-create path above works in all cases, so prefer it unless forking is clearly available.
 
@@ -197,6 +221,11 @@ Only after the verification copy passes the contract:
    ```
 
    Confirm `result` is a valid object (not a `Traceback` string) before considering the repair done.
+
+   > **If the Function writes anything, this run writes again.** You already
+   > proved the fix on the verification copy, so for a Function that submits a
+   > form, makes a purchase, or otherwise mutates state, say so and let the user
+   > decide whether to run it live - do not invoke it reflexively.
 
    The CLI cannot read a cron back, so a cleared schedule is not detectable by inspection. If the Function was scheduled (Phase 1), re-apply the cron you recorded - re-applying the same cron is idempotent:
 
