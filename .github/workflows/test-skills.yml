@@ -8,6 +8,7 @@ on:
       - 'assets/**'
       - '.claude-plugin/**'
       - '.cursor-plugin/**'
+      - '.agents/**'
       - 'scripts/validate-plugins.py'
       - '.github/workflows/test-skills.yml'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'assets/**'
       - '.claude-plugin/**'
       - '.cursor-plugin/**'
+      - '.agents/**'
       - 'scripts/validate-plugins.py'
       - '.github/workflows/test-skills.yml'
 

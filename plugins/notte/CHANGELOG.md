@@ -9,6 +9,24 @@ from `git log` so that downstream consumers can tell which skill content
 corresponds to which version. Tag releases as `notte-v<version>` from now
 on so consumers can pin instead of tracking the default branch.
 
+## [1.5.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.4.0...notte-v1.5.0) (2026-08-05)
+
+Packaging and distribution only — no skill content changed.
+
+### Features
+
+* add a native OpenAI Codex surface. Codex already installed this repository through its compatibility fallbacks for `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json`, but with no Codex-specific metadata. This adds `.agents/plugins/marketplace.json` (Codex's own marketplace path, with the `policy` and `category` fields it expects) and `plugins/*/.codex-plugin/plugin.json` (preferred over the Claude manifest by Codex), carrying the `interface` block that Codex and ChatGPT install surfaces render: display name, descriptions, category, capabilities, legal links, starter prompts, and a logo
+* add `agents/openai.yaml` to `notte-browser`, `notte-functions-forge`, and `notte-functions-doctor`, so all four skills — not just `migrate-to-notte` — carry a display name, short description, and default prompt on Codex and ChatGPT
+
+### Bug Fixes
+
+* document Codex installation in the README (`codex plugin marketplace add nottelabs/notte-skills`), the `$plugin:skill` invocation form Codex uses, and the `--agent codex` flag for `npx skills add`. The README advertised Codex compatibility but documented no way to install on it
+* correct the manual-installation snippet, which copied the *plugin* directory into a *skills* directory and so left every `SKILL.md` two levels deep, where no client scans
+
+### Miscellaneous
+
+* extend `scripts/validate-plugins.py` to cover the Codex surface: both marketplaces must list the same plugins at the same paths, each plugin's Claude and Codex manifests must agree on name/version/description/component paths, manifest `interface` asset paths must resolve, and every skill must ship an `agents/openai.yaml` using only the keys Codex reads
+
 ## [1.4.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.3.0...notte-v1.4.0) (2026-08-05)
 
 Packaging and distribution only — no skill content changed.
