@@ -12,7 +12,7 @@ alwaysApply: false
 - `notte` (local) and `notte_sdk` (hosted) are two different imports, not aliases. Don't mix them in one file.
 - `reasoning_model` is a LiteLLM model string ("gemini/gemini-2.5-flash"), not a provider name, and must be one the platform advertises — run `notte agents start --help` for the current list rather than inventing one.
 - file storage on a session is `use_file_storage=True` (matching the `--use-file-storage` CLI flag). There is no `enable_file_storage` or `storage=` keyword.
-- a Function file must end with a module-level `run()` call. It is executed as a script, so a `run` that is only defined returns a `null` result with no error.
+- never call `run()` unguarded at module level in a Function file — the Notte runtime imports the file and calls `run()` itself, so a bare call makes the Function execute twice (two sessions, double cost, duplicated side effects). Always `if __name__ == "__main__": run()`. `notte sessions workflow-code` emits an unguarded call; add the guard before deploying.
 - never put `from __future__ import annotations` in a Function file — it breaks `response_format` with `PydanticUserError: Model is not fully defined`.
 - `notte functions run` blocks until the run finishes, so it is bounded by the global `--timeout` (default 60s). Raise it for slow Functions instead of assuming the Function is broken.
 - judge a run on `result`, not `status`: an error raised inside `run()` can still report `status: "closed"`.

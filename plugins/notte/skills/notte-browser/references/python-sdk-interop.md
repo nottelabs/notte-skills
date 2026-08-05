@@ -11,8 +11,10 @@ Use this only when editing `notte sessions workflow-code` exports or writing a N
 
 Notte Functions are Python files with a `run()` entry point. Parameters on `run()` become invocation inputs for the CLI, SDK, and HTTP endpoint; returned dicts/lists are available from `notte functions run-metadata`.
 
-The file is executed as a script, so it must **call** `run()` at module level - a
-`run` that is only defined yields a run with a `null` result and no error.
+The Notte runtime imports the file and calls `run()` itself. Guard any direct
+call with `if __name__ == "__main__":` - an unguarded module-level `run()`
+executes the Function **twice** (two browser sessions, double the cost, every
+side effect duplicated). The guard keeps the file runnable locally for testing.
 
 ```python
 from notte_sdk import NotteClient
@@ -29,7 +31,8 @@ def run(url: str, query: str):
         return session.scrape(instructions="Extract results as JSON")
 
 
-run()
+if __name__ == "__main__":
+    run()
 ```
 
 Deploy with:

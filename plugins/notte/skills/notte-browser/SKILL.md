@@ -217,6 +217,16 @@ def run() -> Model:
 run()
 ```
 
+**Clean the export before deploying it.** As shown above it needs two fixes:
+
+1. Remove `from __future__ import annotations` - under PEP 563 the Pydantic annotations become unresolved forward references and `response_format=Model` fails at runtime with `PydanticUserError: Model is not fully defined`.
+2. Guard the trailing `run()` call with `if __name__ == "__main__":`. The Notte runtime imports the workflow file and calls `run()` itself, so a bare module-level call **executes the Function twice** - two browser sessions, double the cost, and any side effect (a form submission, a purchase) performed twice. The guard keeps the file directly runnable for local testing without double-firing in the cloud.
+
+```python
+if __name__ == "__main__":
+    run()
+```
+
 Cookie management:
 
 ```bash
