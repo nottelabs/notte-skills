@@ -1,6 +1,6 @@
 {
   "name": "notte",
-  "version": "2.0.0",
+  "version": "0.0.2",
   "description": "Drive a real cloud or local browser with Notte \u2014 manage sessions and accounts from the CLI, and build, deploy, and repair Notte Functions",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
