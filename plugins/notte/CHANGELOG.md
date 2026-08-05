@@ -20,6 +20,7 @@ Packaging and distribution only — no skill content changed.
 
 ### Bug Fixes
 
+* wire the hosted MCP servers into the Cursor plugin. `.cursor-plugin/plugin.json` declared `skills` and `rules` but no `mcpServers`, so Cursor installed skills that referenced a browser it could not reach. The validator now fails if that field goes missing again
 * document Codex installation in the README (`codex plugin marketplace add nottelabs/notte-skills`), the `$plugin:skill` invocation form Codex uses, and the `--agent codex` flag for `npx skills add`. The README advertised Codex compatibility but documented no way to install on it
 * correct the manual-installation snippet, which copied the *plugin* directory into a *skills* directory and so left every `SKILL.md` two levels deep, where no client scans
 

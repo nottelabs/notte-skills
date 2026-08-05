@@ -262,9 +262,13 @@ def validate_cursor_manifest() -> None:
     data = load_json(CURSOR_MANIFEST)
     if data is None:
         return
-    for field in ("skills", "rules", "logo"):
+    for field in ("skills", "rules", "logo", "mcpServers"):
         if field in data:
             check_paths(CURSOR_MANIFEST, field, data[field])
+    # Cursor loads MCP servers from its own manifest; without this the plugin
+    # ships skills that reference a browser the client cannot reach.
+    if not data.get("mcpServers"):
+        fail(f"{CURSOR_MANIFEST}: no mcpServers, so Cursor installs the skills without them")
 
 
 # Fields that must be identical between a plugin's Claude and Codex manifests.

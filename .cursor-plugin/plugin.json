@@ -23,5 +23,6 @@
     "web-scraping", "mcp", "ai-agents", "developer-tools"
   ],
   "skills": ["./plugins/notte/skills/"],
-  "rules": "./rules/"
+  "rules": "./rules/",
+  "mcpServers": "./plugins/notte/.mcp.json"
 }
