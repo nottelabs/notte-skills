@@ -42,10 +42,20 @@ output does not state.
   on the inline `result`. The CLI issues one synchronous POST with no
   client-side polling, so the blocking description is the correct one; the poll
   loop is gone
-* **document the 60-second timeout trap.** Because the run is synchronous it is
-  bounded by the global `--timeout`, so a slow Function fails the *command*
-  while the run continues server-side — which reads as a broken Function. Called
-  out in the skill, the reference, and the self-test failure table
+* **document the 60-second timeout trap, and that retrying it double-executes.**
+  Because the run is synchronous it is bounded by the global `--timeout`, so a
+  slow Function fails the *command* while the run continues server-side — which
+  reads as a broken Function. Verified what actually happens: a Function invoked
+  with `--timeout 10` that needed ~45s returned `context deadline exceeded` to
+  the caller, yet its run stayed `active` and completed normally with the right
+  `result` ~35s later. So the client giving up does **not** cancel the run, and
+  "re-run with a bigger timeout" invokes the Function a second time —
+  duplicating any form submission, purchase or write. The skills now say to set
+  a generous timeout on the *first* invocation and, on a timeout, to recover the
+  in-flight run (`notte functions runs`, whose active-only default surfaces
+  exactly those) rather than retry. `notte-functions-doctor` additionally warns
+  to check the workflow file for side effects before re-running to reproduce a
+  failure, since it operates on live and possibly scheduled Functions
 * **credential guidance no longer contradicts itself.** The skill warned that
   `--password` leaks via `argv`, then prescribed `--password "$VAR"` as the fix
   — but the shell expands that before `exec`, so `ps` sees the plaintext either

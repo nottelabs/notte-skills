@@ -487,7 +487,15 @@ Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid 
 >
 > Newer CLIs return the full history by default and use `--running` to narrow to in-flight runs; `--only-active` still works there as a deprecated alias. **Never read an empty run list as "this Function never ran"** - see [Filters on list commands](#filters-on-list-commands).
 
-**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
+**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer fails the *command* while the run continues server-side. Set a generous timeout on the first invocation: `notte functions run --timeout 600`.
+
+> **A command timeout is not a failed run - do not just re-run it.** The client giving up does not cancel the run; it keeps executing and completes normally. Re-running therefore invokes the Function a **second** time, duplicating any form submission, purchase, or write. Find the existing run instead - the active-only default on `functions runs` is exactly right for spotting one in flight:
+>
+> ```bash
+> notte functions runs --function-id "$FUNCTION_ID" -o json | jq -c '.[] | {function_run_id, status}'
+> # once it is no longer "active":
+> notte functions runs --function-id "$FUNCTION_ID" --only-active=false -o json | jq -c '.[0]'
+> ```
 
 For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 

@@ -15,7 +15,9 @@ A Function is not done when it is created - it is done when a real cloud run ret
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
 ```
 
-There is no client-side polling - the CLI issues one synchronous POST and waits. That means the call is bounded by the global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run continues server-side, which looks like a failure but is not one. Raise it for anything non-trivial: `--timeout 600`.
+There is no client-side polling - the CLI issues one synchronous POST and waits. That means the call is bounded by the global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run carries on server-side, which looks like a failure but is not one.
+
+Set the timeout generously **up front** for anything non-trivial - `--timeout 600` on the first invocation. Do not use it as a retry after being cut off; see [A command timeout is not a failed run](#a-command-timeout-is-not-a-failed-run---do-not-re-run-it).
 
 ## Read the `result` (status alone is not enough)
 
@@ -99,9 +101,28 @@ Common failure -> fix:
 | a structured object that is empty | selector/endpoint returned nothing | re-check the path against the live site; the structure may differ from exploration |
 | an error string with `AssertionError: health contract ...` | contract violated | either the path broke (fix it) or the bound was too strict (recalibrate per [health-contract.md](health-contract.md)) |
 | an error string mentioning a timeout | slow page / missing wait | add a `wait`, or narrow what is scraped |
-| the **command** times out with no `result` at all | the run outlived the 60s request timeout | re-run with `--timeout 600`; the run itself is probably fine |
+| the **command** times out with no `result` at all | the run outlived the request timeout | **do not re-run** - recover the in-flight run instead (below) |
 
 Repeat until a run passes the contract. Never ship on a FAIL or on an unverified run.
+
+### A command timeout is not a failed run - do not re-run it
+
+The client timing out does **not** cancel the run. Verified: a Function invoked with `--timeout 10` that needed ~45s returned `context deadline exceeded` to the caller, yet its run stayed `active` server-side and finished normally with the correct `result` some 35 seconds later.
+
+So re-running after a timeout starts a **second, concurrent execution**. For a read-only scrape that is merely wasteful; for a Function that submits a form, makes a purchase, or writes anything, it performs that side effect twice. Recover the existing run instead:
+
+```bash
+# Is it still going? The default filter shows only in-flight runs, which is
+# exactly what you want here.
+notte functions runs --function-id "$TARGET_ID" -o json | jq -c '.[] | {function_run_id, status}'
+
+# Once it is no longer "active", read its outcome:
+notte functions runs --function-id "$TARGET_ID" --only-active=false -o json | jq -c '.[0]'
+```
+
+Only start a fresh run once you have confirmed nothing is in flight - and if the Function has side effects, confirm the first run's outcome before deciding whether repeating it is safe at all.
+
+The fix is to set a generous timeout **before** invoking something slow (`--timeout 600`), not to retry after being cut off.
 
 ## Optional - deeper logs and run history
 

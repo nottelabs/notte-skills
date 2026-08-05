@@ -82,6 +82,11 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 If a fresh run's `result` is a valid object that satisfies the contract, the original failure was transient - report that and stop. Do not repair a Function that is currently healthy.
 
+**Two cautions before you re-run.**
+
+1. **Check whether the Function has side effects.** Read the workflow file you downloaded in Phase 1. If `run()` submits a form, makes a purchase, or writes anything, reproducing the failure performs that action again. For those, prefer reading the last failed run from history (`notte functions runs --function-id "{function_id}" --only-active=false`) and confirm with the user before invoking it.
+2. **If the command times out, do not re-run.** The client giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Find the in-flight run with `notte functions runs --function-id "{function_id}"` (the active-only default shows exactly those) and read its outcome once it leaves `active`.
+
 ## Output of diagnosis
 
 Before leaving this phase you should be able to state, in one sentence: **the failure class, the evidence, and whether it is code-fixable.** For example: *"Class 1 drift - run finished but returned 0 listings and the `len >= 1` bound failed, no block/login page; code-fixable, proceed to re-explore."*
