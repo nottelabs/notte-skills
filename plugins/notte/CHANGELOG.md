@@ -1,29 +1,55 @@
 # Changelog
 
 All notable changes to the `notte` plugin are documented here. The plugin was
-named `notte-cli` before 2026-08-05; entries below 1.4.0 describe it under that
-name.
+named `notte-cli` before 2026-08-05; the pre-reset entries below describe it
+under that name.
 
-Versions before 1.4.0 were never tagged; the entries below are reconstructed
-from `git log` so that downstream consumers can tell which skill content
-corresponds to which version. Tag releases as `notte-v<version>` from now
-on so consumers can pin instead of tracking the default branch.
+**Versioning restarts at `0.0.x`.** The plugin was never published, so the
+`1.x` numbers that appear further down were reconstructed from `git log` rather
+than shipped to anyone. Nothing depended on them, so they are retired here
+rather than carried forward. Under `0.x`, breaking changes are expected and do
+not need a major bump - see <https://semver.org/#spec-item-4>. Tag releases as
+`notte-v<version>` from the first real release so consumers can pin instead of
+tracking the default branch.
 
-## [1.6.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.5.0...notte-v1.6.0) (2026-08-05)
+## 0.0.2 (2026-08-06)
 
-Skill content. Every documented command and flag was re-verified against `notte`
-CLI **v0.0.29**, and the CLI source was read to settle behaviour the `--help`
-output does not state.
+First versioned state of the plugin, and the first entry after the version
+reset. Combines everything on this branch: a full re-verification of every
+documented command against the `notte` CLI (reading the CLI source, and
+deploying real Functions, where `--help` did not settle the behaviour), and the
+`notte-functions-build` rename. These were drafted as two versions before the
+reset and are one release now.
+
+**Targets CLI v0.0.30 or newer.** The audit began against v0.0.29 and the fixes
+it produced shipped in v0.0.30, so the skills now assume that release.
+
+### Renames
+
+Called out rather than filed under "breaking": nothing was published under the
+old name, so there is nothing downstream to break. Anyone who tried the plugin
+from the default branch will need the new invocation.
+
+* **`notte-functions-forge` is renamed to `notte-functions-build`.** Invocations
+  change accordingly: `/notte-functions-build` in Claude Code,
+  `$notte:notte-functions-build` in Codex. "Forge" was a metaphor nobody types —
+  the skill description had to enumerate "forge, build, generate, or bake" to be
+  discoverable, which is a tell that the name was not carrying itself. "Build"
+  also matches the vocabulary of the `anything-api` MCP server, whose `build`
+  tool does the same job from natural language, so the two now read as one
+  concept. `notte-functions-doctor` keeps its name: the metaphor is apt,
+  unambiguous, and less prone to over-triggering than "repair" or "fix" would be.
+  Prose, filenames (`built_function.py`), and cross-references were updated with it
 
 ### Features
 
 * document `notte search`, `notte profiles`, `notte functions secrets`, and the
   `files` / `usage` / `health` / `clear` / `sessions offset` commands, none of
-  which appeared in any skill. `notte-functions-forge` now uses `notte search`
+  which appeared in any skill. `notte-functions-build` now uses `notte search`
   to research a target instead of opening a browser session for it
 * document the two bundled MCP servers and when to prefer them over the CLI.
-  `anything-api` is a marketplace of ready-made Notte Functions — forge now
-  checks it (`search`) **before** paying the exploration cost of forging a new one
+  `anything-api` is a marketplace of ready-made Notte Functions — the build skill now
+  checks it (`search`) **before** paying the exploration cost of building a new one
 * document the phone-number gate: `notte personas create --create-phone-number`
   fails on a standard account because provisioning is unlocked per-account by
   the Notte team. Both `notte-browser` and the account-management reference now
@@ -36,6 +62,63 @@ output does not state.
 
 ### Bug Fixes
 
+* **the marketplace check ran before there was anything to search for.** It sat
+  in `notte-functions-build` Phase 0, ahead of the phase that works out the
+  target site and fields. Moved to Phase 1c, after intent is parsed and before
+  the plan gate
+* `notte-functions-doctor` Phase 1 called a bare `notte functions list`, which
+  pages at 10 — on any busy account the Function being repaired simply would not
+  appear. Phase 1 now pages properly: the API caps `--page-size` at 100
+  (measured: 500 returns `Input should be less than or equal to 100`) and the
+  CLI prints a bare array with no `has_next`, so the only way to know you have
+  reached the end is a short page. Ships an `all_functions()` helper that loops
+  until one comes back, and says never to conclude a Function is missing from a
+  single request
+* **target CLI v0.0.30 and drop the compatibility hedging.** nottelabs/notte-cli#58
+  and #59 merged and shipped in v0.0.30, so `--include-deleted`, `-a`/`--all` and
+  `--running` are available and `notte functions runs` now returns the full
+  history by default. The skills target that release — stated in Setup, with
+  `notte version` as the check — and the `--only-active=false` workarounds are
+  gone. This removed a live error (`--include-deleted` was documented while still
+  unreleased, so it failed on v0.0.29) and corrected a claim that v0.0.30
+  invalidated: the recovery path for a timed-out run said the active-only default
+  on `functions runs` surfaces in-flight runs, which was true before the change
+  and is not now — it takes `--running`. Verified against v0.0.30: `functions runs`
+  returns 2 where `--running` returns 0; `functions list` 64 vs 100 with
+  `--include-deleted`; `sessions list` 0 vs 100 with `-a`
+* **a `[doctor-verify]` throwaway is never adopted by name.** Doctor used to
+  look for an existing copy and reuse it, first by display name and then by a
+  name containing the live Function's id. Making the name unique was not enough:
+  a name is not proof of ownership. `[doctor-verify] {id}` is predictable, so a
+  concurrent repair of the same Function - or anyone who typed that label -
+  produces the identical name, and adopting it would overwrite work that is not
+  yours and then delete it. Doctor now always creates its own copy and treats the
+  id returned by `notte functions create` as the only ownership proof. Strays
+  from an abandoned earlier attempt are **reported to the user, not adopted or
+  deleted**. The name check on the delete remains as a second belt against a
+  stale variable, explicitly not as authorization
+* `scripts/validate-plugins.py` now checks that every relative markdown link
+  inside a skill resolves. Renaming a skill directory silently breaks the
+  cross-references pointing at it and nothing else in the repo would notice —
+  verified against this release's own rename by pointing a link back at
+  `notte-functions-forge`, which the check rejects
+* move the "it may have been deleted rather than broken" check into
+  `notte-functions-doctor` Phase 1, where the Function fails to turn up, instead
+  of Phase 2, where it was too late to be useful
+* `[doctor-verify]` throwaway Functions leaked. Cleanup only ran in Phase 6,
+  after the contract passed *and* the user approved, so an abandoned or rejected
+  repair left copies behind. Phase 5 now states that the delete runs however the
+  repair ends - including when verification never passes or the user declines at
+  the gate - and that an orphan left behind has to be cleared by a human, since
+  a later run deliberately will not adopt it (see the ownership entry above)
+* `notte-functions-doctor` Phase 6 re-runs the live Function to confirm health,
+  which writes again if the Function writes. It now says to let the user decide
+  for a Function with side effects, rather than invoking it reflexively
+* correct `notte-functions-build` Phase 3, which said to *add* a `run(...)` entry
+  point when the export already defines one — an agent could reasonably end up
+  with two
+* Delivery promised to show "three ways" to invoke a Function and listed two
+* the `--var` example used a parameter absent from the worked example
 * **`notte functions run` blocks.** `function-management.md` described it as
   fire-and-forget and demonstrated a `sleep 10` + `run-metadata` poll, while
   `self-test.md` and both Function skills built their entire pass/fail protocol
@@ -79,7 +162,7 @@ output does not state.
   with no trailing call returned its value normally (the runtime invokes `run()`
   itself), and one *with* a trailing call logged exactly one invocation, so
   there is no double execution either. Said so explicitly in the reference, the
-  interop notes, the skeleton, the forge cleanup step, and the rules, so the
+  interop notes, the skeleton, the build skill's cleanup step, and the rules, so the
   next reader does not infer a rule from the inconsistency
 * **document the two `result` shapes.** `notte functions run` returns the value
   of `run()` serialized to JSON, so a `dict` arrives as a real nested object
@@ -149,7 +232,13 @@ output does not state.
   `Bash(notte:*)` while instructing the agent to run `curl`, `jq`, and `diff` —
   doctor could not perform its own Phase 1 source download or Phase 6 diff
 
-## [1.5.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.4.0...notte-v1.5.0) (2026-08-05)
+## 0.0.1 - prior unreleased history
+
+Everything that existed before the reset, collapsed into one entry because
+none of it was ever released. The original headings are kept below for
+provenance; their version numbers no longer mean anything.
+
+### [1.5.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.4.0...notte-v1.5.0) (2026-08-05)
 
 Packaging and distribution only — no skill content changed.
 
@@ -169,7 +258,7 @@ Packaging and distribution only — no skill content changed.
 * extend `scripts/validate-plugins.py` to cover the Codex surface: both marketplaces must list the same plugins at the same paths, each plugin's Claude and Codex manifests must agree on name/version/description/component paths, manifest `interface` asset paths must resolve, and every skill must ship an `agents/openai.yaml`. That file is parsed rather than scanned, so unknown keys are caught at both levels — including the snake_case/camelCase slip between `openai.yaml` and `plugin.json` — along with a missing `interface` field, a `short_description` outside Codex's documented 25–64 characters, a `default_prompt` that does not invoke `$skill-name`, a malformed `policy` or `dependencies.tools` entry, and any YAML construct the parser cannot represent
 * add `scripts/test-validate-plugins.py`, which exercises those checks against malformed and incomplete fixtures, and run it in CI alongside the validator
 
-## [1.4.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.3.0...notte-v1.4.0) (2026-08-05)
+### [1.4.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.3.0...notte-v1.4.0) (2026-08-05)
 
 Packaging and distribution only — no skill content changed.
 
@@ -183,13 +272,13 @@ Packaging and distribution only — no skill content changed.
 * declare skills explicitly in `plugin.json` (`"skills": "./skills/"`) instead of relying on directory convention
 * add `scripts/validate-plugins.py` and run it in CI on every change under `plugins/**` and the manifests
 
-## [1.3.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.2.0...notte-v1.3.0) (2026-07-29)
+### [1.3.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.2.0...notte-v1.3.0) (2026-07-29)
 
 ### Features
 
 * add provider migration and cost skills ([#20](https://github.com/nottelabs/notte-skills/pull/20)) ([3921ff8](https://github.com/nottelabs/notte-skills/commit/3921ff8)) — adds the `migrate-to-notte` and `compare-to-notte-costs` skills covering Browserbase/Stagehand, Kernel, Anchor Browser, Browser Use Cloud, Steel, Hyperbrowser, and Skyvern
 
-## [1.2.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.1.0...notte-v1.2.0) (2026-06-30)
+### [1.2.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.1.0...notte-v1.2.0) (2026-06-30)
 
 ### Features
 
@@ -199,7 +288,7 @@ Packaging and distribution only — no skill content changed.
 
 * **notte-browser:** correct the run-output field ([#17](https://github.com/nottelabs/notte-skills/pull/17)) ([7334a3d](https://github.com/nottelabs/notte-skills/commit/7334a3d))
 
-## [1.1.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.0.0...notte-v1.1.0) (2026-06-05)
+### [1.1.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.0.0...notte-v1.1.0) (2026-06-05)
 
 Documentation and guidance changes to `notte-browser` that shipped silently
 under the `1.0.0` version pin.
@@ -220,7 +309,7 @@ under the `1.0.0` version pin.
 * clarify Notte Function endpoint intents ([#11](https://github.com/nottelabs/notte-skills/pull/11)) ([519a0f5](https://github.com/nottelabs/notte-skills/commit/519a0f5))
 * clarify Notte auth login handling ([#12](https://github.com/nottelabs/notte-skills/pull/12)) ([c29bb20](https://github.com/nottelabs/notte-skills/commit/c29bb20))
 
-## 1.0.0 (2026-05-07)
+### 1.0.0 (2026-05-07)
 
 ### Features
 

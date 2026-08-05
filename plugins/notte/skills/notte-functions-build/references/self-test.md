@@ -1,6 +1,6 @@
 ---
 name: self-test
-description: Validate a forged Function in the cloud against its health contract, and self-repair until it passes
+description: Validate a built Function in the cloud against its health contract, and self-repair until it passes
 ---
 
 # Self-Test Reference
@@ -38,7 +38,7 @@ This is why the [health contract](health-contract.md) assertions matter: a broke
 
 Capture the Function id once and pass `--function-id "$TARGET_ID"` on every `run`, `run-metadata`, and `update` below. Do not rely on the implicit "current function" pointer: `notte functions create` and `delete` move it, so a bare command can run against - or overwrite - the wrong Function once more than one exists.
 
-- **Forge** sets `TARGET_ID` to the Function it just created.
+- **notte-functions-build** sets `TARGET_ID` to the Function it just created.
 - **Doctor** sets `TARGET_ID` to the throwaway verify Function, never the live one.
 
 ```bash
@@ -89,7 +89,7 @@ On a FAIL, diagnose from the `result` (and logs, below), fix the Function file, 
 
 ```bash
 # edit the function file to fix the issue, then:
-notte functions update --function-id "$TARGET_ID" --file forged_function.py
+notte functions update --function-id "$TARGET_ID" --file built_function.py
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
 ```
 
@@ -117,7 +117,7 @@ So re-running after a timeout starts a **second, concurrent execution**. For a r
 notte functions runs --function-id "$TARGET_ID" -o json | jq -c '.[] | {function_run_id, status}'
 
 # Once it is no longer "active", read its outcome:
-notte functions runs --function-id "$TARGET_ID" --only-active=false -o json | jq -c '.[0]'
+notte functions runs --function-id "$TARGET_ID" -o json | jq -c '.[0]'
 ```
 
 Only start a fresh run once you have confirmed nothing is in flight - and if the Function has side effects, confirm the first run's outcome before deciding whether repeating it is safe at all.
@@ -133,7 +133,7 @@ RUN_ID=$(notte functions run --function-id "$TARGET_ID" -o json | jq -r '.functi
 notte functions run-metadata --function-id "$TARGET_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 ```
 
-If you look the id up in history instead, pass `--only-active=false` - for runs "active" means *still executing*, so on older CLIs a Function whose runs have all finished lists as `[]`. That form works on every CLI version; newer ones return history by default and use `--running` to narrow.
+Looking it up in history works too: `notte functions runs` returns every run, newest first. `--running` narrows to runs still executing, which is only useful when chasing a run that outlived its request timeout.
 
 `run-metadata`'s `result` can come back as a Python `repr` rather than clean JSON, so prefer the `notte functions run` output (above) for contract validation, and use `run-metadata` only for logs and history.
 

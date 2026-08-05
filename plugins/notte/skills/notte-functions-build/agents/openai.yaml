@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notte Functions Build"
+  short_description: "Explore a site once, deploy it as a Notte Function"
+  default_prompt: "Use $notte-functions-build to explore this site once and deploy the stable data path as a parameterized Notte Function."

@@ -29,7 +29,7 @@ The `notte` plugin also ships two hosted MCP servers. **Prefer the CLI for every
 | Server | URL | What it is | When to use it |
 |--------|-----|------------|----------------|
 | `notte-browser` | `https://api.notte.cc/mcp` | The Notte browser API over MCP | Only when the client cannot run shell commands. Otherwise the CLI is more direct and better documented. |
-| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions, plus natural-language `build` | **Before forging a new Function**, call its `search` tool - someone may already have published one for the target site. |
+| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions, plus natural-language `build` | **Before building a new Function**, call its `search` tool - someone may already have published one for the target site. |
 
 `anything-api` exposes `search` (browse the marketplace, no auth), `spec` (get a function's variable schema), `run`, and `build` (natural language -> a new deployed Function, 2-10 minutes). `build` and `run` need authentication - OAuth via your client, or `Authorization: Bearer $NOTTE_API_KEY`. Browse it visually at <https://anything.notte.cc/marketplace>.
 
@@ -37,7 +37,9 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. If authentication is missing, run the interactive CLI login flow and wait for it to complete.
+Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.30 or newer** - that release renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+
+If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
 ```bash
 # Install with Homebrew
@@ -441,7 +443,7 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   }'
 
 # List runs for current function (with optional pagination and filters)
-notte functions runs [--page N] [--page-size N] [--only-active=false]   # see Filters note - history can look empty
+notte functions runs [--page N] [--page-size N] [--running]   # full history; --running = in-flight only
 
 # Stop a running function execution
 notte functions run-stop --run-id <run-id>
@@ -479,22 +481,17 @@ notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RID" -o jso
 
 Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid JSON) rather than the clean object `functions run` gives you - use it for logs and history, and take the result from `functions run`.
 
-> **`notte functions runs` can hide completed runs.** For runs, "active" means *currently executing*, so on older CLIs a Function whose runs have all finished lists as `[]`. Ask for the history explicitly - this form works on every version:
->
-> ```bash
-> notte functions runs --function-id "$FUNCTION_ID" --only-active=false -o json
-> ```
->
-> Newer CLIs return the full history by default and use `--running` to narrow to in-flight runs; `--only-active` still works there as a deprecated alias. **Never read an empty run list as "this Function never ran"** - see [Filters on list commands](#filters-on-list-commands).
+`notte functions runs` returns the **full history** by default; add `--running` to narrow to runs still executing.
 
 **Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer fails the *command* while the run continues server-side. Set a generous timeout on the first invocation: `notte functions run --timeout 600`.
 
-> **A command timeout is not a failed run - do not just re-run it.** The client giving up does not cancel the run; it keeps executing and completes normally. Re-running therefore invokes the Function a **second** time, duplicating any form submission, purchase, or write. Find the existing run instead - the active-only default on `functions runs` is exactly right for spotting one in flight:
+> **A command timeout is not a failed run - do not just re-run it.** The client giving up does not cancel the run; it keeps executing and completes normally. Re-running therefore invokes the Function a **second** time, duplicating any form submission, purchase, or write. Find the existing run instead:
 >
 > ```bash
-> notte functions runs --function-id "$FUNCTION_ID" -o json | jq -c '.[] | {function_run_id, status}'
-> # once it is no longer "active":
-> notte functions runs --function-id "$FUNCTION_ID" --only-active=false -o json | jq -c '.[0]'
+> # still executing?
+> notte functions runs --function-id "$FUNCTION_ID" --running -o json | jq -c '.[] | {function_run_id, status}'
+> # once it is done, the newest entry in the full history carries the outcome:
+> notte functions runs --function-id "$FUNCTION_ID" -o json | jq -c '.[0]'
 > ```
 
 For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
@@ -617,16 +614,16 @@ Every `list` command takes a filter flag, but **"active" means a different thing
 |---------|--------------------|---------------|----------|
 | `functions list`, `vaults list`, `personas list` | soft-**deleted** | live records only | `--include-deleted` |
 | `sessions list`, `agents list` | **stopped** / finished | running only, like `docker ps` | `-a` / `--all` |
-| `functions runs` | still **executing** | see note below | `--only-active=false` |
+| `functions runs` | still **executing** | the full history | `--running` narrows *to* in-flight |
 
 Two rules follow:
 
-- **Do not widen artifact listings by reflex.** The default on `functions list`, `vaults list`, and `personas list` is correct - it hides deleted records. Widening surfaces tombstones, and acting on a deleted Function or vault id will fail confusingly. Only pass `--include-deleted` when the user is specifically asking what was deleted.
-- **Do widen run listings.** For `functions runs`, "active" means in-flight, so history looks empty on older CLIs. This is the one case where an empty list is misleading rather than meaningful.
+- **Do not widen artifact listings by reflex.** The default on `functions list`, `vaults list`, `personas list`, and `profiles list` is correct - it hides deleted records. Widening surfaces tombstones, and acting on a deleted Function or vault id will fail confusingly. Only pass `--include-deleted` when the user is specifically asking what was deleted.
+- **Run listings are the exception**: they already show everything, so an empty `functions runs` really does mean the Function has never run.
 
-An empty list from a session or agent listing means "nothing is running right now", not "nothing exists" - pass `-a`/`--all` (or `--only-active=false` on older CLIs) to see finished ones.
+An empty list from a session or agent listing means "nothing is running right now", not "nothing exists" - pass `-a`/`--all` to see finished ones.
 
-**Flag names by CLI version.** `--include-deleted`, `-a`/`--all`, and `--running` are the current names. Older CLIs expose a single `--only-active` on every command; newer ones keep it as a deprecated alias, so `--only-active=false` is the one form that works everywhere. Run `notte <resource> list --help` if you need to know which you have.
+**Requires CLI v0.0.30 or newer.** `--include-deleted`, `-a`/`--all`, and `--running` landed there, along with the change that made `functions runs` return history by default. Older CLIs expose a single `--only-active` on every command, whose meaning flips per resource; if `notte version` predates v0.0.30, upgrade rather than translating flags.
 
 ## Global Options
 

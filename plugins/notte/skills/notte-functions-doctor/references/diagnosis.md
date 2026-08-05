@@ -16,7 +16,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 - a **JSON object** matching the schema -> the run produced data (if it is empty or violates a bound, that is drift; see class 1).
 - a **string** beginning `Script execution failed ...` with a `Traceback` -> the run raised; the exception or `AssertionError` message is in that string (classes 1, 2, 3, or 4 depending on what it says).
 
-(You can also pull the last failed run from history with `notte functions runs --function-id "{function_id}" --only-active=false -o json`. **Include `--only-active=false`**: for runs "active" means *still executing*, so on older CLIs completed runs are filtered out and the list looks empty. That form works on every CLI version. Note `run-metadata`'s `result` is a Python `repr` rather than clean JSON. Re-running still gives the cleanest read.)
+(You can also pull the last failed run from history with `notte functions runs --function-id "{function_id}" -o json`, which returns every run newest-first. Note `run-metadata`'s `result` is a Python `repr` rather than clean JSON. Re-running still gives the cleanest read.)
 
 ## Failure taxonomy
 
@@ -26,7 +26,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** the path still ran, but produced no data. Usually the site moved the data (renamed a CSS class, changed an internal endpoint, restructured the response). It can equally be a **pure code defect** in the Function (a bad filter, a wrong field name, an over-narrow query) that drops the data even though the page is fine. Re-exploration tells you which: if the live page still has the data, the bug is in the Function's code and the fix is the code, not the path.
 
-**Action:** re-explore the live site (forge exploration). If the data moved, find the new path; if the page is fine, fix the code that drops it. Then patch, verify, promote.
+**Action:** re-explore the live site, per `notte-functions-build`'s exploration reference. If the data moved, find the new path; if the page is fine, fix the code that drops it. Then patch, verify, promote.
 
 ### 2. Hard exception  -  CODE-FIXABLE
 
@@ -60,7 +60,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** this is past "drift" - the Function's assumptions about the site are void.
 
-**Action:** report to the user and confirm the new target or intent. A restructure this deep is closer to re-forging than repairing - consider handing back to [notte-functions-forge](../../notte-functions-forge/SKILL.md) with the user's confirmation of the new target.
+**Action:** report to the user and confirm the new target or intent. A restructure this deep is closer to re-building than repairing - consider handing back to [notte-functions-build](../../notte-functions-build/SKILL.md) with the user's confirmation of the new target.
 
 ## Disambiguating empty results
 
@@ -84,8 +84,8 @@ If a fresh run's `result` is a valid object that satisfies the contract, the ori
 
 **Two cautions before you re-run.**
 
-1. **Check whether the Function has side effects.** Read the workflow file you downloaded in Phase 1. If `run()` submits a form, makes a purchase, or writes anything, reproducing the failure performs that action again. For those, prefer reading the last failed run from history (`notte functions runs --function-id "{function_id}" --only-active=false`) and confirm with the user before invoking it.
-2. **If the command times out, do not re-run.** The client giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Find the in-flight run with `notte functions runs --function-id "{function_id}"` (the active-only default shows exactly those) and read its outcome once it leaves `active`.
+1. **Check whether the Function has side effects.** Read the workflow file you downloaded in Phase 1. If `run()` submits a form, makes a purchase, or writes anything, reproducing the failure performs that action again. For those, prefer reading the last failed run from history (`notte functions runs --function-id "{function_id}"`) and confirm with the user before invoking it.
+2. **If the command times out, do not re-run.** The client giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Find the in-flight run with `notte functions runs --function-id "{function_id}" --running` and read its outcome from the full history once it leaves `active`.
 
 ## Output of diagnosis
 

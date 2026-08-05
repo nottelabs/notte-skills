@@ -1,16 +1,16 @@
 ---
 name: health-contract
-description: The health contract a forged Function carries so it can be self-tested at build time and repaired later
+description: The health contract a built Function carries so it can be self-tested at build time and repaired later
 ---
 
 # Health Contract Reference
 
-A **health contract** is a small, explicit description of what a *correct* result from a Function looks like. Forge stamps it into every Function it generates. It pays off twice:
+A **health contract** is a small, explicit description of what a *correct* result from a Function looks like. `notte-functions-build` stamps it into every Function it generates. It pays off twice:
 
 1. **At build time** - the self-test (Phase 4) has an unambiguous pass/fail target instead of "looks about right".
 2. **At repair time** - [notte-functions-doctor](../../notte-functions-doctor/SKILL.md) reads the contract to know what to repair *toward*. Without it, repair is guessing whether `[]` means "no results today" or "the selector broke".
 
-The contract is the single most valuable thing a forged Function carries beyond its code. The cost to add it at build time is near zero; the cost of not having it at repair time is high.
+The contract is the single most valuable thing a built Function carries beyond its code. The cost to add it at build time is near zero; the cost of not having it at repair time is high.
 
 ## What goes in a contract
 
@@ -26,7 +26,7 @@ Two parts: the **schema** (already implied by the response model) and the **sani
 
 The schema alone is not enough: a broken scrape usually still returns a schema-valid but **empty or garbage** payload. The sanity bounds are what catch that.
 
-## How forge stamps it
+## How build stamps it
 
 Two complementary mechanisms - use both:
 
