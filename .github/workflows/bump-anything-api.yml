@@ -21,6 +21,12 @@ jobs:
   bump:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out notte-skills (needed by the bump + changelog steps)
+        uses: actions/checkout@v4
+        with:
+          path: notte-skills
+          fetch-depth: 0
+
       - name: Check out anything-api
         uses: actions/checkout@v4
         with:
@@ -28,12 +34,6 @@ jobs:
           # Needs contents:write + pull-requests:write on nottelabs/anything-api.
           token: ${{ secrets.ANYTHING_API_BUMP_TOKEN }}
           path: anything-api
-
-      - name: Check out notte-skills (for the changelog range)
-        uses: actions/checkout@v4
-        with:
-          path: notte-skills
-          fetch-depth: 0
 
       - name: Bump the pin
         id: bump
@@ -55,6 +55,17 @@ jobs:
             echo "already=true" >> "$GITHUB_OUTPUT"
             echo "Pin already at $NEW_REF, nothing to do."
             exit 0
+          fi
+
+          # The pinned subdir must still exist at the new ref. It is human-owned
+          # (a rename is a reviewed change, not something CI should guess), so
+          # if upstream moved it we open nothing and fail loudly -- otherwise we
+          # would file a green-looking PR that breaks the snapshot build.
+          SUBDIR=$(jq -r .subdir "$PIN_FILE")
+          if ! git -C "$GITHUB_WORKSPACE/notte-skills" cat-file -e "$NEW_REF:$SUBDIR" 2>/dev/null; then
+            echo "::error::'$SUBDIR' does not exist at $NEW_REF in ${{ github.repository }}."
+            echo "::error::The skill path moved upstream. Update .subdir in $PIN_FILE by hand, in the same PR as the ref bump."
+            exit 1
           fi
 
           # Rewrite only .ref — repo/subdir are human-owned and must not be
