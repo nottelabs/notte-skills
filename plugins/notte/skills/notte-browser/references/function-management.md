@@ -20,13 +20,25 @@ Think of a Function as the endpoint version of a browser task. A tested `notte p
 
 ## Development Workflow
 
+### Choosing an implementation path
+
+Decide how the Function will actually fetch its data before writing it. Prefer, in this order:
+
+1. **A documented or observed JSON/HTTP endpoint** that returns the needed fields - check the page's own XHR calls with `notte sessions network`. Fastest, cheapest, and deterministic.
+2. **A deterministic parse of rigidly structured HTML**, when the markup is stable and the fields map to fixed elements. Still deterministic, still no model in the hot path.
+3. **`session.scrape(...)`**, the right tool for dynamic, irregular, or JS-rendered pages. It costs an LLM call on every invocation, is output-bound (roughly seconds proportional to the number of fields extracted), and returns results that vary from run to run.
+
+Rank by the page, not by habit: a site with a public API or a fixed table should not pay for an extraction model on each run.
+
+### Building from a tested session
+
 Building a function should start from a tested CLI session. The easiest and most reliable path is:
 
 1. Try the browser task directly with `notte sessions start` and `notte page ...` commands until it works.
 2. Export the successful session with `notte sessions workflow-code`. If the current-session pointer is gone, or the session has already been stopped, pass the captured session ID explicitly with `notte sessions workflow-code --session-id <session-id>`.
 3. Use the exported script as the implementation base for the Function.
 
-Do not hand-write a Notte Function from scratch before exporting `workflow-code` unless there is no successful session to export or the user explicitly asks for handwritten SDK code. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser.
+For interactive, stateful, or authenticated flows - logins, multi-step forms, anything where the working sequence and session state are painful to reconstruct by hand - export `workflow-code` before hand-writing the Function. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser, which is precisely what is hard to guess back. For a stateless Function built on an endpoint or HTML structure you already confirmed, writing that request directly is fine.
 
 ### Step-by-Step Process
 
@@ -40,6 +52,8 @@ Do not hand-write a Notte Function from scratch before exporting `workflow-code`
 8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
 
 ### Complete Example
+
+This example uses `scrape` to demonstrate the end-to-end CLI flow, not because it is the best implementation for this particular site: the Hacker News front page has both a public JSON API (`hn.algolia.com/api/v1/search_by_date?tags=front_page`) and rigidly structured HTML, so a real Function for it should follow path 1 or 2 above. Read the flow, not the extraction choice.
 
 **Step 1-3 — build interactively, then export:**
 
