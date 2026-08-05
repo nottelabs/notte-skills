@@ -36,21 +36,22 @@ notte sessions start --browser-type chromium
 
 # Google Chrome
 notte sessions start --browser-type chrome
-
-# Firefox
-notte sessions start --browser-type firefox
 ```
+
+Only `chromium` and `chrome` are supported. `chrome-nightly` and `chrome-turbo`
+are accepted as legacy aliases for `chrome`. There is no Firefox option.
 
 ### Session Configuration
 
 ```bash
 notte sessions start \
   --headless=false \              # Show browser window
-  --browser-type chromium \       # Browser type
+  --browser-type chromium \       # chromium or chrome
   --idle-timeout-minutes 10 \     # Close after 10 min of inactivity
   --max-duration-minutes 60 \     # Maximum 60 min session lifetime
   --proxy \                       # Use rotating proxies
   --solve-captchas \              # Auto-solve CAPTCHAs
+  --vault-id <vault-id> \         # Attach a vault for sentinel credential fills
   --profile-id <profile-id> \     # Load browser state from a profile
   --profile-persist \             # Save browser state on session close
   --viewport-width 1920 \         # Custom viewport
@@ -59,9 +60,20 @@ notte sessions start \
   --use-file-storage              # Enable file storage for downloads
 ```
 
+See the main SKILL.md for the full flag list, including `--aspect-ratio`,
+`--screenshot-type`, `--chrome-args`, `--extra-http-headers`, `--web-bot-auth`,
+and the external/Tailscale proxy flags.
+
 ### Browser Profiles
 
-Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
+Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Create one with `notte profiles create`, then start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
+
+```bash
+PROFILE_ID=$(notte profiles create -o json | jq -r '.profile_id')
+notte profiles list
+notte profiles show --profile-id "$PROFILE_ID"
+notte profiles delete --profile-id "$PROFILE_ID"
+```
 
 ### Remote Browser Connection
 
@@ -110,11 +122,9 @@ notte page observe
 The `observe` command returns the current page state including available actions:
 
 ```bash
-# Observe current page
+# Observe the current page. `observe` takes no arguments - navigate first.
+notte page goto "https://example.com"
 notte page observe
-
-# Navigate and observe
-notte page observe https://example.com
 ```
 
 ### Observe Response
@@ -130,18 +140,20 @@ Example response (JSON output):
   "url": "https://example.com/login",
   "title": "Login - Example",
   "actions": [
-    {"id": "B1", "type": "input", "description": "Email input field"},
-    {"id": "B2", "type": "input", "description": "Password input field"},
-    {"id": "B3", "type": "button", "description": "Login button"}
+    {"id": "I1", "type": "input", "description": "Email input field"},
+    {"id": "I2", "type": "input", "description": "Password input field"},
+    {"id": "B1", "type": "button", "description": "Login button"}
   ]
 }
 ```
 
-Use these IDs directly in page commands:
+IDs are prefixed by element class - `I*` for inputs, `B*` for buttons, `L*` for
+links. Use them directly in page commands:
+
 ```bash
-notte page fill "B1" "user@example.com"
-notte page fill "B2" "password"
-notte page click "B3"
+notte page fill "I1" "user@example.com"
+notte page fill "I2" "password"
+notte page click "B1"
 ```
 
 ## Executing Actions
@@ -225,23 +237,26 @@ notte sessions start --idle-timeout-minutes 10 --max-duration-minutes 60
 
 ### Network Logs
 
-View all network requests:
+Download the network logs (HAR) and print where they landed:
 
 ```bash
-notte sessions network
+notte sessions network                  # downloads to a temp directory
+notte sessions network --path ./har     # choose the output directory
+notte sessions network --urls-only      # print request URLs inline, no download
 ```
 
-Useful for debugging API calls, failed requests, etc.
+Useful for debugging API calls, failed requests, and for finding a site's
+internal data API during exploration.
 
 ### Session Replay
 
-Get replay data for session recording:
+Download the session replay video:
 
 ```bash
 notte sessions replay
 ```
 
-Returns data that can be used to replay the session.
+To watch a session live instead, use `notte sessions viewer`.
 
 ### Export Code
 
@@ -251,7 +266,10 @@ Export session steps as reusable code:
 notte sessions workflow-code
 ```
 
-Generates a function script from your session actions.
+Generates a workflow script from your session actions, in the shape
+`notte functions create` expects. `notte sessions code` hits the same endpoint
+without the workflow wrapper and returns a plain replay script - prefer
+`workflow-code` when the target is a Function.
 
 ## Cookie Management
 
@@ -301,7 +319,7 @@ notte sessions status
 notte sessions list
 
 # With pagination and filters
-notte sessions list --page 2 --page-size 10 --only-active
+notte sessions list --page 2 --page-size 10   # running only; add -a/--all for stopped
 ```
 
 ## Stopping Sessions

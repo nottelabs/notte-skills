@@ -35,7 +35,16 @@ notte personas create
 # With associated vault for credentials
 notte personas create --create-vault
 
+# With a phone number - GATED, see below
+notte personas create --create-phone-number
 ```
+
+> **`--create-phone-number` is gated and will fail on a standard account.**
+> Phone-number provisioning is unlocked per-account by the Notte team. Treat a
+> failure here as an account entitlement, not a transient error - do not retry
+> or attempt a workaround. To request access, book a 15-minute call at
+> <https://cal.com/pintoa/15mins>. Until it is unlocked, personas have an email
+> inbox only, and `notte personas sms` has nothing to return.
 
 ### Managing Personas
 
@@ -44,7 +53,7 @@ notte personas create --create-vault
 notte personas list
 
 # With pagination and filters
-notte personas list --page 1 --page-size 20 --only-active
+notte personas list --page 1 --page-size 20   # deleted personas are already hidden
 
 # View persona details
 notte personas show --persona-id <persona-id>
@@ -77,9 +86,12 @@ Example response:
 }
 ```
 
-### Receiving SMS (contact notte sales team to get access)
+### Receiving SMS (gated feature)
 
-For personas with phone numbers:
+Requires a persona created with `--create-phone-number`, which is unlocked
+per-account by the Notte team. Book a call at <https://cal.com/pintoa/15mins> to
+request access. If it is not unlocked, tell the user plainly and fall back to an
+email-based verification flow where the target site supports one.
 
 ```bash
 # List SMS messages
@@ -152,7 +164,7 @@ notte vaults create --name "Work Accounts"
 notte vaults list
 
 # With pagination and filters
-notte vaults list --page 1 --page-size 20 --only-active
+notte vaults list --page 1 --page-size 20   # deleted vaults are already hidden
 
 # Update vault name
 notte vaults update --vault-id <vault-id> --name "Personal Accounts"
@@ -192,9 +204,14 @@ notte vaults credentials add \
   --mfa-secret "EXAMPLEMFASECRET"   # placeholder — replace with your real base32 TOTP seed
 ```
 
-> **Security note:** Real passwords and MFA seeds should not be typed
-> directly into argv — they leak into `ps`, shell history, and process snapshots.
-> Prefer environment variables, as shown above, or load from a file you own.
+> **Security note:** `--password` and `--mfa-secret` have no stdin or file-based
+> alternative, so whatever you pass lands in `argv`, where `ps` can read it.
+> Expanding from an environment variable (as shown above) keeps the literal
+> secret out of your **shell history** and out of committed files, but the shell
+> expands it before `exec`, so it does **not** hide the value from `ps`. Add each
+> credential to the vault **once**, from a machine and shell you control, then
+> rely on the vault and sentinel placeholders so the secret never crosses `argv`
+> again. Avoid running these commands on shared or multi-tenant hosts.
 
 ### Listing Credentials
 
@@ -237,6 +254,25 @@ notte vaults credentials add \
 
 The MFA secret is the base32-encoded key shown when setting up authenticator apps (usually displayed as a QR code or "manual entry" key).
 
+## Sentinel Placeholders
+
+Credentials do **not** auto-fill on navigation. Attaching a vault to a session
+(`notte sessions start --vault-id <vault-id>`) enables *substitution*: you fill
+these exact sentinel strings, and Notte swaps in the matching real credential
+before the keystrokes reach the page.
+
+| Field    | Sentinel             |
+|----------|----------------------|
+| email    | `user@example.org`   |
+| username | `cooljohnny1567`     |
+| password | `mycoolpassword`     |
+| MFA code | `999779`             |
+
+The match must be exact - any other string is filled literally. The same
+sentinels work in agent fill actions when the agent is started with
+`--vault-id`. This is what keeps the real secret out of your scripts, logs, and
+shell history.
+
 ## Authentication Patterns
 
 ### When to Use Personas
@@ -262,15 +298,21 @@ Use vaults when you need:
 - **MFA automation**: Auto-generate TOTP codes
 
 ```bash
-# Login automation
+# One-time setup: store the credential (values expanded from env vars)
 notte vaults credentials add --vault-id <vault-id> \
   --url "https://dashboard.example.com" \
-  --email "myreal@email.com" \
-  --password "myrealpassword" \
-  --mfa-secret "MYREALMFASECRET"
-# → Navigate to login page
-# → Vault credentials auto-fill
-# → TOTP generated automatically
+  --email "$DASHBOARD_EMAIL" \
+  --password "$DASHBOARD_PASSWORD" \
+  --mfa-secret "$DASHBOARD_MFA_SECRET"
+
+# Then attach the vault to the session and fill with sentinel placeholders.
+# Notte substitutes the real credential before the keystrokes reach the page,
+# so the script never contains the secret.
+notte sessions start --vault-id <vault-id>
+notte page goto "https://dashboard.example.com/login"
+notte page fill "input[name='email']" "user@example.org"
+notte page fill "input[name='password']" "mycoolpassword"
+notte page fill "input[name='otp']" "999779"       # TOTP generated from the stored seed
 ```
 
 ### Combined Pattern
@@ -322,25 +364,31 @@ notte personas create --create-vault
 #!/bin/bash
 set -euo pipefail
 
-# Setup: Create vault and add credentials (one-time)
+# Setup: Create vault and add credentials (one-time, from a shell you control,
+# with values expanded from environment variables - never typed inline)
 # notte vaults create --name "Analytics Dashboard"
 # notte vaults credentials add --vault-id <vault-id> \
 #   --url "https://analytics.example.com" \
-#   --email "analyst@company.com" \
-#   --password "securepassword" \
-#   --mfa-secret "ANALYTICSTOTP"
+#   --email "$ANALYTICS_EMAIL" \
+#   --password "$ANALYTICS_PASSWORD" \
+#   --mfa-secret "$ANALYTICS_MFA_SECRET"
 
 VAULT_ID="vault_abc123"
 
-# Start session
-notte sessions start
+# Start the session with the vault attached - this is what enables sentinel
+# substitution. Without --vault-id the sentinels are filled literally.
+notte sessions start --vault-id "$VAULT_ID"
 
-# Navigate to login - vault credentials auto-fill
+# Navigate to login and fill with sentinels, not real values
 notte page goto "https://analytics.example.com/login"
+notte page fill "input[name='email']" "user@example.org"
+notte page fill "input[name='password']" "mycoolpassword"
 notte page click "button[type='submit']"
 
-# Wait for MFA (TOTP auto-generated from vault)
+# If the site prompts for MFA, fill the MFA sentinel - the TOTP is generated
+# from the seed stored in the vault
 notte page wait 2000
+notte page fill "input[name='otp']" "999779" 2>/dev/null || true
 
 # Now logged in, collect data
 notte page goto "https://analytics.example.com/reports/weekly"

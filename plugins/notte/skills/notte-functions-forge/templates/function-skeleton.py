@@ -22,8 +22,11 @@ annotations become unresolved forward references, so a deployed Function fails a
 `response_format=Model` with `PydanticUserError: Model is not fully defined`
 (unless you also call `Model.model_rebuild()`). The `X | None` syntax below works
 without it, so the simplest fix is to omit it. (`notte sessions workflow-code`
-may emit that import
-in its export - remove it before deploying.)
+may emit that import in its export - remove it before deploying.)
+
+The module-level `run()` call at the bottom is optional - the runtime invokes
+`run()` itself. It is kept here to match what `notte sessions workflow-code`
+emits; removing it changes nothing.
 """
 
 from notte_sdk import NotteClient
@@ -63,8 +66,9 @@ def run(max_stories: int = 10):  # CUSTOMIZE: business variables become paramete
     # annotation - cast anything you use numerically.
     max_stories = int(max_stories)
 
-    # A plain Session is right for scrape/extract. Use client.Session(storage=...)
-    # only for a Function that produces files you need to retrieve.
+    # A plain Session is right for scrape/extract. Use
+    # client.Session(use_file_storage=True) only for a Function that produces
+    # files you need to retrieve.
     with client.Session() as session:
         # CUSTOMIZE: the path you validated during exploration goes here.
         session.execute(type="goto", url="https://news.ycombinator.com")

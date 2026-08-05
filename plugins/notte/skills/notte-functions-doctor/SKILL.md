@@ -9,7 +9,7 @@ description: >
   Function that is broken; this skill finds the root cause, re-explores the
   changed surface, verifies a fix in isolation, and promotes it behind a
   confirmation gate. Pairs with notte-functions-forge, which builds Functions.
-allowed-tools: Bash(notte:*), Read, Write, Edit
+allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Bash(diff:*), Read, Write, Edit
 ---
 
 # Notte Functions Doctor
@@ -83,15 +83,22 @@ curl -L "$URL" -o current_function.py
 You cannot repair toward an unknown target. Recover it from two sources:
 
 1. **The health contract** - read the `=== HEALTH CONTRACT ===` block and the response model in `current_function.py`. This is the explicit target (forged Functions carry it).
-2. **The last good run** - the strongest evidence of correct output. Find a past successful run and read its result:
+2. **The last good run** - the strongest evidence of correct output, when you can get it:
 
    ```bash
-   notte functions runs --function-id "{function_id}" -o json
+   # --only-active=false matters here. For runs, "active" means still executing,
+   # so on older CLIs a Function whose runs have all finished lists as [] and you
+   # would wrongly conclude it never ran. This form works on every CLI version.
+   notte functions runs --function-id "{function_id}" --only-active=false -o json
    # pick a past run whose result is a valid object, then:
    notte functions run-metadata --function-id "{function_id}" --run-id "{good_run_id}" -o json | jq '.result'
    ```
 
-   (`run-metadata`'s `result` may be a Python `repr` rather than clean JSON - it is still readable as evidence of the expected shape.)
+   (`run-metadata`'s `result` is a Python `repr` rather than clean JSON - single-quoted and not `jq`-parseable, but still readable as evidence of the expected shape.)
+
+   If history is genuinely empty even with `--only-active=false`, treat that as uninformative rather than as evidence the Function never worked: fall back to the health contract and the response model, and say in your report that no run history was available.
+
+   **If the Function itself is missing from `notte functions list`,** it may have been deleted rather than broken - `functions list` hides deleted records by default. Check with `notte functions list --include-deleted` (or `--only-active=false` on older CLIs) before concluding anything. A deleted Function is not a repair job: report it and ask the user whether to recreate it.
 
 If the Function has **no** contract (older or hand-written), infer one: the response model gives the schema, and the last good run gives realistic bounds (field presence, typical counts). Note that you inferred it, and offer to stamp a real contract as part of the repair so the next failure is easier.
 

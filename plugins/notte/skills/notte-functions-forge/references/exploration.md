@@ -68,7 +68,17 @@ When there is no usable API (data is server-rendered into HTML, or the API is si
 notte page scrape --instructions "Extract each product as JSON with: title (string), price (number), url (string)" -o json
 ```
 
-With `-o json` the parsed extraction is under `.structured.data` (top level is `{markdown, structured}`), so inspect it with `... -o json | jq '.structured.data'`. Note this is only the ad-hoc CLI shape: inside a deployed Function, `session.scrape(..., response_format=Model)` returns the typed model directly.
+With `-o json`, the shape depends on whether you passed `--instructions`:
+
+- **With `--instructions`** the extracted object is returned **at the top level** - the fields you asked for are the JSON keys, so `... -o json | jq '.title'` works directly. There is no wrapper to unpack.
+- **Without `--instructions`** you get `{"markdown": "..."}` - the raw page text and nothing else.
+
+```bash
+notte page scrape --instructions "Extract heading and subheading as JSON" -o json
+# -> {"heading": "...", "subheading": "..."}
+```
+
+Inside a deployed Function the equivalent is `session.scrape(..., response_format=Model)`, which returns the typed model directly.
 
 Only drop to raw selectors when `scrape` cannot reliably target the data. If you must, follow this selector priority and validate on the real page (never write selectors speculatively from assumed structure):
 

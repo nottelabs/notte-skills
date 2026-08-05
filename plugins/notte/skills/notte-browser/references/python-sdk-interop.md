@@ -11,6 +11,10 @@ Use this only when editing `notte sessions workflow-code` exports or writing a N
 
 Notte Functions are Python files with a `run()` entry point. Parameters on `run()` become invocation inputs for the CLI, SDK, and HTTP endpoint; returned dicts/lists are available from `notte functions run-metadata`.
 
+A trailing module-level `run()` call is optional - the runtime invokes `run()`
+itself, so including it or omitting it makes no difference. The export emits one;
+the example below keeps it to match.
+
 ```python
 from notte_sdk import NotteClient
 
@@ -24,6 +28,9 @@ def run(url: str, query: str):
         session.execute(type="fill", selector="input[name='q']", value=query)
         session.execute(type="press_key", key="Enter")
         return session.scrape(instructions="Extract results as JSON")
+
+
+run()
 ```
 
 Deploy with:
@@ -55,6 +62,14 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
 - Use `from notte_sdk import NotteClient` for hosted workflows. Do not mix it with local `import notte` examples in the same file.
 - Use `client.Session(...)` as a context manager.
 - Put `solve_captchas=True` and `proxies=True` on `Session`, not on `Agent`.
+- File storage is `client.Session(use_file_storage=True)` - matching the
+  `--use-file-storage` CLI flag. There is no `enable_file_storage` or `storage=`
+  keyword; those will raise a `TypeError`.
+- Omit `from __future__ import annotations`. Under PEP 563 the Pydantic
+  annotations become unresolved forward references and `response_format=Model`
+  fails at runtime with `PydanticUserError: Model is not fully defined`.
+- Cast run variables you use numerically (`page = int(page)`). Variables passed
+  with `--var` arrive as strings and are not coerced to your type hints.
 - Use `session.execute(...)` for known URLs/selectors and `client.Agent(session=session).run(...)` only for ambiguous steps.
 - If using observe IDs in Python, call `session.observe()` first. Pass the plain ID, such as `B3` or `I1`.
 - If an agent reports that it ran out of steps, raise `max_steps`; retrying the same config usually repeats the failure.

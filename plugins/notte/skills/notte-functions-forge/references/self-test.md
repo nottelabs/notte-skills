@@ -15,14 +15,20 @@ A Function is not done when it is created - it is done when a real cloud run ret
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
 ```
 
+There is no client-side polling - the CLI issues one synchronous POST and waits. That means the call is bounded by the global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run carries on server-side, which looks like a failure but is not one.
+
+Set the timeout generously **up front** for anything non-trivial - `--timeout 600` on the first invocation. Do not use it as a retry after being cut off; see [A command timeout is not a failed run](#a-command-timeout-is-not-a-failed-run---do-not-re-run-it).
+
 ## Read the `result` (status alone is not enough)
 
 The dependable pass/fail signal is `result`:
 
 | `result` is... | meaning |
 |----------------|---------|
-| a JSON object matching your schema (e.g. `{"quotes": [...]}`) | the run produced data - now check the contract bounds |
+| a JSON payload matching your schema (e.g. `{"quotes": [...]}`) | the run produced data - now check the contract bounds |
 | a string starting `Script execution failed ...` / containing a `Traceback` | the run **FAILED** - the exception or health-contract `AssertionError` message is inside that string |
+
+`result` is the return value of `run()` serialized to JSON, so a `dict` return arrives as a real nested object you can address with `jq` directly. (`run-metadata`'s `result` is different - a Python `repr` - which is why contract validation should read `functions run`.)
 
 The run `status` is a weaker signal. A failed run may report `status: "failed"`, but a Python error inside `run()` (including a health-contract `AssertionError`) can also come back as `status: "closed"` with the error in `result`. So **never treat `status: "closed"` as proof of success** - always inspect `result`. Treat `status == "failed"` **or** a `result` that is an error string as a FAIL.
 
@@ -95,17 +101,39 @@ Common failure -> fix:
 | a structured object that is empty | selector/endpoint returned nothing | re-check the path against the live site; the structure may differ from exploration |
 | an error string with `AssertionError: health contract ...` | contract violated | either the path broke (fix it) or the bound was too strict (recalibrate per [health-contract.md](health-contract.md)) |
 | an error string mentioning a timeout | slow page / missing wait | add a `wait`, or narrow what is scraped |
+| the **command** times out with no `result` at all | the run outlived the request timeout | **do not re-run** - recover the in-flight run instead (below) |
 
 Repeat until a run passes the contract. Never ship on a FAIL or on an unverified run.
 
-## Optional - deeper logs and run history
+### A command timeout is not a failed run - do not re-run it
 
-The inline `result` is enough to validate the contract. If you need execution logs or past runs, list runs and read a run's metadata - note the run id field is `function_run_id`, not `run_id`:
+The client timing out does **not** cancel the run. Verified: a Function invoked with `--timeout 10` that needed ~45s returned `context deadline exceeded` to the caller, yet its run stayed `active` server-side and finished normally with the correct `result` some 35 seconds later.
+
+So re-running after a timeout starts a **second, concurrent execution**. For a read-only scrape that is merely wasteful; for a Function that submits a form, makes a purchase, or writes anything, it performs that side effect twice. Recover the existing run instead:
 
 ```bash
-RUN_ID=$(notte functions runs --function-id "$TARGET_ID" -o json | jq -r '.[0].function_run_id')
-notte functions run-metadata --function-id "$TARGET_ID" --run-id "$RUN_ID" -o json
+# Is it still going? The default filter shows only in-flight runs, which is
+# exactly what you want here.
+notte functions runs --function-id "$TARGET_ID" -o json | jq -c '.[] | {function_run_id, status}'
+
+# Once it is no longer "active", read its outcome:
+notte functions runs --function-id "$TARGET_ID" --only-active=false -o json | jq -c '.[0]'
 ```
+
+Only start a fresh run once you have confirmed nothing is in flight - and if the Function has side effects, confirm the first run's outcome before deciding whether repeating it is safe at all.
+
+The fix is to set a generous timeout **before** invoking something slow (`--timeout 600`), not to retry after being cut off.
+
+## Optional - deeper logs and run history
+
+The inline `result` is enough to validate the contract. If you need execution logs, take the `function_run_id` the run you just did returned and read that run's metadata:
+
+```bash
+RUN_ID=$(notte functions run --function-id "$TARGET_ID" -o json | jq -r '.function_run_id')
+notte functions run-metadata --function-id "$TARGET_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
+```
+
+If you look the id up in history instead, pass `--only-active=false` - for runs "active" means *still executing*, so on older CLIs a Function whose runs have all finished lists as `[]`. That form works on every CLI version; newer ones return history by default and use `--running` to narrow.
 
 `run-metadata`'s `result` can come back as a Python `repr` rather than clean JSON, so prefer the `notte functions run` output (above) for contract validation, and use `run-metadata` only for logs and history.
 

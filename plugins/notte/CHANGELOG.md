@@ -9,6 +9,146 @@ from `git log` so that downstream consumers can tell which skill content
 corresponds to which version. Tag releases as `notte-v<version>` from now
 on so consumers can pin instead of tracking the default branch.
 
+## [1.6.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.5.0...notte-v1.6.0) (2026-08-05)
+
+Skill content. Every documented command and flag was re-verified against `notte`
+CLI **v0.0.29**, and the CLI source was read to settle behaviour the `--help`
+output does not state.
+
+### Features
+
+* document `notte search`, `notte profiles`, `notte functions secrets`, and the
+  `files` / `usage` / `health` / `clear` / `sessions offset` commands, none of
+  which appeared in any skill. `notte-functions-forge` now uses `notte search`
+  to research a target instead of opening a browser session for it
+* document the two bundled MCP servers and when to prefer them over the CLI.
+  `anything-api` is a marketplace of ready-made Notte Functions — forge now
+  checks it (`search`) **before** paying the exploration cost of forging a new one
+* document the phone-number gate: `notte personas create --create-phone-number`
+  fails on a standard account because provisioning is unlocked per-account by
+  the Notte team. Both `notte-browser` and the account-management reference now
+  say so, tell the agent not to retry or work around it, and point at
+  https://cal.com/pintoa/15mins to request access. `notte personas sms` was
+  documented with no way to obtain a number
+* document the new `sessions start` flags: `--aspect-ratio`, `--screenshot-type`,
+  `--chrome-args`, `--extra-http-headers`, `--web-bot-auth`, and the external /
+  Tailscale proxy flags, which are relevant to the bot-detection guidance
+
+### Bug Fixes
+
+* **`notte functions run` blocks.** `function-management.md` described it as
+  fire-and-forget and demonstrated a `sleep 10` + `run-metadata` poll, while
+  `self-test.md` and both Function skills built their entire pass/fail protocol
+  on the inline `result`. The CLI issues one synchronous POST with no
+  client-side polling, so the blocking description is the correct one; the poll
+  loop is gone
+* **document the 60-second timeout trap, and that retrying it double-executes.**
+  Because the run is synchronous it is bounded by the global `--timeout`, so a
+  slow Function fails the *command* while the run continues server-side — which
+  reads as a broken Function. Verified what actually happens: a Function invoked
+  with `--timeout 10` that needed ~45s returned `context deadline exceeded` to
+  the caller, yet its run stayed `active` and completed normally with the right
+  `result` ~35s later. So the client giving up does **not** cancel the run, and
+  "re-run with a bigger timeout" invokes the Function a second time —
+  duplicating any form submission, purchase or write. The skills now say to set
+  a generous timeout on the *first* invocation and, on a timeout, to recover the
+  in-flight run (`notte functions runs`, whose active-only default surfaces
+  exactly those) rather than retry. `notte-functions-doctor` additionally warns
+  to check the workflow file for side effects before re-running to reproduce a
+  failure, since it operates on live and possibly scheduled Functions
+* **credential guidance no longer contradicts itself.** The skill warned that
+  `--password` leaks via `argv`, then prescribed `--password "$VAR"` as the fix
+  — but the shell expands that before `exec`, so `ps` sees the plaintext either
+  way. Now states precisely what the env-var form does (keeps secrets out of
+  shell history and committed files) and does not (hide them from `ps`), and
+  directs callers to add a credential once and rely on the vault thereafter
+* **`templates/authenticated-session.sh` no longer extracts a plaintext
+  password.** It called `notte vaults credentials get`, put the password in a
+  shell variable, and passed it as an argv to `notte page fill` — the exact leak
+  the skill warns about, and a defeat of the sentinel mechanism. Rewritten to
+  attach the vault with `--vault-id` and fill sentinels, with a comment
+  explaining why the old approach must not be reintroduced. Its login check no
+  longer greps page text for "error" (false positives) and no longer returns
+  success when it cannot tell
+* **one name for file storage.** `use_file_storage=True` was written three ways
+  across four files (`enable_file_storage=True`, `storage=...`). Standardised on
+  the real keyword, which matches the `--use-file-storage` flag
+* **settle the trailing `run()` question — verified by deploying and running
+  real Functions.** Examples disagreed on whether a Function file should call
+  `run()` at module level, with no note either way. It is optional: a Function
+  with no trailing call returned its value normally (the runtime invokes `run()`
+  itself), and one *with* a trailing call logged exactly one invocation, so
+  there is no double execution either. Said so explicitly in the reference, the
+  interop notes, the skeleton, the forge cleanup step, and the rules, so the
+  next reader does not infer a rule from the inconsistency
+* **document the two `result` shapes.** `notte functions run` returns the value
+  of `run()` serialized to JSON, so a `dict` arrives as a real nested object
+  addressable with `jq`. `run-metadata`'s `result` is a Python `repr`
+  (single-quoted, not valid JSON) — which is why contract validation should read
+  `functions run` and use `run-metadata` for logs
+* **document what "active" means on each list command — it differs per
+  resource.** Verified against the API by creating, deleting and stopping real
+  records: for `functions`, `vaults` and `personas` it means *not deleted*; for
+  `sessions` and `agents` it means *still running*; for `functions runs` it
+  means *still executing*. A new "Filters on list commands" section spells this
+  out, because a reader who learns the flag on `sessions list` will guess wrong
+  on `functions list`. Two rules follow: never widen an artifact listing by
+  reflex (that surfaces soft-deleted records, and acting on a deleted id fails
+  confusingly), and do widen run listings, since `notte functions runs` lists
+  `[]` once every run has finished. This mattered most in
+  `notte-functions-doctor`, whose Phase 2 recovers the last good run to learn
+  what correct output looks like — empty history would have read as "this
+  Function never worked" and pushed it to the wrong failure class. Doctor also
+  now checks `--include-deleted` before treating a missing Function as broken,
+  since a deleted Function is not a repair job. Guidance is written to work on
+  every CLI version: `--only-active=false` is valid everywhere, while newer
+  CLIs use `--include-deleted`, `-a`/`--all` and `--running`
+  (nottelabs/notte-cli#58)
+* document that `functions run` returns no logs — they come from `run-metadata`
+* **fix `len()` on a scrape result.** Four examples called `len()` on
+  `session.scrape(...)` output to produce a `count`, which counts dict *keys*
+  rather than rows. Rewritten to use `response_format` and count the typed list
+* **reconcile vault credential filling.** `account-management.md` said
+  credentials "auto-fill" on navigation; the skill said you must fill exact
+  sentinel strings. The sentinel mechanism is correct — the reference now
+  documents it, and its worked example attaches the vault it declares instead of
+  setting `VAULT_ID` and never using it
+* **correct the documented `scrape -o json` shape.** `exploration.md` said the
+  parsed extraction lived under `.structured.data` with a `{markdown,
+  structured}` wrapper. Checked against a live scrape: with `--instructions` the
+  extracted object comes back **at the top level** (the requested fields are the
+  JSON keys), and without them you get `{"markdown": "..."}` and nothing else.
+  There is no wrapper. `templates/data-extraction.sh` unwrapped the phantom
+  `.structured.data` and only worked by falling through its own `//` fallback;
+  both merge steps now use the object directly
+* remove `notte page observe https://example.com` — `observe` takes no arguments
+* remove `--browser-type firefox`, which v0.0.29 no longer supports (only
+  `chromium` and `chrome`; `chrome-nightly` / `chrome-turbo` are legacy aliases)
+* correct the global `--timeout` default from 30 to 60 seconds
+* correct `page captcha-solve "recaptcha"` to a real challenge type
+  (`recaptcha_v2`), and clarify that `page click --timeout` is milliseconds
+  against the element, distinct from the global seconds-based API timeout
+* document `--vault-id` on `sessions start`, `notte sessions viewer`, the
+  `--path` / positional output on `page screenshot`, the download-and-print
+  behaviour of `sessions network`, and the difference between `sessions code`
+  and `sessions workflow-code`
+* fix `agents start`: add `--url`, `--use-vision`, `--response-format-json`, and
+  `--session-offset`; drop the invented "(default: 30)" on `--max-steps`; list
+  the reasoning models the CLI actually accepts
+* fix the observe example, which returned `B1`/`B2` for *input* fields and then
+  filled them, contradicting the `I*` = input convention used everywhere else
+* `notte functions show` returns a download URL, not inline source, and cannot
+  read a cron back — both now documented where the commands are introduced
+* unbreak the mangled examples: a `bash` fence containing Python with steps
+  numbered 1,2,3,4,5,5,6,7,8; the `eval-js` section with markdown bullets inside
+  a bash fence; and the "Scheduled Data Collection" snippet that scheduled a
+  `<function-id>` it never captured, from a workflow file whose body was `# ...`
+* fix `data-extraction.sh`, which merged scrape output as a bare JSON array when
+  `-o json` actually returns `{markdown, structured}`, silently producing garbage
+* widen `allowed-tools` on all three skills. They were restricted to
+  `Bash(notte:*)` while instructing the agent to run `curl`, `jq`, and `diff` —
+  doctor could not perform its own Phase 1 source download or Phase 6 diff
+
 ## [1.5.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.4.0...notte-v1.5.0) (2026-08-05)
 
 Packaging and distribution only — no skill content changed.

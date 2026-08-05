@@ -34,78 +34,98 @@ Do not hand-write a Notte Function from scratch before exporting `workflow-code`
 2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session. If the session is no longer current, use `notte sessions workflow-code --session-id <session-id>`.
 3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
 4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` (becomes current function)
-5. **Test in cloud** - Run `notte functions run` to execute remotely and get a run ID, or invoke the Function with an HTTP POST request
-6. **Monitor logs** - Check execution output with `notte functions run-metadata --run-id <run-id>` and inspect the `logs` field
+5. **Test in cloud** - Run `notte functions run`, which blocks until the run finishes and returns `status` and `result` inline
+6. **Inspect logs if needed** - `notte functions run-metadata --run-id <run-id>` exposes the `logs` field for deeper debugging
 7. **Iterate** - Update your code based on results, then use `notte functions update --file my_function.py`
 8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
 
 ### Complete Example
 
+**Step 1-3 — build interactively, then export:**
+
 ```bash
-# 1. Build your automation interactively and keep the session ID
+# Build your automation interactively and keep the session ID
 SESSION_ID=$(notte sessions start --headless -o json | jq -r '.session_id')
 notte page goto "https://news.ycombinator.com"
 notte page observe
 notte page scrape --instructions "Extract top 5 story titles and URLs"
 
-# 2. Stop the session when the interactive test is done
+# Stop the session when the interactive test is done
 notte sessions stop --session-id "$SESSION_ID"
 
-# 3. Export the session as Python code.
+# Export the session as Python code.
 # This still works after stop because the session ID is explicit.
 notte sessions workflow-code --session-id "$SESSION_ID" > hn_scraper.py
+```
 
-# 4. Edit the exported file to add the run() function and parameters
-# hn_scraper.py should look like:
+**Step 4 — edit the export to add a `run()` entry point and parameters.**
+`hn_scraper.py` should end up looking like this:
+
+```python
 from notte_sdk import NotteClient
+from pydantic import BaseModel
+
+
+class Story(BaseModel):
+    title: str | None = None
+    url: str | None = None
+
+
+class Result(BaseModel):
+    stories: list[Story] | None = None
+
 
 client = NotteClient()
 
 
 def run(max_stories: int = 5):
+    max_stories = int(max_stories)  # run variables arrive as strings
+
     with client.Session() as session:
         session.execute(type="goto", url="https://news.ycombinator.com")
         session.execute(type="wait", time_ms=1000)
 
-        data = session.scrape(instructions=f"Extract top {max_stories} story titles and URLs")
-        # data equals {'stories': [{'title': 'VoidZero Is Joining Cloudflare', 'url': 'https://blog.cloudflare.com/voidzero-joins-cloudflare/'}, ...]}
+        data = session.scrape(
+            instructions=f"Extract top {max_stories} story titles and URLs",
+            response_format=Result,
+        )
 
-        return {"stories": data, "count": max_stories}
+        # With response_format, `data` is a typed Result - count the list, not
+        # the container. Without it, scrape returns a dict, and len(dict) counts
+        # keys, not rows.
+        stories = data.stories or []
+        return {"stories": [s.model_dump() for s in stories], "count": len(stories)}
+
 
 run()
+```
 
+**Step 5-8 — create, test, iterate, schedule:**
 
-# 5. Create the function (automatically becomes current function)
-notte functions create \
+```bash
+# Create the function and capture its id (it also becomes the current function,
+# but referencing it explicitly is safer once you have more than one)
+FUNCTION_ID=$(notte functions create \
   --file hn_scraper.py \
   --name "HN Top Stories" \
-  --description "Scrapes top stories from Hacker News"
+  --description "Scrapes top stories from Hacker News" \
+  -o json | jq -r '.function_id')
 
-# 5. Test the function
-RUN_ID=$(notte functions run -o json | jq -r '.function_run_id')
-echo "Started run: $RUN_ID"
+# Test it. This blocks until the run completes - no sleep/poll needed.
+notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
-# Wait a few seconds for execution
-sleep 10
+# If you need execution logs, take the run id from the run you just did.
+# (To find it from history instead, `notte functions runs` needs
+#  --only-active=false on older CLIs, or completed runs are filtered out.)
+RUN_ID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
+notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 
-# 6. Check the logs and results
-notte functions run-metadata --run-id "$RUN_ID" -o json | jq '{
-  status: .status,
-  logs: .logs,
-  result: .result
-}'
+# If needed, update and iterate
+notte functions update --function-id "$FUNCTION_ID" --file hn_scraper.py
+notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
-# 7. If needed, update and iterate
-# Edit hn_scraper.py with improvements
-notte functions update --file hn_scraper.py
-
-# Test again
-RUN_ID=$(notte functions run -o json | jq -r '.function_run_id')
-sleep 10
-notte functions run-metadata --run-id "$RUN_ID"
-
-# 8. Schedule when ready (every day at 9 AM)
-notte functions schedule --cron "0 9 * * *"
+# Schedule when ready (every day at 9 AM)
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 ```
 
 ### Tips for Iterative Development
@@ -115,7 +135,11 @@ notte functions schedule --cron "0 9 * * *"
 - **Monitor logs**: The `logs` field in run-metadata shows print statements and errors
 - **Use variables**: Add function parameters for flexibility (e.g., `max_stories` in the example)
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
-- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A script error may report `status: "failed"`, but an error inside `run()` can also come back as `status: "closed"` with the traceback in `result`. So treat a `result` that is a JSON object as success, and a `result` that is an error string (`Script execution failed` / `Traceback`) as a failure - do not rely on `status` alone. The run id field in the JSON is `function_run_id`.
+- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
+- **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
+- **Ask for run history explicitly**: for runs, "active" means *still executing*, so on older CLIs `notte functions runs` lists `[]` once every run has finished. Pass `--only-active=false` (works on every version) or, on newer CLIs, just read the default and use `--running` to narrow. The simplest path is to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
+- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Set it generously on the first invocation: `notte functions run --timeout 600`.
+- **Never re-run after a command timeout**: the client giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Find the in-flight run with `notte functions runs --function-id <id>` (the active-only default shows exactly those), read its outcome once it leaves `active`, and only start a fresh run if nothing is pending.
 
 ## Creating Functions
 
@@ -144,6 +168,18 @@ Function files define browser automation steps with the following requirements:
 **Required:**
 - Must contain a `def run()` function - this is the entry point
 - Must create a session using `NotteClient().Session()`
+A trailing module-level `run()` call is **optional**. `notte sessions
+workflow-code` emits one and the examples below keep it for consistency with the
+export, but the runtime invokes `run()` itself - leaving the call in or taking it
+out makes no difference to a deployed Function. Do not write logic that depends
+on either behaviour.
+
+**Do not include `from __future__ import annotations`.** Under PEP 563 the
+Pydantic field annotations become unresolved forward references, and a deployed
+Function fails at `response_format=Model` with
+`PydanticUserError: Model is not fully defined`. The `X | None` syntax works
+without it. `notte sessions workflow-code` may emit that import - remove it
+before deploying.
 
 **Function Variables (Parameters):**
 - Parameters in the `run()` function become POST body parameters when triggering the function
@@ -163,12 +199,16 @@ from notte_sdk import NotteClient
 
 client = NotteClient()
 
+
 def run(url: str):
     """Simple function with one required parameter."""
     with client.Session() as session:
         session.execute(type="goto", url=url)
         data = session.scrape()
         return data
+
+
+run()
 ```
 
 **Advanced Example with Variables:**
@@ -176,42 +216,59 @@ def run(url: str):
 ```python
 # price_monitor.py
 from notte_sdk import NotteClient
+from pydantic import BaseModel
 
 client = NotteClient()
+
+
+class Product(BaseModel):
+    name: str | None = None
+    price: float | None = None
+    url: str | None = None
+
+
+class Products(BaseModel):
+    products: list[Product] | None = None
+
 
 def run(
     url: str,
     max_items: int = 10,
     only_discounted: bool = False,
-    categories: list[str] = None
+    categories: list[str] | None = None
 ):
     """
     Function parameters become POST body parameters.
-    
+
     Args:
         url: Required parameter (no default)
         max_items: Optional with default value
         only_discounted: Optional boolean
         categories: Optional list
     """
+    max_items = int(max_items)
+
     with client.Session() as session:
         session.execute(type="goto", url=url)
-        
+
         # Build extraction instructions dynamically
         instructions = f"Extract up to {max_items} products"
         if only_discounted:
             instructions += " that are on sale"
         if categories:
             instructions += f" in categories: {', '.join(categories)}"
-        
-        products = session.scrape(instructions=instructions)
-        
-        # Return structured data
+
+        data = session.scrape(instructions=instructions, response_format=Products)
+
+        # Count the list of rows, not the response container. Without
+        # response_format, scrape returns a dict and len(dict) counts keys.
+        products = data.products or []
+
         return {
             "success": True,
             "url": url,
-            "products": products,
-            "count": len(products) if products else 0,
+            "products": [p.model_dump() for p in products],
+            "count": len(products),
             "filters": {
                 "max_items": max_items,
                 "only_discounted": only_discounted,
@@ -219,6 +276,8 @@ def run(
             }
         }
 
+
+run()
 ```
 
 **Triggering with Parameters:**
@@ -276,7 +335,7 @@ notte functions run-metadata --run-id <run-id> -o json | jq '.result'
 notte functions list
 
 # With pagination and filters
-notte functions list --page 1 --page-size 20 --only-active
+notte functions list --page 1 --page-size 20   # deleted functions are already hidden
 ```
 
 Output includes function ID, name, description, and creation date.
@@ -287,7 +346,33 @@ Output includes function ID, name, description, and creation date.
 notte functions show
 ```
 
-Returns function metadata and download URL for the workflow file for the current function.
+Returns function metadata plus a **download URL** for the workflow file (the
+`url` field) - it does not inline the source. To read the current code:
+
+```bash
+URL=$(notte functions show --function-id "$FUNCTION_ID" -o json | jq -r '.url')
+curl -L "$URL" -o current_function.py
+```
+
+`show` does not return the cron schedule. The CLI can set (`schedule`) and clear
+(`unschedule`) one but cannot read it back, so record a Function's cron
+elsewhere if you need to restore it after an update.
+
+### Function Environment Secrets
+
+Values a Function reads from `os.environ` are stored per-Function, outside the
+workflow file:
+
+```bash
+notte functions secrets set API_TOKEN <value>
+notte functions secrets list
+notte functions secrets get API_TOKEN
+notte functions secrets delete API_TOKEN
+```
+
+Read them inside `run()` with `os.environ["API_TOKEN"]`. Never hardcode a secret
+in the workflow file or pass one as a run variable - run variables are recorded
+with the run.
 
 ### Update Function Code
 
@@ -313,7 +398,9 @@ Prompts for confirmation. Use `--yes` to skip.
 notte functions run
 ```
 
-Starts a new function run and returns the run ID.
+Runs the Function in the cloud and **blocks until it finishes**, returning
+`status` and `result` in one payload. There is no client-side polling, so the
+call is bounded by the global `--timeout` (default 60 seconds).
 
 This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. Use the HTTP example in "Triggering with Parameters" when the user asks for an "endpoint" for a browser task; do not create a separate local web server unless they explicitly ask for one.
 
@@ -324,7 +411,7 @@ This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. U
 notte functions runs
 
 # With pagination and filters
-notte functions runs --page 1 --page-size 10 --only-active
+notte functions runs --page 1 --page-size 10 --only-active=false   # include finished runs
 ```
 
 Output includes:
@@ -434,20 +521,38 @@ Creates a new function with the same code under your account.
 ```python
 # price_monitor.py
 from notte_sdk import NotteClient
+from pydantic import BaseModel
 
 client = NotteClient()
+
+
+class Price(BaseModel):
+    product: str | None = None
+    price: float | None = None
+
+
+class Prices(BaseModel):
+    prices: list[Price] | None = None
+
 
 def run(competitor_url: str = "https://competitor.com/products"):
     with client.Session() as session:
         session.execute(type="goto", url=competitor_url)
-        prices = session.scrape(instructions="Extract all product prices as JSON")
-        return {"prices": prices, "count": len(prices) if prices else 0}
+        data = session.scrape(
+            instructions="Extract all product prices as JSON",
+            response_format=Prices,
+        )
+        rows = data.prices or []
+        return {"prices": [p.model_dump() for p in rows], "count": len(rows)}
+
+
+run()
 ```
 
 ```bash
 # Create and schedule
-notte functions create --file price_monitor.py --name "Price Monitor"
-notte functions schedule --cron "0 9 * * *"
+FUNCTION_ID=$(notte functions create --file price_monitor.py --name "Price Monitor" -o json | jq -r '.function_id')
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 ```
 
 ### Weekly Report Generator
@@ -460,11 +565,15 @@ client = NotteClient()
 
 vault = client.Vault("my-vault-id")
 
+
 def run(dashboard_url: str = "https://dashboard.example.com"):
-    with client.Session(enable_file_storage=True) as session:
-        # Login using vault credentials (vault auto-fills credentials)
+    # `use_file_storage=True` attaches FileStorage - the same thing the
+    # `--use-file-storage` CLI flag does. Needed here for the PDF download.
+    with client.Session(use_file_storage=True, vault=vault) as session:
         session.execute(type="goto", url=f"{dashboard_url}/login")
 
+        # The vault resolves sentinel placeholders into real credentials.
+        # The secret never appears in this file.
         agent = client.Agent(session, vault=vault, max_steps=5)
         agent.run(task="Login to dashboard")
 
@@ -477,34 +586,47 @@ def run(dashboard_url: str = "https://dashboard.example.com"):
 
         return report
 
+
+run()
 ```
 
 ```bash
 # Create and schedule for Monday mornings
-notte functions create --file weekly_report.py --name "Weekly Report"
-notte functions schedule --cron "0 8 * * 1"
+FUNCTION_ID=$(notte functions create --file weekly_report.py --name "Weekly Report" -o json | jq -r '.function_id')
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 8 * * 1"
 ```
 
 ### Error Monitoring with Retries
 
 ```python
 # monitor_with_retry.py
-from notte_sdk import NotteClient
 import time
+
+from notte_sdk import NotteClient
+from pydantic import BaseModel
 
 client = NotteClient()
 
+class Status(BaseModel):
+    healthy: bool | None = None
+    message: str | None = None
+
+
 def run(status_url: str = "https://app.example.com/status", max_retries: int = 3):
+    max_retries = int(max_retries)
+
     for attempt in range(max_retries):
         try:
             with client.Session() as session:
                 session.execute(type="goto", url=status_url)
-                status = session.scrape(instructions="Extract system status as JSON")
+                status = session.scrape(
+                    instructions="Extract system status as JSON",
+                    response_format=Status,
+                )
 
-                if status and status.get("healthy"):
+                if status.healthy:
                     return {"success": True, "message": "All systems operational"}
-                else:
-                    return {"success": False, "alert": True, "status": status}
+                return {"success": False, "alert": True, "status": status.model_dump()}
 
         except Exception as e:
             if attempt < max_retries - 1:
@@ -512,6 +634,8 @@ def run(status_url: str = "https://app.example.com/status", max_retries: int = 3
             else:
                 return {"success": False, "error": f"Failed after {max_retries} attempts: {e}"}
 
+
+run()
 ```
 
 ## Best Practices
@@ -541,6 +665,9 @@ notte functions run-metadata --run-id <run-id> -o json
 notte functions runs -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
 ```
 
+Note this list can return `[]` even for a Function with completed runs, so an
+empty result here is not evidence that the Function never ran.
+
 ### 4. Test Before Scheduling
 
 ```bash
@@ -567,9 +694,10 @@ notte functions schedule --cron "0 9 * * *"
 # List functions and review
 notte functions list
 
-# Switch to the function you want to delete
-notte functions show --function-id <old-func-id>
+# Confirm you have the right target by reading its name back
+notte functions show --function-id <old-func-id> -o json | jq -r '.name'
 
-# Delete it
-notte functions delete --yes
+# Delete that specific id - never rely on the implicit "current function"
+# pointer for a destructive command
+notte functions delete --function-id <old-func-id> --yes
 ```

@@ -98,6 +98,27 @@ mkdir -p ~/.agents/skills
 cp -r notte-skills/plugins/notte/skills/* ~/.agents/skills/
 ```
 
+## Bundled MCP servers
+
+Installing the `notte` plugin (via Claude Code or Codex — not `npx skills add`)
+also registers two hosted MCP servers. The skills are written against the CLI
+and prefer it; these are complementary:
+
+| Server | URL | What it does |
+|--------|-----|--------------|
+| `notte-browser` | `https://api.notte.cc/mcp` | The Notte browser API over MCP, for clients that cannot run shell commands |
+| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions (`search`, `spec`, `run`) plus `build`, which turns a plain-English description into a deployed Function |
+
+`anything-api`'s `search` needs no authentication, so it is worth checking before
+building a scraper from scratch — someone may already have published one for
+your target site. Browse it at [anything.notte.cc/marketplace](https://anything.notte.cc/marketplace).
+`build` and `run` authenticate over OAuth (your client prompts) or with
+`Authorization: Bearer $NOTTE_API_KEY`.
+
+Both servers authenticate independently of `notte auth login` — a working CLI
+session does not imply a working MCP connection. Run `codex mcp list` (Codex) or
+`/mcp` (Claude Code) to confirm they registered.
+
 ## Prerequisites
 
 Before using this skill, ensure the agent can run the `notte` CLI and authenticate with a Notte API key.
