@@ -319,7 +319,7 @@ notte sessions status
 notte sessions list
 
 # With pagination and filters
-notte sessions list --page 2 --page-size 10 --only-active
+notte sessions list --page 2 --page-size 10   # running only; add -a/--all for stopped
 ```
 
 ## Stopping Sessions

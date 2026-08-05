@@ -16,7 +16,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 - a **JSON object** matching the schema -> the run produced data (if it is empty or violates a bound, that is drift; see class 1).
 - a **string** beginning `Script execution failed ...` with a `Traceback` -> the run raised; the exception or `AssertionError` message is in that string (classes 1, 2, 3, or 4 depending on what it says).
 
-(You can also pull the last failed run from history with `notte functions runs --function-id "{function_id}" --only-active=false -o json` - **the `--only-active=false` is required**, or completed runs are filtered out and the list looks empty. Note `run-metadata`'s `result` is a Python `repr` rather than clean JSON. Re-running still gives the cleanest read.)
+(You can also pull the last failed run from history with `notte functions runs --function-id "{function_id}" --only-active=false -o json`. **Include `--only-active=false`**: for runs "active" means *still executing*, so on older CLIs completed runs are filtered out and the list looks empty. That form works on every CLI version. Note `run-metadata`'s `result` is a Python `repr` rather than clean JSON. Re-running still gives the cleanest read.)
 
 ## Failure taxonomy
 

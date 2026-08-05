@@ -76,19 +76,24 @@ output does not state.
   addressable with `jq`. `run-metadata`'s `result` is a Python `repr`
   (single-quoted, not valid JSON) — which is why contract validation should read
   `functions run` and use `run-metadata` for logs
-* **document that `--only-active` is inverted on every list command.** Omitting
-  the flag does not mean "no filter" — the API defaults to active-only, so
-  finished work is hidden. Measured: `notte functions runs` returned `[]` for a
-  Function with two completed runs and both rows with `--only-active=false`;
-  `notte sessions list` returned `0` where `--only-active=false` returned 10;
-  `notte vaults list` returned 6 versus 10. This affects `sessions list`,
-  `agents list`, `functions list`, `functions runs`, `personas list`, and
-  `vaults list`. The skills now pass `--only-active=false` where they need
-  complete results, and warn against reading an empty list as "nothing exists".
-  This mattered most in `notte-functions-doctor`, whose Phase 2 recovers the
-  last good run to learn what correct output looks like — empty history would
-  have read as "this Function never worked" and pushed it to the wrong failure
-  class
+* **document what "active" means on each list command — it differs per
+  resource.** Verified against the API by creating, deleting and stopping real
+  records: for `functions`, `vaults` and `personas` it means *not deleted*; for
+  `sessions` and `agents` it means *still running*; for `functions runs` it
+  means *still executing*. A new "Filters on list commands" section spells this
+  out, because a reader who learns the flag on `sessions list` will guess wrong
+  on `functions list`. Two rules follow: never widen an artifact listing by
+  reflex (that surfaces soft-deleted records, and acting on a deleted id fails
+  confusingly), and do widen run listings, since `notte functions runs` lists
+  `[]` once every run has finished. This mattered most in
+  `notte-functions-doctor`, whose Phase 2 recovers the last good run to learn
+  what correct output looks like — empty history would have read as "this
+  Function never worked" and pushed it to the wrong failure class. Doctor also
+  now checks `--include-deleted` before treating a missing Function as broken,
+  since a deleted Function is not a repair job. Guidance is written to work on
+  every CLI version: `--only-active=false` is valid everywhere, while newer
+  CLIs use `--include-deleted`, `-a`/`--all` and `--running`
+  (nottelabs/notte-cli#58)
 * document that `functions run` returns no logs — they come from `run-metadata`
 * **fix `len()` on a scrape result.** Four examples called `len()` on
   `session.scrape(...)` output to produce a `count`, which counts dict *keys*

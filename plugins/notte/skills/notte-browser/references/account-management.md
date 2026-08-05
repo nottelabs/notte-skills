@@ -53,7 +53,7 @@ notte personas create --create-phone-number
 notte personas list
 
 # With pagination and filters
-notte personas list --page 1 --page-size 20 --only-active
+notte personas list --page 1 --page-size 20   # deleted personas are already hidden
 
 # View persona details
 notte personas show --persona-id <persona-id>
@@ -164,7 +164,7 @@ notte vaults create --name "Work Accounts"
 notte vaults list
 
 # With pagination and filters
-notte vaults list --page 1 --page-size 20 --only-active
+notte vaults list --page 1 --page-size 20   # deleted vaults are already hidden
 
 # Update vault name
 notte vaults update --vault-id <vault-id> --name "Personal Accounts"

@@ -145,7 +145,7 @@ notte sessions status
 notte sessions stop
 
 # List sessions (with optional pagination and filters)
-notte sessions list [--page N] [--page-size N] [--only-active]
+notte sessions list [--page N] [--page-size N] [-a|--all]   # running only; -a includes stopped
 ```
 
 **Note:** When you start a session, it automatically becomes the "current" session (i.e NOTTE_SESSION_ID environment variable is set). All subsequent commands use this session by default. Use `--session-id <session-id>` only when you need to manage multiple sessions simultaneously or reference a specific session.
@@ -349,7 +349,7 @@ Start and manage AI-powered browser agents:
 
 ```bash
 # List all agents (with optional pagination and filters)
-notte agents list [--page N] [--page-size N] [--only-active] [--only-saved]
+notte agents list [--page N] [--page-size N] [-a|--all] [--only-saved]   # running only; -a includes finished
 
 # Start a new agent (auto-uses current session if active)
 notte agents start --task "Navigate to example.com and extract the main heading"
@@ -400,7 +400,7 @@ A Notte Function is the deployed endpoint form of a browser workflow: `run(...)`
 
 ```bash
 # List all functions (with optional pagination and filters)
-notte functions list [--page N] [--page-size N] [--only-active]
+notte functions list [--page N] [--page-size N] [--include-deleted]   # deleted are hidden by default
 
 # Create a function from a workflow file
 notte functions create --file workflow.py [--name "My Function"] [--description "..."] [--shared]
@@ -441,7 +441,7 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   }'
 
 # List runs for current function (with optional pagination and filters)
-notte functions runs [--page N] [--page-size N] [--only-active]
+notte functions runs [--page N] [--page-size N] [--only-active=false]   # see Filters note - history can look empty
 
 # Stop a running function execution
 notte functions run-stop --run-id <run-id>
@@ -479,14 +479,13 @@ notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RID" -o jso
 
 Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid JSON) rather than the clean object `functions run` gives you - use it for logs and history, and take the result from `functions run`.
 
-> **`--only-active` is inverted on every list command.** Omitting the flag does **not** mean "no filter" - the API defaults to active-only, so finished work is hidden. `notte functions runs` returns `[]` for a Function whose runs have all completed, and `notte sessions list` can show `0` while ten sessions exist. Pass `--only-active=false` explicitly whenever you want everything:
+> **`notte functions runs` can hide completed runs.** For runs, "active" means *currently executing*, so on older CLIs a Function whose runs have all finished lists as `[]`. Ask for the history explicitly - this form works on every version:
 >
 > ```bash
 > notte functions runs --function-id "$FUNCTION_ID" --only-active=false -o json
-> notte sessions list --only-active=false
 > ```
 >
-> This applies to `sessions list`, `agents list`, `functions list`, `functions runs`, `personas list`, and `vaults list`. Never read an empty list as "nothing exists" without re-checking with `--only-active=false`.
+> Newer CLIs return the full history by default and use `--running` to narrow to in-flight runs; `--only-active` still works there as a deprecated alias. **Never read an empty run list as "this Function never ran"** - see [Filters on list commands](#filters-on-list-commands).
 
 **Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
 
@@ -498,7 +497,7 @@ For reusable or repeated browser work, load and follow [Function Management Refe
 
 ```bash
 # List personas (with optional pagination and filters)
-notte personas list [--page N] [--page-size N] [--only-active]
+notte personas list [--page N] [--page-size N] [--include-deleted]   # deleted are hidden by default
 
 # Create a persona
 notte personas create [--create-vault] [--create-phone-number]
@@ -530,7 +529,7 @@ If the user needs SMS/phone verification and the feature is not unlocked, say so
 
 ```bash
 # List vaults (with optional pagination and filters)
-notte vaults list [--page N] [--page-size N] [--only-active]
+notte vaults list [--page N] [--page-size N] [--include-deleted]   # deleted are hidden by default
 
 # Create a vault
 notte vaults create [--name "My Vault"]
@@ -601,6 +600,25 @@ notte usage      # Show API usage statistics
 notte health     # Check API health status
 notte clear      # Clear all stored CLI state (current session/agent/function pointers)
 ```
+
+## Filters on list commands
+
+Every `list` command takes a filter flag, but **"active" means a different thing per resource**. Read it as "live", then check what dead means:
+
+| Command | "not active" means | Default shows | To widen |
+|---------|--------------------|---------------|----------|
+| `functions list`, `vaults list`, `personas list` | soft-**deleted** | live records only | `--include-deleted` |
+| `sessions list`, `agents list` | **stopped** / finished | running only, like `docker ps` | `-a` / `--all` |
+| `functions runs` | still **executing** | see note below | `--only-active=false` |
+
+Two rules follow:
+
+- **Do not widen artifact listings by reflex.** The default on `functions list`, `vaults list`, and `personas list` is correct - it hides deleted records. Widening surfaces tombstones, and acting on a deleted Function or vault id will fail confusingly. Only pass `--include-deleted` when the user is specifically asking what was deleted.
+- **Do widen run listings.** For `functions runs`, "active" means in-flight, so history looks empty on older CLIs. This is the one case where an empty list is misleading rather than meaningful.
+
+An empty list from a session or agent listing means "nothing is running right now", not "nothing exists" - pass `-a`/`--all` (or `--only-active=false` on older CLIs) to see finished ones.
+
+**Flag names by CLI version.** `--include-deleted`, `-a`/`--all`, and `--running` are the current names. Older CLIs expose a single `--only-active` on every command; newer ones keep it as a deprecated alias, so `--only-active=false` is the one form that works everywhere. Run `notte <resource> list --help` if you need to know which you have.
 
 ## Global Options
 
