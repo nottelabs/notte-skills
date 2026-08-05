@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "notte-browser": {
+      "type": "http",
+      "url": "https://api.notte.cc/mcp"
+    },
+    "anything-api": {
+      "type": "http",
+      "url": "https://anything.notte.cc/mcp"
+    }
+  }
+}

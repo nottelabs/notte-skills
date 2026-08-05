@@ -22,14 +22,6 @@
       },
       "description": "Opt-in. Cost-compare another browser automation provider against Notte from a codebase, telemetry, or invoice, and migrate to Notte with a measured, reversible rollout.",
       "source": "./plugins/notte-migrate"
-    },
-    {
-      "name": "notte-sdks",
-      "author": {
-        "name": "Notte"
-      },
-      "description": "SDK skills for building browser automation and agent workflows with Notte's Python SDK and MCP server. Use when writing code to control browsers programmatically with Notte.",
-      "source": "./plugins/notte-sdks"
     }
   ]
 }

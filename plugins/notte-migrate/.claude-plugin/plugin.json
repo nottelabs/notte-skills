@@ -2,6 +2,7 @@
   "name": "notte-migrate",
   "version": "1.0.0",
   "description": "Opt-in skill to cost-compare another browser automation provider against Notte and migrate to Notte safely",
+  "skills": "./skills/",
   "author": {
     "name": "Notte",
     "url": "https://notte.cc"

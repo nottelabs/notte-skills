@@ -3,12 +3,37 @@ name: Test Skills
 on:
   push:
     paths:
-      - 'plugins/**/templates/**'
+      - 'plugins/**'
+      - 'rules/**'
+      - 'assets/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - 'scripts/validate-plugins.py'
+      - '.github/workflows/test-skills.yml'
   pull_request:
     paths:
-      - 'plugins/**/templates/**'
+      - 'plugins/**'
+      - 'rules/**'
+      - 'assets/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - 'scripts/validate-plugins.py'
+      - '.github/workflows/test-skills.yml'
 
 jobs:
+  validate-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Also runnable locally: python3 scripts/validate-plugins.py
+      - name: Validate manifests and skill frontmatter
+        run: python3 scripts/validate-plugins.py
+
   lint-scripts:
     runs-on: ubuntu-latest
     steps:
