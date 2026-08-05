@@ -1,0 +1,128 @@
+name: Verify Install
+
+# Installs this repo's plugins with the real client CLIs and asserts that the
+# notte-browser skill and the https://anything.notte.cc/mcp MCP server are
+# actually loaded, and that Codex exposes our install-surface metadata.
+# validate-plugins.py checks that the manifests are well formed; this checks
+# that the clients agree with our reading of them.
+#
+# The weekly schedule matters as much as the PR runs: these jobs install the
+# CLIs at @latest, so a breaking change on the client side shows up here even
+# when nothing in this repo has changed.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugins/**'
+      - 'rules/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - '.agents/**'
+      - 'scripts/verify-install-*.sh'
+      - 'scripts/verify-codex-app-server.py'
+      - '.github/workflows/verify-install.yml'
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - 'rules/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - '.agents/**'
+      - 'scripts/verify-install-*.sh'
+      - 'scripts/verify-codex-app-server.py'
+      - '.github/workflows/verify-install.yml'
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-install-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claude-code:
+    name: Claude Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Installs from the checkout, so a PR is verified before it lands.
+      # Also runnable locally: scripts/verify-install-claude.sh
+      - name: Install plugins and verify skill and MCP server
+        run: scripts/verify-install-claude.sh
+
+  codex:
+    name: Codex
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install Codex
+        run: npm install -g @openai/codex
+
+      # Also runnable locally: scripts/verify-install-codex.sh
+      - name: Install plugins and verify skill and MCP server
+        run: scripts/verify-install-codex.sh
+
+  cursor:
+    name: Cursor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Cursor CLI has no offline install-and-inspect surface, so the live
+      # check boots a real agent session and costs model tokens. Keep it off the
+      # PR path: pull requests get the manifest resolution check only.
+      #
+      # Deliberately not `curl https://cursor.com/install | bash`: the next step
+      # hands this binary a real API key, so it must not be a mutable remote
+      # artifact. The installer is a generated script that pins one version and
+      # downloads it from the URL below, so fetching that URL directly and
+      # checking its digest gets the same binary without trusting the script.
+      # Bump VERSION and SHA256 together; see the workflow README note.
+      - name: Install cursor-agent (pinned and checksum-verified)
+        if: github.event_name != 'pull_request'
+        env:
+          CURSOR_AGENT_VERSION: 2026.07.23-e383d2b
+          CURSOR_AGENT_SHA256: 702ad595213bee5df0268be9f80a19f29fcceaa2a42fc55e39f2b5199051f0c4
+        run: |
+          set -euo pipefail
+          url="https://downloads.cursor.com/lab/${CURSOR_AGENT_VERSION}/linux/x64/agent-cli-package.tar.gz"
+          curl -fsSL "$url" -o /tmp/cursor-agent.tar.gz
+          echo "${CURSOR_AGENT_SHA256}  /tmp/cursor-agent.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/cursor-agent"
+          tar --strip-components=1 -xzf /tmp/cursor-agent.tar.gz -C "$HOME/.local/cursor-agent"
+          echo "$HOME/.local/cursor-agent" >> "$GITHUB_PATH"
+
+      # Split from the live probe on purpose. As one step, a pull request run
+      # showed a green "Cursor" check for what was only a manifest check, which
+      # reads as more coverage than it is. Two steps make the UI say which ran.
+      # Also runnable locally: scripts/verify-install-cursor.sh
+      - name: Resolve the Cursor manifest
+        run: scripts/verify-install-cursor.sh
+
+      # CURSOR_REQUIRE_LIVE turns a missing secret into a red job rather than a
+      # pass for a check that never ran. If this fails with "CURSOR_API_KEY is
+      # unset", add the secret - do not relax the guard.
+      - name: Probe a live cursor-agent session
+        if: github.event_name != 'pull_request'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_REQUIRE_LIVE: '1'
+        run: scripts/verify-install-cursor.sh
