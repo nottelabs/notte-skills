@@ -110,8 +110,19 @@ jobs:
           tar --strip-components=1 -xzf /tmp/cursor-agent.tar.gz -C "$HOME/.local/cursor-agent"
           echo "$HOME/.local/cursor-agent" >> "$GITHUB_PATH"
 
+      # Split from the live probe on purpose. As one step, a pull request run
+      # showed a green "Cursor" check for what was only a manifest check, which
+      # reads as more coverage than it is. Two steps make the UI say which ran.
       # Also runnable locally: scripts/verify-install-cursor.sh
-      - name: Verify skill and MCP server
+      - name: Resolve the Cursor manifest
+        run: scripts/verify-install-cursor.sh
+
+      # CURSOR_REQUIRE_LIVE turns a missing secret into a red job rather than a
+      # pass for a check that never ran. If this fails with "CURSOR_API_KEY is
+      # unset", add the secret - do not relax the guard.
+      - name: Probe a live cursor-agent session
+        if: github.event_name != 'pull_request'
         env:
-          CURSOR_API_KEY: ${{ github.event_name != 'pull_request' && secrets.CURSOR_API_KEY || '' }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_REQUIRE_LIVE: '1'
         run: scripts/verify-install-cursor.sh

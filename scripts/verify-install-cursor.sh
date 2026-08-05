@@ -16,6 +16,11 @@
 #      session with the plugin loaded and asks it what it can see. This costs a
 #      few model tokens, so CI runs it on main and on a schedule, not per PR.
 #
+# Set CURSOR_REQUIRE_LIVE=1 to make a missing CURSOR_API_KEY a hard failure
+# rather than a skip. CI sets it on every run that is meant to include the live
+# probe, so an unset secret turns the job red instead of reporting a pass for a
+# check that never ran.
+#
 # Requires: jq. Live probe additionally requires cursor-agent and CURSOR_API_KEY.
 set -euo pipefail
 
@@ -74,9 +79,19 @@ jq -e --arg url "$EXPECTED_MCP_URL" 'any(.[]; .url == $url)' >/dev/null <<<"$ser
 ok "MCP server $EXPECTED_MCP_URL declared for Cursor"
 
 # --- live probe -------------------------------------------------------------
+# A missing key must not quietly downgrade this to a manifest check that still
+# reports success. Callers that expect the live probe set CURSOR_REQUIRE_LIVE=1
+# and get a hard failure instead; everyone else gets a loud skip notice.
 if [ -z "${CURSOR_API_KEY:-}" ]; then
+  if [ "${CURSOR_REQUIRE_LIVE:-}" = "1" ]; then
+    fail "CURSOR_REQUIRE_LIVE=1 but CURSOR_API_KEY is unset - refusing to report a pass for a check that did not run"
+  fi
   echo
-  echo "PASSED (manifest only): set CURSOR_API_KEY to also run the live cursor-agent probe."
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::warning title=Cursor live probe skipped::No CURSOR_API_KEY, so only manifest resolution was checked. Nothing verified that Cursor loads the skill or MCP server."
+  fi
+  echo "SKIPPED the live probe: no CURSOR_API_KEY, so only the manifest was resolved."
+  echo "PASSED (manifest only) - this did NOT verify that Cursor loads anything."
   exit 0
 fi
 
