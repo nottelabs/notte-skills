@@ -1,0 +1,11 @@
+{
+  "name": "notte",
+  "version": "1.0.0",
+  "description": "Drive a real cloud or local browser with Notte — manage sessions and accounts from the CLI, and build, deploy, and repair Notte Functions",
+  "author": {
+    "name": "Notte",
+    "url": "https://notte.cc"
+  },
+  "repository": "https://github.com/nottelabs/notte-skills",
+  "license": "MIT"
+}

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Migration to Notte"
-  short_description: "Migrate browser automation providers to Notte safely."
-  default_prompt: "Use $migrate-to-notte to assess and migrate this browser automation to Notte with a visible plan and reversible rollout."
