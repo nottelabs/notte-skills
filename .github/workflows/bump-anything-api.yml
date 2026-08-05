@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out notte-skills (needed by the bump + changelog steps)
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: notte-skills
           fetch-depth: 0
 
       - name: Check out anything-api
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: nottelabs/anything-api
           # Needs contents:write + pull-requests:write on nottelabs/anything-api.
@@ -118,7 +118,7 @@ jobs:
 
       - name: Open or update the PR
         if: steps.bump.outputs.already == 'false'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
           path: anything-api
           token: ${{ secrets.ANYTHING_API_BUMP_TOKEN }}
