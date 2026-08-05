@@ -1,0 +1,102 @@
+name: Verify Install
+
+# Installs this repo's plugins with the real client CLIs and asserts that the
+# notte-browser skill and the https://anything.notte.cc/mcp MCP server are
+# actually loaded, and that Codex exposes our install-surface metadata.
+# validate-plugins.py checks that the manifests are well formed; this checks
+# that the clients agree with our reading of them.
+#
+# The weekly schedule matters as much as the PR runs: these jobs install the
+# CLIs at @latest, so a breaking change on the client side shows up here even
+# when nothing in this repo has changed.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugins/**'
+      - 'rules/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - '.agents/**'
+      - 'scripts/verify-install-*.sh'
+      - 'scripts/verify-codex-app-server.py'
+      - '.github/workflows/verify-install.yml'
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - 'rules/**'
+      - '.claude-plugin/**'
+      - '.cursor-plugin/**'
+      - '.agents/**'
+      - 'scripts/verify-install-*.sh'
+      - 'scripts/verify-codex-app-server.py'
+      - '.github/workflows/verify-install.yml'
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-install-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claude-code:
+    name: Claude Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Installs from the checkout, so a PR is verified before it lands.
+      # Also runnable locally: scripts/verify-install-claude.sh
+      - name: Install plugins and verify skill and MCP server
+        run: scripts/verify-install-claude.sh
+
+  codex:
+    name: Codex
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install Codex
+        run: npm install -g @openai/codex
+
+      # Also runnable locally: scripts/verify-install-codex.sh
+      - name: Install plugins and verify skill and MCP server
+        run: scripts/verify-install-codex.sh
+
+  cursor:
+    name: Cursor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Cursor CLI has no offline install-and-inspect surface, so the live
+      # check boots a real agent session and costs model tokens. Keep it off the
+      # PR path: pull requests get the manifest resolution check only.
+      - name: Install cursor-agent
+        if: github.event_name != 'pull_request'
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # Also runnable locally: scripts/verify-install-cursor.sh
+      - name: Verify skill and MCP server
+        env:
+          CURSOR_API_KEY: ${{ github.event_name != 'pull_request' && secrets.CURSOR_API_KEY || '' }}
+        run: scripts/verify-install-cursor.sh
