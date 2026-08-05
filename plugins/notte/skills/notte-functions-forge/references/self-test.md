@@ -112,7 +112,7 @@ RUN_ID=$(notte functions run --function-id "$TARGET_ID" -o json | jq -r '.functi
 notte functions run-metadata --function-id "$TARGET_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 ```
 
-Do not discover the id via `notte functions runs` - it can return an empty array `[]` even when the Function has completed runs.
+If you look the id up in history instead, pass `--only-active=false` - `notte functions runs` filters to *active* runs by default, so a Function whose runs have all finished lists as `[]`.
 
 `run-metadata`'s `result` can come back as a Python `repr` rather than clean JSON, so prefer the `notte functions run` output (above) for contract validation, and use `run-metadata` only for logs and history.
 

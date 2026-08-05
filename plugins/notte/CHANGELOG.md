@@ -76,12 +76,19 @@ output does not state.
   addressable with `jq`. `run-metadata`'s `result` is a Python `repr`
   (single-quoted, not valid JSON) — which is why contract validation should read
   `functions run` and use `run-metadata` for logs
-* **stop routing agents through `notte functions runs` to find a run id.** That
-  list returned `[]` for a Function with three completed runs, so the skills no
-  longer discover run ids through it: `functions run` returns `function_run_id`
-  directly, and that is what `run-metadata` should be given. `notte-functions-doctor`
-  now treats empty run history as uninformative rather than as evidence that a
-  Function never worked, and falls back to the health contract
+* **document that `--only-active` is inverted on every list command.** Omitting
+  the flag does not mean "no filter" — the API defaults to active-only, so
+  finished work is hidden. Measured: `notte functions runs` returned `[]` for a
+  Function with two completed runs and both rows with `--only-active=false`;
+  `notte sessions list` returned `0` where `--only-active=false` returned 10;
+  `notte vaults list` returned 6 versus 10. This affects `sessions list`,
+  `agents list`, `functions list`, `functions runs`, `personas list`, and
+  `vaults list`. The skills now pass `--only-active=false` where they need
+  complete results, and warn against reading an empty list as "nothing exists".
+  This mattered most in `notte-functions-doctor`, whose Phase 2 recovers the
+  last good run to learn what correct output looks like — empty history would
+  have read as "this Function never worked" and pushed it to the wrong failure
+  class
 * document that `functions run` returns no logs — they come from `run-metadata`
 * **fix `len()` on a scrape result.** Four examples called `len()` on
   `session.scrape(...)` output to produce a `count`, which counts dict *keys*

@@ -477,7 +477,16 @@ RID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.functio
 notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RID" -o json | jq -r '.logs[]'
 ```
 
-Two things to know about `run-metadata`: its `result` is a Python `repr` (single-quoted, **not** valid JSON) rather than the clean object `functions run` gives you, so use it for logs and history and take the result from `functions run`. And `notte functions runs` may return an empty array `[]` even for a Function with completed runs - do not rely on it to discover a run id; keep the one `functions run` handed you.
+Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid JSON) rather than the clean object `functions run` gives you - use it for logs and history, and take the result from `functions run`.
+
+> **`--only-active` is inverted on every list command.** Omitting the flag does **not** mean "no filter" - the API defaults to active-only, so finished work is hidden. `notte functions runs` returns `[]` for a Function whose runs have all completed, and `notte sessions list` can show `0` while ten sessions exist. Pass `--only-active=false` explicitly whenever you want everything:
+>
+> ```bash
+> notte functions runs --function-id "$FUNCTION_ID" --only-active=false -o json
+> notte sessions list --only-active=false
+> ```
+>
+> This applies to `sessions list`, `agents list`, `functions list`, `functions runs`, `personas list`, and `vaults list`. Never read an empty list as "nothing exists" without re-checking with `--only-active=false`.
 
 **Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
 

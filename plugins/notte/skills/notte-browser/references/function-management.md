@@ -115,7 +115,8 @@ FUNCTION_ID=$(notte functions create \
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # If you need execution logs, take the run id from the run you just did.
-# (`notte functions runs` can come back empty, so don't discover it that way.)
+# (To find it from history instead, `notte functions runs` needs
+#  --only-active=false, or completed runs are filtered out.)
 RUN_ID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
 notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 
@@ -136,7 +137,7 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
 - **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
 - **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
-- **Do not rely on `notte functions runs` to find a run id**: it can return an empty array `[]` even for a Function with completed runs. Keep the `function_run_id` from the `functions run` response.
+- **Pass `--only-active=false` to `notte functions runs`**: omitting the flag returns *active* runs only, so a Function whose runs have all finished lists as `[]`. The simplest path is to keep the `function_run_id` from the `functions run` response; when you do need history, ask for it explicitly.
 - **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Raise it: `notte functions run --timeout 600`.
 
 ## Creating Functions

@@ -86,14 +86,17 @@ You cannot repair toward an unknown target. Recover it from two sources:
 2. **The last good run** - the strongest evidence of correct output, when you can get it:
 
    ```bash
-   notte functions runs --function-id "{function_id}" -o json
+   # --only-active=false is REQUIRED here. Without it the API returns only
+   # *active* runs, so a Function whose runs have all finished lists as [] and
+   # you would wrongly conclude it never ran.
+   notte functions runs --function-id "{function_id}" --only-active=false -o json
    # pick a past run whose result is a valid object, then:
    notte functions run-metadata --function-id "{function_id}" --run-id "{good_run_id}" -o json | jq '.result'
    ```
 
    (`run-metadata`'s `result` is a Python `repr` rather than clean JSON - single-quoted and not `jq`-parseable, but still readable as evidence of the expected shape.)
 
-   **`functions runs` can return an empty array `[]` even for a Function with completed runs**, so treat missing history as uninformative rather than as evidence the Function never worked. If it comes back empty, fall back to the health contract and the response model alone, and say in your report that no run history was available.
+   If history is genuinely empty even with `--only-active=false`, treat that as uninformative rather than as evidence the Function never worked: fall back to the health contract and the response model, and say in your report that no run history was available.
 
 If the Function has **no** contract (older or hand-written), infer one: the response model gives the schema, and the last good run gives realistic bounds (field presence, typical counts). Note that you inferred it, and offer to stamp a real contract as part of the repair so the next failure is easier.
 
