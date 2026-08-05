@@ -176,42 +176,46 @@ Produce the repaired code, then verify it **without touching the live Function**
 
 2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its id**, and from here on pass `--function-id "$VERIFY_ID"` on every command - never rely on the implicit "current function" pointer, which `create` and `delete` move around. This keeps testing fully isolated from the live Function:
 
-   Name the throwaway after the **live Function's id**, not its display name.
-   The id is unique and immutable; a display name is neither, so two repairs of
-   different Functions that happen to share a name would collide - and the
-   cleanup guard would then delete whichever one it found first.
+   **Always create your own copy. Never adopt one by name.** The id returned by
+   `notte functions create` is the only proof of ownership you have. A matching
+   display name is not proof of anything: `[doctor-verify] {id}` is predictable,
+   so a concurrent repair of the same Function - or anyone who typed that name -
+   produces the identical label. Adopting it would overwrite work that is not
+   yours, and the later delete would destroy it.
 
    ```bash
    LIVE_ID="{function_id}"
    VERIFY_NAME="[doctor-verify] $LIVE_ID"
 
-   # Reuse a throwaway left by an earlier attempt on THIS Function rather than
-   # stacking copies. all_functions() is the paginated helper from Phase 1.
-   MATCHES=$(all_functions --include-deleted \
-     | jq -r --arg n "$VERIFY_NAME" 'select(.name == $n) | .function_id')
-   COUNT=$(printf '%s' "$MATCHES" | grep -c . || true)
-
-   if [ "$COUNT" -gt 1 ]; then
-     # Never guess which one is yours.
-     echo "ABORT: $COUNT Functions named '$VERIFY_NAME' - resolve by hand"
-   elif [ "$COUNT" -eq 1 ]; then
-     VERIFY_ID="$MATCHES"
-     notte functions update --function-id "$VERIFY_ID" --file repaired_function.py
-   else
-     VERIFY_ID=$(notte functions create --file repaired_function.py \
-       --name "$VERIFY_NAME" -o json | jq -r '.function_id')
-   fi
+   # Create it. $VERIFY_ID is yours because you just made it.
+   VERIFY_ID=$(notte functions create --file repaired_function.py \
+     --name "$VERIFY_NAME" -o json | jq -r '.function_id')
 
    # functions run blocks and returns status + result inline:
    notte functions run --function-id "$VERIFY_ID" -o json | jq '{status, result}'
    ```
 
+   Iterate with `notte functions update --function-id "$VERIFY_ID"` - that id,
+   never a name lookup.
+
+   **Strays from an earlier attempt: report, do not touch.** If a previous repair
+   was abandoned without cleanup, a copy with the same name may already exist.
+   You cannot prove it is yours, so do not adopt it and do not delete it - list
+   it for the user and let them decide:
+
+   ```bash
+   all_functions --include-deleted \
+     | jq -r --arg n "$VERIFY_NAME" --arg mine "$VERIFY_ID" \
+         'select(.name == $n and .function_id != $mine)
+          | "stray verification copy, not created by this repair: \(.function_id)"'
+   ```
+
    **Delete the throwaway however this ends.** Cleanup is written up in Phase 6
    because that is the common path, but it is not conditional on promoting: if
    verification never passes, or the user declines at the gate, or you abandon
-   the repair, still run the name-guarded delete from
-   [Phase 6 step 3](#phase-6---promote-behind-a-gate---gate). Otherwise
-   `[doctor-verify]` copies accumulate in the user's account.
+   the repair, still delete the copy you created, per
+   [Phase 6 step 3](#phase-6---promote-behind-a-gate---gate). Since a later run
+   will not adopt it, an orphan left behind is one a human has to clear.
 
    Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` (`status` is `"closed"` either way): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
 
@@ -248,9 +252,10 @@ Only after the verification copy passes the contract:
    fi
    ```
 
-   The guard is an **exact** match on `[doctor-verify] $LIVE_ID`, not a prefix
-   match on `[doctor-verify]`. A prefix would happily delete a throwaway
-   belonging to a different repair.
+   `$VERIFY_ID` is the id your own `create` returned, which is what makes this
+   delete safe. The name check is a second belt against a stale or mistyped
+   variable - not the proof of ownership. Never resolve the target by name and
+   delete the result; a matching name says nothing about who made it.
 
 4. **Confirm the live Function is healthy, then restore its schedule:**
 

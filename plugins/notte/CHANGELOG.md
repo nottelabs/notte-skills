@@ -86,12 +86,17 @@ from the default branch will need the new invocation.
   and is not now — it takes `--running`. Verified against v0.0.30: `functions runs`
   returns 2 where `--running` returns 0; `functions list` 64 vs 100 with
   `--include-deleted`; `sessions list` 0 vs 100 with `-a`
-* `[doctor-verify]` throwaways were matched by display name, so two repairs of
-  Functions sharing a name could collide - reuse would overwrite the wrong copy
-  and the prefix-only cleanup guard would then delete it. The throwaway is now
-  named after the **live Function's id**, which is unique and immutable; reuse
-  matches that name exactly and aborts rather than guessing if several match,
-  and the cleanup guard is an exact match rather than a prefix
+* **a `[doctor-verify]` throwaway is never adopted by name.** Doctor used to
+  look for an existing copy and reuse it, first by display name and then by a
+  name containing the live Function's id. Making the name unique was not enough:
+  a name is not proof of ownership. `[doctor-verify] {id}` is predictable, so a
+  concurrent repair of the same Function - or anyone who typed that label -
+  produces the identical name, and adopting it would overwrite work that is not
+  yours and then delete it. Doctor now always creates its own copy and treats the
+  id returned by `notte functions create` as the only ownership proof. Strays
+  from an abandoned earlier attempt are **reported to the user, not adopted or
+  deleted**. The name check on the delete remains as a second belt against a
+  stale variable, explicitly not as authorization
 * `scripts/validate-plugins.py` now checks that every relative markdown link
   inside a skill resolves. Renaming a skill directory silently breaks the
   cross-references pointing at it and nothing else in the repo would notice —
