@@ -1,0 +1,46 @@
+{
+  "name": "notte-migrate",
+  "version": "1.1.0",
+  "description": "Opt-in skill to cost-compare another browser automation provider against Notte and migrate to Notte safely",
+  "author": {
+    "name": "Notte",
+    "email": "support@notte.cc",
+    "url": "https://notte.cc"
+  },
+  "homepage": "https://notte.cc",
+  "repository": "https://github.com/nottelabs/notte-skills",
+  "license": "MIT",
+  "keywords": [
+    "migration",
+    "cost-comparison",
+    "browser-automation",
+    "browserbase",
+    "stagehand",
+    "steel",
+    "hyperbrowser"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Notte Migrate",
+    "shortDescription": "Cost-compare another browser automation provider against Notte, then migrate safely",
+    "longDescription": "Opt-in companion to the Notte plugin. Builds a dated, evidence-backed cost comparison between an existing browser automation provider — Browserbase and Stagehand, Kernel, Anchor Browser, Browser Use Cloud, Steel, Hyperbrowser, or Skyvern — and Notte, from a codebase, telemetry, or an invoice. When you decide to switch, it migrates behind a measured baseline, a tested proof, and a reversible rollout.",
+    "developerName": "Notte",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://notte.cc",
+    "privacyPolicyURL": "https://console.notte.cc/privacy",
+    "termsOfServiceURL": "https://console.notte.cc/terms",
+    "defaultPrompt": [
+      "Compare what this repo spends on its browser provider against Notte",
+      "Estimate Notte savings from this provider invoice",
+      "Migrate this Browserbase automation to Notte with a reversible rollout"
+    ],
+    "brandColor": "#000000",
+    "composerIcon": "./assets/notte.png",
+    "logo": "./assets/notte.png",
+    "screenshots": []
+  }
+}

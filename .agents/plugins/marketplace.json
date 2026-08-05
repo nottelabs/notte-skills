@@ -1,0 +1,32 @@
+{
+  "name": "notte",
+  "interface": {
+    "displayName": "Notte"
+  },
+  "plugins": [
+    {
+      "name": "notte",
+      "source": {
+        "source": "local",
+        "path": "./plugins/notte"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "notte-migrate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/notte-migrate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

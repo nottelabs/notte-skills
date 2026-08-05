@@ -9,6 +9,26 @@ from `git log` so that downstream consumers can tell which skill content
 corresponds to which version. Tag releases as `notte-v<version>` from now
 on so consumers can pin instead of tracking the default branch.
 
+## [1.5.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.4.0...notte-v1.5.0) (2026-08-05)
+
+Packaging and distribution only — no skill content changed.
+
+### Features
+
+* add a native OpenAI Codex surface. Codex already installed this repository through its compatibility fallbacks for `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json`, but with no Codex-specific metadata. This adds `.agents/plugins/marketplace.json` (Codex's own marketplace path, with the `policy` and `category` fields it expects) and `plugins/*/.codex-plugin/plugin.json` (preferred over the Claude manifest by Codex), carrying the `interface` block that Codex and ChatGPT install surfaces render: display name, descriptions, category, capabilities, legal links, starter prompts, and a logo
+* add `agents/openai.yaml` to `notte-browser`, `notte-functions-forge`, and `notte-functions-doctor`, so all four skills — not just `migrate-to-notte` — carry a display name, short description, and default prompt on Codex and ChatGPT
+
+### Bug Fixes
+
+* wire the hosted MCP servers into the Cursor plugin. `.cursor-plugin/plugin.json` declared `skills` and `rules` but no `mcpServers`, so Cursor installed skills that referenced a browser it could not reach. The validator now fails if that field goes missing again
+* document Codex installation in the README (`codex plugin marketplace add nottelabs/notte-skills`), the `$plugin:skill` invocation form Codex uses, and the `--agent codex` flag for `npx skills add`. The README advertised Codex compatibility but documented no way to install on it
+* correct the manual-installation snippet, which copied the *plugin* directory into a *skills* directory and so left every `SKILL.md` two levels deep, where no client scans
+
+### Miscellaneous
+
+* extend `scripts/validate-plugins.py` to cover the Codex surface: both marketplaces must list the same plugins at the same paths, each plugin's Claude and Codex manifests must agree on name/version/description/component paths, manifest `interface` asset paths must resolve, and every skill must ship an `agents/openai.yaml`. That file is parsed rather than scanned, so unknown keys are caught at both levels — including the snake_case/camelCase slip between `openai.yaml` and `plugin.json` — along with a missing `interface` field, a `short_description` outside Codex's documented 25–64 characters, a `default_prompt` that does not invoke `$skill-name`, a malformed `policy` or `dependencies.tools` entry, and any YAML construct the parser cannot represent
+* add `scripts/test-validate-plugins.py`, which exercises those checks against malformed and incomplete fixtures, and run it in CI alongside the validator
+
 ## [1.4.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.3.0...notte-v1.4.0) (2026-08-05)
 
 Packaging and distribution only — no skill content changed.

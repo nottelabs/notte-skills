@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notte Browser"
+  short_description: "Drive a Notte cloud browser from the CLI"
+  default_prompt: "Use $notte-browser to run this task on a Notte cloud browser session and return the result."

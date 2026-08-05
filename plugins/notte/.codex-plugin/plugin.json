@@ -1,0 +1,47 @@
+{
+  "name": "notte",
+  "version": "1.5.0",
+  "description": "Drive a real cloud or local browser with Notte — manage sessions and accounts from the CLI, and build, deploy, and repair Notte Functions",
+  "author": {
+    "name": "Notte",
+    "email": "support@notte.cc",
+    "url": "https://notte.cc"
+  },
+  "homepage": "https://notte.cc",
+  "repository": "https://github.com/nottelabs/notte-skills",
+  "license": "MIT",
+  "keywords": [
+    "browser",
+    "browser-automation",
+    "web-scraping",
+    "cloud-browser",
+    "stealth",
+    "captcha",
+    "functions"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Notte",
+    "shortDescription": "Drive a real cloud or local browser and deploy the result as a callable Function",
+    "longDescription": "Launch and control Notte cloud browser sessions from the CLI: navigate, observe, click, fill, and scrape JavaScript-rendered pages, manage vaults and personas for authenticated flows, then deploy a tested browser task as a Notte Function — an API-callable, schedulable endpoint — and diagnose or repair it when the site changes.",
+    "developerName": "Notte",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://notte.cc",
+    "privacyPolicyURL": "https://console.notte.cc/privacy",
+    "termsOfServiceURL": "https://console.notte.cc/terms",
+    "defaultPrompt": [
+      "Scrape this page with Notte and return structured JSON",
+      "Run this browser task on a Notte cloud session behind login",
+      "Turn this working scrape into a scheduled Notte Function"
+    ],
+    "brandColor": "#000000",
+    "composerIcon": "./assets/notte.png",
+    "logo": "./assets/notte.png",
+    "screenshots": []
+  }
+}

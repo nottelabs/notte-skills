@@ -43,17 +43,59 @@ Install from the Cursor Marketplace:
 
 The Cursor plugin includes the Notte browser skill and best-practice rules.
 
-### Any agent
+### OpenAI Codex
+
+Codex installs the same plugins from this repository:
 
 ```bash
-npx skills add nottelabs/notte-skills
+# Register this repository as a plugin marketplace
+codex plugin marketplace add nottelabs/notte-skills
+
+# Install the Notte plugin (skills + the hosted Notte MCP servers)
+codex plugin add notte@notte
+
+# Optional: provider cost comparison and migration to Notte
+codex plugin add notte-migrate@notte
 ```
+
+Then start a new Codex session. Run `/plugins` inside Codex to browse, enable, or
+disable them interactively, and `codex mcp list` to confirm the hosted MCP
+servers registered.
+
+Codex namespaces plugin skills by plugin name, so invoke them as
+`$notte:notte-browser`, `$notte:notte-functions-forge`,
+`$notte:notte-functions-doctor`, and `$notte-migrate:migrate-to-notte`.
+
+### Any agent
+
+Installs the skills only — no MCP servers, no plugin manifest:
+
+```bash
+# Interactive: pick which skills to install
+npx skills add nottelabs/notte-skills
+
+# Or target one client explicitly
+npx skills add nottelabs/notte-skills --agent codex
+```
+
+Skills land in `.agents/skills/` in the current project, or in the client's
+global skills directory with `--global`.
 
 ### Manual installation
 
+Copy the individual skill folders — not the plugin folder — into your client's
+skills directory. Each skill directory must sit directly under the scan path so
+that its `SKILL.md` is one level deep.
+
 ```bash
 git clone https://github.com/nottelabs/notte-skills.git
-cp -r notte-skills/plugins/notte ~/.claude/skills/
+
+# Claude Code
+cp -r notte-skills/plugins/notte/skills/* ~/.claude/skills/
+
+# Codex (or any client reading the shared ~/.agents/skills path)
+mkdir -p ~/.agents/skills
+cp -r notte-skills/plugins/notte/skills/* ~/.agents/skills/
 ```
 
 ## Prerequisites
@@ -109,7 +151,9 @@ Install this one only if you are coming from another browser automation provider
 
 ## Verify it's wired up
 
-Ask your agent:
+Ask your agent, invoking the skill the way your client does — `/notte-browser`
+in Claude Code, `$notte:notte-browser` in Codex (or `$notte-browser` when
+installed with `npx skills add`):
 
 > *"/notte-browser Go to news.ycombinator.com and give me the top 5 posts as JSON with title, url, and points."*
 
