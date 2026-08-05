@@ -9,7 +9,7 @@ description: >
   Function that is broken; this skill finds the root cause, re-explores the
   changed surface, verifies a fix in isolation, and promotes it behind a
   confirmation gate. Pairs with notte-functions-forge, which builds Functions.
-allowed-tools: Bash(notte:*), Read, Write, Edit
+allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Bash(diff:*), Read, Write, Edit
 ---
 
 # Notte Functions Doctor

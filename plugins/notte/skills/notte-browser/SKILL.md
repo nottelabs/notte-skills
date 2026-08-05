@@ -7,7 +7,7 @@ description: >
   and deploy browser workflows as Notte Functions for callable, scheduled, or
   reusable automations such as endpoints, APIs, webhooks, jobs, workflows, and
   services.
-allowed-tools: Bash(notte:*)
+allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Read, Write
 ---
 
 # Notte Browser CLI Skill
@@ -21,6 +21,19 @@ For broader Notte concepts, current docs, and internet-search entry points, star
 ```text
 https://docs.notte.cc/llms.txt
 ```
+
+## CLI vs. the bundled MCP servers
+
+The `notte` plugin also ships two hosted MCP servers. **Prefer the CLI for everything in this skill** - it is the interface these instructions are written against. Reach for the MCP servers only in the cases below:
+
+| Server | URL | What it is | When to use it |
+|--------|-----|------------|----------------|
+| `notte-browser` | `https://api.notte.cc/mcp` | The Notte browser API over MCP | Only when the client cannot run shell commands. Otherwise the CLI is more direct and better documented. |
+| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions, plus natural-language `build` | **Before forging a new Function**, call its `search` tool - someone may already have published one for the target site. |
+
+`anything-api` exposes `search` (browse the marketplace, no auth), `spec` (get a function's variable schema), `run`, and `build` (natural language -> a new deployed Function, 2-10 minutes). `build` and `run` need authentication - OAuth via your client, or `Authorization: Bearer $NOTTE_API_KEY`. Browse it visually at <https://anything.notte.cc/marketplace>.
+
+Both servers authenticate independently of `notte auth login`; a working CLI session does not imply a working MCP connection, and vice versa.
 
 ## Setup
 
@@ -96,18 +109,34 @@ Control browser session lifecycle:
 # Start a new session
 notte sessions start [flags]
   --headless                 Run in headless mode (default: true)
+  --browser-type <type>      chromium (default) or chrome. chrome-nightly and
+                             chrome-turbo are legacy aliases for chrome.
   --idle-timeout-minutes     Idle timeout in minutes
   --max-duration-minutes     Maximum session lifetime in minutes
   --proxy                    Use default proxies
-  --proxy-country <code>     Proxy country code (e.g. us, gb, fr)
+  --proxy-country <code>     Proxy country code (e.g. us, gb, fr). Implies --proxy
   --solve-captchas           Automatically solve captchas
+  --vault-id <vault-id>      Attach a vault so sentinel placeholders resolve (see below)
   --profile-id <profile-id>  Load browser state from a profile
   --profile-persist          Save browser state back to the profile on session close
   --viewport-width           Viewport width in pixels
   --viewport-height          Viewport height in pixels
+  --aspect-ratio <ratio>     Viewport shape preset; cannot be combined with
+                             explicit --viewport-width/--viewport-height
   --user-agent               Custom user agent string
   --cdp-url                  CDP URL of remote session provider
   --use-file-storage         Enable file storage for the session
+  --screenshot-type <type>   raw, full, or last_action
+  --chrome-args              Override the Chrome instance arguments (repeatable)
+  --extra-http-headers       Extra HTTP headers as JSON
+  --web-bot-auth             Use web bot authentication
+
+# Bring your own proxy instead of Notte's pool
+  --proxy-external-server <url>        e.g. http://proxy:8080. Enables external proxy
+  --proxy-external-username <user>
+  --proxy-external-password <pass>
+  --proxy-tailnet-client-id <id>       Tailnet OAuth client ID. Enables Tailscale proxy
+  --proxy-tailnet-client-secret <secret>
 
 # Get current session status
 notte sessions status
@@ -126,11 +155,19 @@ notte sessions list [--page N] [--page-size N] [--only-active]
 Session debugging:
 
 ```bash
-# Get network logs
-notte sessions network
+# Download the network logs (HAR) to a folder and print the path.
+# --urls-only prints just the request URLs inline instead of downloading.
+# --path <dir> chooses the output directory (defaults to a temp directory).
+notte sessions network [--urls-only] [--path <dir>]
 
-# Get replay URL/data
+# Download the session replay video
 notte sessions replay
+
+# Open the live session viewer in your browser
+notte sessions viewer
+
+# Get session offset info (the step index agents resume from)
+notte sessions offset
 ```
 
 Session export:
@@ -139,6 +176,10 @@ Session export:
 # Export session steps as Python workflow code.
 # Use --session-id to export a specific session, including one that has been stopped.
 notte sessions workflow-code --session-id <session-id>
+
+# `notte sessions code` hits the same endpoint without the workflow wrapper and
+# returns a plain replay script. Prefer `workflow-code` when the target is a
+# Notte Function - it is the shape `notte functions create` expects.
 
 # example flow
 notte sessions start
@@ -195,7 +236,8 @@ Simplified commands for page interactions:
 # Click an element (use either the IDs from observe, or a selector)
 notte page click "B3"
 notte page click "#submit-button"
-  --timeout     Timeout in milliseconds
+  --timeout     Element timeout in milliseconds (distinct from the global
+                --timeout, which is the API request timeout in seconds)
   --enter       Press Enter after clicking
 
 # Fill an input field
@@ -215,12 +257,15 @@ notte page download "L5"
 
 # Upload file to input
 notte page upload "#file-input" --file /path/to/file
+```
 
-# Run JavaScript in the Page
+**Run JavaScript in the page:**
+
 - Escape single quotes if needed.
-- Don’t use logging (output won’t be captured).
-- Use a single statement or a function that returns a value.
+- Don't use logging - stdout is not captured.
+- Use a single expression, or a function that returns a value.
 
+```bash
 # Single expression
 notte page eval-js 'document.title'
 
@@ -263,11 +308,14 @@ notte page close-tab
 
 **Page State:**
 ```bash
-# Observe page state and available actions
+# Observe page state and available actions (takes no URL - `goto` first)
 notte page observe
 
-# Save a screenshot in tmp folder
+# Save a screenshot as JPEG. With no argument it writes to
+# <tmp>/notte-screenshot-<session-id>.jpg and prints the path.
 notte page screenshot
+notte page screenshot shot.jpg          # positional output path
+notte page screenshot --path shot.jpg   # same, as a flag
 
 # Scrape content with instructions
 notte page scrape --instructions "Extract all links" [--only-main-content]
@@ -285,8 +333,8 @@ noisy or expensive.
 # Wait for specified duration
 notte page wait 1000
 
-# Solve CAPTCHA
-notte page captcha-solve "recaptcha"
+# Solve CAPTCHA - pass the challenge type, e.g. recaptcha_v2 or hcaptcha
+notte page captcha-solve "recaptcha_v2"
 
 # Mark task complete
 notte page complete "Task finished successfully" [--success=true]
@@ -306,10 +354,14 @@ notte agents list [--page N] [--page-size N] [--only-active] [--only-saved]
 # Start a new agent (auto-uses current session if active)
 notte agents start --task "Navigate to example.com and extract the main heading"
   --session-id             Session ID (uses current session if not specified)
+  --url                    URL the agent should start on (optional)
   --vault-id               Vault ID for credential access
   --persona-id             Persona ID for identity
-  --max-steps              Maximum steps for the agent (default: 30)
-  --reasoning-model        Custom reasoning model
+  --max-steps              Maximum steps for the agent (server-side default)
+  --use-vision             Use vision. Not all reasoning models support it
+  --response-format-json   Response-format config as a JSON file path (@config.json)
+  --session-offset         [Experimental] Step index to resume memory from
+  --reasoning-model        Reasoning model (see list below)
 
 # Get current agent status
 notte agents status
@@ -331,6 +383,15 @@ notte agents replay
 2. `NOTTE_AGENT_ID` environment variable
 3. `~/.notte/cli/current_agent` file (lowest priority)
 
+**Reasoning models.** `--reasoning-model` accepts a LiteLLM-style string from the
+set the CLI advertises - run `notte agents start --help` for the authoritative
+list on your version. As of CLI v0.0.29 it includes `openai/gpt-4o`,
+`gemini/gemini-2.5-flash`, `vertex_ai/gemini-2.5-flash`,
+`anthropic/claude-sonnet-4-5-20250929`, `deepseek/deepseek-r1`,
+`perplexity/sonar-pro`, `groq/gpt-oss-120b`, `cerebras/gpt-oss-120b`,
+`moonshot/kimi-k2.5`, `xai/grok-4-1-fast-non-reasoning`, and
+`minimax/minimax-m2.5`. It is a model string, not a provider name.
+
 ### Functions (Workflow Automation and API Endpoints)
 
 Use Notte Functions to create callable, scheduled, or reusable browser automations. This is the path for turning a browser task or scrape into an endpoint, API, webhook, job, workflow, or service.
@@ -344,7 +405,8 @@ notte functions list [--page N] [--page-size N] [--only-active]
 # Create a function from a workflow file
 notte functions create --file workflow.py [--name "My Function"] [--description "..."] [--shared]
 
-# Show current function details
+# Show current function details (returns metadata + a download URL for the
+# workflow file in `url`; it does not inline the source)
 notte functions show
 
 # Update current function code
@@ -353,8 +415,17 @@ notte functions update --file workflow.py
 # Delete current function
 notte functions delete
 
-# Run current function
+# Run current function. This BLOCKS until the run finishes and returns
+# `status` and `result` inline - there is no client-side polling.
 notte functions run
+notte functions run --var page=2                # repeatable; values arrive as strings
+notte functions run --vars '{"page": 2}'        # use JSON for real numbers/booleans
+
+# Manage function environment secrets (read from os.environ inside run())
+notte functions secrets list
+notte functions secrets set NAME <value>
+notte functions secrets get NAME
+notte functions secrets delete NAME
 
 # Invoke the deployed Function over HTTP from another service
 curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
@@ -390,6 +461,17 @@ notte functions fork --function-id <shared-function-id>
 
 **Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function (like when forking a shared function).
 
+**Reading a run result.** `notte functions run` blocks server-side and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone: a JSON payload matching your schema is a pass, and a string containing `Script execution failed` or a `Traceback` is a failure - an error raised inside `run()` can still report `status: "closed"`. Depending on the endpoint, `result` may arrive as a JSON-encoded string rather than a nested object, so parse defensively.
+
+**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer will fail the *command* while the run continues server-side. Raise it (`notte functions run --timeout 600`) or drop the blocking call and poll instead:
+
+```bash
+notte functions runs --function-id "$FUNCTION_ID" -o json | jq -r '.[0].function_run_id'
+notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json
+```
+
+`functions runs` prints a top-level JSON **array** of runs, newest first; the run id field is `function_run_id`, not `run_id`.
+
 For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
 
 ### Account Management
@@ -401,7 +483,7 @@ For reusable or repeated browser work, load and follow [Function Management Refe
 notte personas list [--page N] [--page-size N] [--only-active]
 
 # Create a persona
-notte personas create [--create-vault]
+notte personas create [--create-vault] [--create-phone-number]
 
 # Show persona details
 notte personas show --persona-id <persona-id>
@@ -412,9 +494,19 @@ notte personas delete --persona-id <persona-id>
 # List emails received by persona
 notte personas emails --persona-id <persona-id>
 
-# List SMS messages received
+# List SMS messages received (requires a persona with a phone number - see below)
 notte personas sms --persona-id <persona-id>
 ```
+
+**Phone numbers are a gated feature.** `notte personas create --create-phone-number` will **fail** on a standard account - phone-number provisioning is unlocked per-account by the Notte team. Without it, the persona has an email inbox but no number, and `notte personas sms` has nothing to return.
+
+Do not retry the command or work around it; it is an account entitlement, not a transient error. To request access, book a 15-minute call:
+
+```text
+https://cal.com/pintoa/15mins
+```
+
+If the user needs SMS/phone verification and the feature is not unlocked, say so plainly, share that link, and fall back to an email-based flow (`notte personas emails`) if the target site supports one.
 
 **Vaults** - Store your own credentials:
 
@@ -438,13 +530,67 @@ notte vaults credentials get --vault-id <vault-id> --url "https://site.com"
 notte vaults credentials delete --vault-id <vault-id> --url "https://site.com"
 ```
 
+### Browser Profiles
+
+Profiles are the persistent browser state (cookies, `localStorage`, `sessionStorage`) that `--profile-id` loads. Create one before you can reference it:
+
+```bash
+# Create a profile
+notte profiles create
+
+# List profiles
+notte profiles list
+
+# Show profile details
+notte profiles show --profile-id <profile-id>
+
+# Delete a profile
+notte profiles delete --profile-id <profile-id>
+```
+
+Typical use - log in once, persist the state, then reuse it without logging in again:
+
+```bash
+PROFILE_ID=$(notte profiles create -o json | jq -r '.profile_id')
+
+# First run: log in and save the resulting state back to the profile
+notte sessions start --profile-id "$PROFILE_ID" --profile-persist
+# ... perform the login ...
+notte sessions stop
+
+# Later runs: start already authenticated, without persisting new changes
+notte sessions start --profile-id "$PROFILE_ID"
+```
+
+### Web Search
+
+`notte search` queries the Notte search API directly - no browser session required. Prefer it over spinning up a session when you need to *find* pages rather than interact with them.
+
+```bash
+notte search "latest llm releases"
+notte search "what is anthropic" --depth deep
+notte search "what is anthropic" --output-type sourcedAnswer
+
+  --depth         standard (default), fast, or deep
+  --output-type   searchResults (default), sourcedAnswer, or structured
+```
+
+### Other Commands
+
+```bash
+notte files      # Manage uploaded files available to sessions
+notte usage      # Show API usage statistics
+notte health     # Check API health status
+notte clear      # Clear all stored CLI state (current session/agent/function pointers)
+```
+
 ## Global Options
 
 Available on all commands:
 
 ```bash
 --output, -o    Output format: text, json (default: text)
---timeout       API request timeout in seconds (default: 30)
+--timeout       API request timeout in seconds (default: 60)
 --no-color      Disable color output
 --verbose, -v   Verbose output
 --yes, -y       Skip confirmation prompts
@@ -532,20 +678,30 @@ notte sessions stop
 ### Scheduled Data Collection
 
 ```bash
-# Create workflow file
-cat > collect_data.py << 'EOF'
-# Notte workflow script
-# ...
-EOF
+# 1. Build the workflow interactively, then export the session that worked
+notte sessions start --headless
+notte page goto "https://news.ycombinator.com"
+notte page scrape --instructions "Extract the top 10 stories with title, url, points"
+notte sessions workflow-code > collect_data.py
+notte sessions stop
 
-# Upload as function
-notte functions create --file collect_data.py --name "Daily Data Collection"
+# 2. Edit collect_data.py to add a run(...) entry point whose parameters are the
+#    values that change between runs. See references/function-management.md.
 
-# Schedule to run every day at 9 AM
-notte functions schedule --function-id <function-id> --cron "0 9 * * *"
+# 3. Create the Function and capture its id
+FUNCTION_ID=$(notte functions create \
+  --file collect_data.py \
+  --name "Daily Data Collection" \
+  -o json | jq -r '.function_id')
 
-# Check run history
-notte functions runs --function-id <function-id>
+# 4. Verify it actually works before scheduling it
+notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
+
+# 5. Schedule to run every day at 9 AM
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
+
+# 6. Check run history
+notte functions runs --function-id "$FUNCTION_ID"
 ```
 
 ## Tips & Troubleshooting
@@ -631,10 +787,20 @@ Two risk classes are inherent to "browser automation driven by an agent." The sk
 
 ### Credential handling
 
-Don't pass real secrets as CLI arguments. `--password` and `--mfa-secret` read from `argv`, which leaks to `ps`, shell history, and process snapshots.
+`notte vaults credentials add` takes `--password` and `--mfa-secret` as CLI arguments, and there is no stdin or file-based alternative. Anything you pass there lands in `argv`, where it is visible to `ps` and to process snapshots for the lifetime of the call.
 
-- **DO** expand from env vars: `--password "$MY_PASSWORD"`, or load into a vault once from a file you control and rely on the vault thereafter.
-- **DON'T** type real credentials inline. The values in this skill (`$MYSERVICE_PASSWORD`, `EXAMPLEMFASECRET`, etc.) are placeholders — substitute your own secrets via environment variables.
+Be precise about what the env-var form does and does not buy you:
+
+- `--password "$MY_PASSWORD"` **does** keep the literal secret out of your shell history and out of any file you commit.
+- It **does not** keep it out of `argv` — the shell expands the variable *before* `exec`, so `ps` sees the plaintext either way. This is a real limitation of the CLI, not something the caller can work around.
+
+Given that, the practical rule is to **minimize how often the secret crosses `argv` at all**:
+
+- **DO** add each credential to a vault **once**, from a machine and shell you control, with the value expanded from an environment variable or a `.env` file you own.
+- **DO** rely on the vault plus sentinel placeholders from then on. Automation scripts, Functions, and agent tasks reference the sentinels, so the real secret never appears in a command again.
+- **DO** use `notte functions secrets set` for values a Function reads from `os.environ`, rather than baking them into the workflow file or passing them as run variables.
+- **DON'T** type real credentials inline. The values in this skill (`$MYSERVICE_PASSWORD`, `EXAMPLEMFASECRET`, etc.) are placeholders.
+- **DON'T** run credential-adding commands on a shared or multi-tenant host, where another user can read `ps` output during the call.
 
 ### Untrusted page content
 

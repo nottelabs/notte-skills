@@ -9,7 +9,7 @@ description: >
   later", "make this reusable", "pull all listings", "automate this site every
   day", or "build a function that extracts X from Y". Pairs with
   notte-functions-doctor, which repairs a forged Function when the site changes.
-allowed-tools: Bash(notte:*), Read, Write, Edit
+allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Read, Write, Edit
 ---
 
 # Notte Functions Forge
@@ -29,7 +29,7 @@ This is the difference between asking an agent to "scrape Indeed" every time (pa
 ## The pipeline
 
 ```
-Phase 0  Setup          ensure the notte CLI is authenticated
+Phase 0  Setup          ensure the notte CLI is authenticated; check the marketplace
 Phase 1  Describe       parse intent, confirm a plan (target, fields, parameters)   [GATE]
 Phase 2  Explore        drive the site ONCE; find the stable path (API-first)
 Phase 3  Generate       export workflow-code; parameterize; stamp a health contract
@@ -51,6 +51,15 @@ notte auth status
 
 If authentication is missing, follow the auth handling in the [notte-browser skill](../notte-browser/SKILL.md#authentication-handling) (run `notte auth login`, wait for the browser flow, poll `notte auth status`). Do not fall back to SDK code because auth is missing.
 
+### Check the marketplace before forging anything
+
+Forging is the expensive path. If the plugin's `anything-api` MCP server is available (`https://anything.notte.cc/mcp`), call its **`search`** tool first - the marketplace carries ready-made Functions for common targets (Zillow, Amazon, LinkedIn, and similar). Browsing needs no authentication.
+
+- A published Function that fits: use `spec` to read its variable schema, then `run` it, or `notte functions fork` it to own a copy. Report this to the user instead of forging a duplicate - it saves the entire exploration cost.
+- Nothing fits: continue with Phase 1.
+
+If the MCP server is not wired up, say so once and proceed; it is an optimization, not a prerequisite. The marketplace is also browsable at <https://anything.notte.cc/marketplace>.
+
 ---
 
 ## Phase 1 - Describe and confirm the plan
@@ -66,7 +75,13 @@ From the user's request, pin down:
 
 ### 1b. Research the target (only when no URL is given)
 
-Do not guess a site from memory. If the user gave an objective but no URL, use `notte-browser` to actively search for sites that host the needed data, then propose 1-5 candidates ranked by data reliability with short pros/cons. Confirm the target URL with the user before exploring.
+Do not guess a site from memory. If the user gave an objective but no URL, search for sites that host the needed data with `notte search` - it queries the Notte search API directly and needs no browser session:
+
+```bash
+notte search "sites listing {the data the user wants}" --depth deep
+```
+
+Then propose 1-5 candidates ranked by data reliability with short pros/cons. Confirm the target URL with the user before exploring. Only open a browser session for candidates you actually need to inspect.
 
 ### 1c. Confirm the plan - GATE
 
@@ -121,7 +136,8 @@ Then edit the export to make it reusable:
 2. **Lift hardcoded inputs to parameters** - the keyword, location, or page count you typed during exploration becomes `run(keyword=..., location=...)`. Endpoints, selectors, and field mappings stay hardcoded.
 3. **Confirm the response model** - the exported Pydantic model is the output schema. Keep it tight and typed.
 4. **Stamp a health contract** - a short, machine-readable comment block plus light runtime assertions describing what a *correct* result looks like (schema + sanity bounds, e.g. "at least 1 row", "price is numeric"). This is what makes a forged Function repairable later by `notte-functions-doctor`.
-5. **Secrets, if the Function needs one** - have the operator store them with `notte functions secrets set NAME <value>` (the CLI's function "environment secrets"), and read them from `os.environ["NAME"]` inside `run()`. Never hardcode a secret or pass it as a run variable.
+5. **Secrets, if the Function needs one** - have the operator store them with `notte functions secrets set NAME <value>`, and read them from `os.environ["NAME"]` inside `run()`. Inspect with `notte functions secrets list` / `get NAME`, and remove with `delete NAME`. Never hardcode a secret or pass it as a run variable - run variables are recorded with the run.
+6. **Keep the module-level `run()` call** - the file is executed as a script, so a `run` that is only *defined* produces a run with a `null` result and no error.
 
 Read these before editing:
 
@@ -150,7 +166,13 @@ notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 notte functions run --function-id "$FUNCTION_ID" --var page=2 -o json | jq '{status, result}'
 ```
 
-**The signal is `result`, not `status` alone.** A JSON object matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so never treat `"closed"` as proof of success; inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
+**The signal is `result`, not `status` alone.** A JSON payload matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so never treat `"closed"` as proof of success; inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
+
+**Mind the request timeout.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run keeps going server-side - which reads like a broken Function but is not one. Raise it for anything non-trivial:
+
+```bash
+notte functions run --function-id "$FUNCTION_ID" --timeout 600 -o json | jq '{status, result}'
+```
 
 For the full validation loop, test-case design, and the self-repair cycle (edit -> `notte functions update --function-id "$FUNCTION_ID" --file ...` -> re-run), read:
 

@@ -82,9 +82,14 @@ session_scrape() {
         # shellcheck disable=SC2086
         page_result=$(notte page scrape --instructions "$instructions" $flags -o json)
 
-        # Merge results (assuming JSON array output)
+        # `notte page scrape -o json` returns {markdown, structured}; the parsed
+        # extraction lives at .structured.data. Pull that out, normalise it to an
+        # array, and append.
         if command -v jq &> /dev/null; then
-            all_results=$(echo "$all_results" "$page_result" | jq -s '.[0] + (.[1] | if type == "array" then . else [.] end)')
+            all_results=$(jq -s '
+                .[0] + ((.[1].structured.data // .[1])
+                        | if type == "array" then . else [.] end)
+            ' <(echo "$all_results") <(echo "$page_result"))
         else
             # Fallback: just append
             all_results="$all_results
@@ -135,10 +140,13 @@ batch_scrape() {
         # shellcheck disable=SC2086
         result=$(notte page scrape --instructions "$EXTRACTION_INSTRUCTIONS" $flags -o json)
 
-        # Add source URL to result
+        # Unwrap .structured.data, tag each row with its source URL, and append
         if command -v jq &> /dev/null; then
-            result=$(echo "$result" | jq --arg url "$url" '. + {source_url: $url}')
-            all_results=$(echo "$all_results" "[$result]" | jq -s '.[0] + .[1]')
+            all_results=$(jq -s --arg url "$url" '
+                .[0] + ((.[1].structured.data // .[1])
+                        | if type == "array" then . else [.] end
+                        | map(. + {source_url: $url}))
+            ' <(echo "$all_results") <(echo "$result"))
         fi
 
         log_info "Completed: $url"

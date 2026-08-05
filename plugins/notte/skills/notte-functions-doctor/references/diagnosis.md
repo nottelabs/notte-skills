@@ -42,7 +42,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** the session is no longer authenticated - the vault credential expired, the persona/profile lost its cookies, or MFA is now required.
 
-**Action:** report this. The fix is in configuration, not scrape logic. Check, in order: (a) `notte functions secrets list` for a missing/rotated secret the Function reads from `os.environ` (re-set with `notte functions secrets set NAME <value>`); (b) that the Function's `run()` session is opened with the intended `vault_id`/`profile_id`; (c) the vault credential itself (`notte vaults credentials add` upserts it for a URL) or the profile's saved login. Editing the scrape logic will not help and may mask the real problem. Once the user confirms the credential/secret is refreshed, you can re-verify, but do not patch scrape code for this class.
+**Action:** report this. The fix is in configuration, not scrape logic. Check, in order: (a) `notte functions secrets list` for a missing/rotated secret the Function reads from `os.environ` (inspect one with `notte functions secrets get NAME`, re-set with `notte functions secrets set NAME <value>`, remove a stale one with `notte functions secrets delete NAME`); (b) that the Function's `run()` session is opened with the intended `vault_id`/`profile_id`; (c) the vault credential itself (`notte vaults credentials add` upserts it for a URL) or the profile's saved login. Editing the scrape logic will not help and may mask the real problem. Once the user confirms the credential/secret is refreshed, you can re-verify, but do not patch scrape code for this class.
 
 ### 4. Anti-bot block / captcha  -  NOT a code fix (config, not code)
 

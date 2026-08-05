@@ -15,14 +15,18 @@ A Function is not done when it is created - it is done when a real cloud run ret
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
 ```
 
+There is no client-side polling - the CLI issues one synchronous POST and waits. That means the call is bounded by the global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run continues server-side, which looks like a failure but is not one. Raise it for anything non-trivial (`--timeout 600`), or skip the blocking call and read the result from `notte functions runs` / `run-metadata` instead.
+
 ## Read the `result` (status alone is not enough)
 
 The dependable pass/fail signal is `result`:
 
 | `result` is... | meaning |
 |----------------|---------|
-| a JSON object matching your schema (e.g. `{"quotes": [...]}`) | the run produced data - now check the contract bounds |
+| a JSON payload matching your schema (e.g. `{"quotes": [...]}`) | the run produced data - now check the contract bounds |
 | a string starting `Script execution failed ...` / containing a `Traceback` | the run **FAILED** - the exception or health-contract `AssertionError` message is inside that string |
+
+`result` may arrive as a JSON-encoded **string** rather than a nested object, so parse defensively (`jq '.result | if type == "string" then fromjson? // . else . end'`) before concluding the shape is wrong.
 
 The run `status` is a weaker signal. A failed run may report `status: "failed"`, but a Python error inside `run()` (including a health-contract `AssertionError`) can also come back as `status: "closed"` with the error in `result`. So **never treat `status: "closed"` as proof of success** - always inspect `result`. Treat `status == "failed"` **or** a `result` that is an error string as a FAIL.
 
@@ -95,6 +99,7 @@ Common failure -> fix:
 | a structured object that is empty | selector/endpoint returned nothing | re-check the path against the live site; the structure may differ from exploration |
 | an error string with `AssertionError: health contract ...` | contract violated | either the path broke (fix it) or the bound was too strict (recalibrate per [health-contract.md](health-contract.md)) |
 | an error string mentioning a timeout | slow page / missing wait | add a `wait`, or narrow what is scraped |
+| the **command** times out with no `result` at all | the run outlived the 60s request timeout | re-run with `--timeout 600`; the run itself is probably fine |
 
 Repeat until a run passes the contract. Never ship on a FAIL or on an unverified run.
 
