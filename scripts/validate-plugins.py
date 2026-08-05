@@ -20,12 +20,16 @@ Checks performed:
     and component paths, and the Cursor manifest agrees on version
   * every SKILL.md has YAML frontmatter with a non-empty name and description
   * every SKILL.md's name matches the directory that contains it
-  * every agents/openai.yaml sits beside a SKILL.md and uses only the keys
-    Codex and ChatGPT read (interface, policy, dependencies)
+  * every agents/openai.yaml sits beside a SKILL.md, parses, uses only the
+    keys Codex and ChatGPT read at both levels, carries the interface fields
+    those surfaces render, and keeps short_description in Codex's documented
+    25-64 character range
 
-Stdlib only, no third-party dependencies (including no PyYAML: the frontmatter
-subset used by skills, and the top-level key set of agents/openai.yaml, are
-parsed directly).
+Stdlib only, no third-party dependencies (including no PyYAML: the SKILL.md
+frontmatter subset and the agents/openai.yaml subset are parsed directly).
+
+scripts/test-validate-plugins.py exercises the agents/openai.yaml checks
+against malformed and incomplete fixtures; both run in CI.
 """
 
 from __future__ import annotations
@@ -39,11 +43,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MARKETPLACE = Path(".claude-plugin/marketplace.json")
 CODEX_MARKETPLACE = Path(".agents/plugins/marketplace.json")
 CURSOR_MANIFEST = Path(".cursor-plugin/plugin.json")
-
-# Keys Codex reads from a skill's agents/openai.yaml. Anything else is silently
-# ignored at runtime, which makes a typo invisible until someone notices the
-# skill has no display name.
-OPENAI_YAML_TOP_LEVEL_KEYS = {"interface", "policy", "dependencies"}
 
 errors: list[str] = []
 checks = 0
@@ -385,21 +384,134 @@ def validate_skills() -> None:
             ok(f"{rel}: name '{name}' matches directory, description present")
 
 
-def top_level_yaml_keys(text: str) -> list[str]:
-    """Collect the top-level mapping keys of a YAML document.
+class YamlError(Exception):
+    """Raised for input outside the YAML subset agents/openai.yaml needs."""
 
-    Enough for agents/openai.yaml, which is a shallow mapping of mappings. Only
-    the outermost keys are checked, so no YAML parser is needed.
+
+def parse_simple_yaml(text: str) -> object:
+    """Parse the indentation-based YAML subset used by agents/openai.yaml.
+
+    Handles nested mappings, sequences of mappings, quoted and bare scalars,
+    booleans, and comments. Everything else - tabs, flow style, anchors, block
+    scalars, multiple documents - raises YamlError rather than being skipped,
+    so a construct this parser cannot see is reported instead of silently
+    dropped. PyYAML would be the obvious tool, but this script is deliberately
+    stdlib-only so it runs in CI with no install step.
     """
-    keys: list[str] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or line[0].isspace():
+    lines: list[tuple[int, str, int]] = []
+    for number, raw in enumerate(text.splitlines(), start=1):
+        if "\t" in raw[: len(raw) - len(raw.lstrip())]:
+            raise YamlError(f"line {number}: tab in indentation")
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        key, separator, _ = line.partition(":")
-        if separator:
-            keys.append(key.strip())
-    return keys
+        if stripped in ("---", "..."):
+            raise YamlError(f"line {number}: document markers are not supported")
+        lines.append((len(raw) - len(raw.lstrip()), stripped, number))
+    if not lines:
+        raise YamlError("no content")
+
+    value, index = _parse_block(lines, 0, lines[0][0])
+    if index != len(lines):
+        raise YamlError(f"line {lines[index][2]}: unexpected indentation")
+    return value
+
+
+def _parse_block(lines: list[tuple[int, str, int]], index: int, indent: int):
+    if lines[index][1].startswith("- "):
+        return _parse_sequence(lines, index, indent)
+    return _parse_mapping(lines, index, indent)
+
+
+def _parse_mapping(lines: list[tuple[int, str, int]], index: int, indent: int):
+    mapping: dict[str, object] = {}
+    while index < len(lines):
+        line_indent, content, number = lines[index]
+        if line_indent < indent:
+            break
+        if line_indent > indent:
+            raise YamlError(f"line {number}: unexpected indentation")
+        if content.startswith("- "):
+            raise YamlError(f"line {number}: sequence item where a key was expected")
+        key, separator, rest = content.partition(":")
+        if not separator:
+            raise YamlError(f"line {number}: expected 'key: value'")
+        key = key.strip()
+        if not key:
+            raise YamlError(f"line {number}: empty key")
+        if key in mapping:
+            raise YamlError(f"line {number}: duplicate key '{key}'")
+        rest = rest.strip()
+        index += 1
+        if rest:
+            mapping[key] = _parse_scalar(rest, number)
+        elif index < len(lines) and lines[index][0] > indent:
+            mapping[key], index = _parse_block(lines, index, lines[index][0])
+        else:
+            mapping[key] = None
+    return mapping, index
+
+
+def _parse_sequence(lines: list[tuple[int, str, int]], index: int, indent: int):
+    items: list[object] = []
+    while index < len(lines):
+        line_indent, content, number = lines[index]
+        if line_indent < indent:
+            break
+        if line_indent > indent:
+            raise YamlError(f"line {number}: unexpected indentation")
+        if not content.startswith("- "):
+            break
+        # Re-present "- key: value" as a mapping line indented past the dash so
+        # the item's remaining keys parse as one mapping.
+        item_indent = indent + 2
+        rewritten = [(item_indent, content[2:].strip(), number)]
+        index += 1
+        while index < len(lines) and lines[index][0] >= item_indent:
+            if lines[index][1].startswith("- "):
+                break
+            rewritten.append(lines[index])
+            index += 1
+        item, consumed = _parse_block(rewritten, 0, item_indent)
+        if consumed != len(rewritten):
+            raise YamlError(f"line {number}: could not parse sequence item")
+        items.append(item)
+    return items, index
+
+
+def _parse_scalar(raw: str, number: int) -> object:
+    if raw[0] in "|>&*!{[":
+        raise YamlError(f"line {number}: unsupported YAML construct '{raw[0]}'")
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        return raw[1:-1]
+    if raw in ("true", "false"):
+        return raw == "true"
+    return raw
+
+
+# Nested keys Codex reads, per its own agents/openai.yaml reference. Unknown
+# keys are ignored at runtime, which makes a snake_case/camelCase slip - easy
+# here, since plugin.json's `interface` block uses camelCase - invisible.
+OPENAI_YAML_KEYS = {
+    "interface": {
+        "display_name",
+        "short_description",
+        "icon_small",
+        "icon_large",
+        "brand_color",
+        "default_prompt",
+    },
+    "policy": {"allow_implicit_invocation", "products"},
+    "dependencies": {"tools"},
+}
+DEPENDENCY_TOOL_KEYS = {"type", "value", "description", "transport", "command", "url"}
+
+# Optional in the spec, but the point of shipping these files is to give Codex
+# and ChatGPT something to render, so this repo requires them.
+REQUIRED_INTERFACE_KEYS = ("display_name", "short_description", "default_prompt")
+
+# Codex documents short_description as a 25-64 character UI blurb.
+SHORT_DESCRIPTION_RANGE = (25, 64)
 
 
 def validate_skill_metadata() -> None:
@@ -412,22 +524,12 @@ def validate_skill_metadata() -> None:
         if skill_dir not in skill_dirs:
             fail(f"{rel}: no SKILL.md in the parent directory '{skill_dir.name}'")
             continue
-        text = path.read_text(encoding="utf-8")
-        if not text.strip():
-            fail(f"{rel}: file is empty")
+        problems = check_openai_yaml(path.read_text(encoding="utf-8"), skill_dir.name)
+        if problems:
+            for problem in problems:
+                fail(f"{rel}: {problem}")
             continue
-        keys = top_level_yaml_keys(text)
-        if not keys:
-            fail(f"{rel}: no top-level keys found")
-            continue
-        unknown = [key for key in keys if key not in OPENAI_YAML_TOP_LEVEL_KEYS]
-        if unknown:
-            allowed = ", ".join(sorted(OPENAI_YAML_TOP_LEVEL_KEYS))
-            fail(
-                f"{rel}: unknown top-level key(s) {', '.join(unknown)}; "
-                f"Codex reads only: {allowed}"
-            )
-            continue
+        _check_metadata_icons(rel, skill_dir, path.read_text(encoding="utf-8"))
         ok(f"{rel}: valid metadata for '{skill_dir.name}'")
 
     missing = sorted(
@@ -437,6 +539,141 @@ def validate_skill_metadata() -> None:
     )
     for skill in missing:
         fail(f"{skill}: no agents/openai.yaml, so Codex and ChatGPT get no skill metadata")
+
+
+def check_openai_yaml(text: str, skill_name: str) -> list[str]:
+    """Return every problem in one agents/openai.yaml, or [] when it is usable.
+
+    Pure and free of repository state so it can be exercised against fixtures
+    in scripts/test-validate-plugins.py.
+    """
+    if not text.strip():
+        return ["file is empty"]
+    try:
+        data = parse_simple_yaml(text)
+    except YamlError as exc:
+        return [f"could not parse YAML ({exc})"]
+    if not isinstance(data, dict):
+        return ["top level must be a mapping"]
+    if not data:
+        return ["no top-level keys found"]
+
+    problems: list[str] = []
+    unknown = sorted(set(data) - set(OPENAI_YAML_KEYS))
+    if unknown:
+        allowed = ", ".join(sorted(OPENAI_YAML_KEYS))
+        problems.append(
+            f"unknown top-level key(s) {', '.join(unknown)}; Codex reads only: {allowed}"
+        )
+    for section, value in data.items():
+        if section not in OPENAI_YAML_KEYS:
+            continue
+        if not isinstance(value, dict):
+            problems.append(f"'{section}' must be a mapping, got {_describe(value)}")
+            continue
+        unknown_nested = sorted(set(value) - OPENAI_YAML_KEYS[section])
+        if unknown_nested:
+            allowed = ", ".join(sorted(OPENAI_YAML_KEYS[section]))
+            problems.append(
+                f"unknown key(s) {', '.join(f'{section}.{key}' for key in unknown_nested)}; "
+                f"Codex reads only: {allowed}"
+            )
+
+    problems.extend(_check_interface(data, skill_name))
+    problems.extend(_check_policy(data.get("policy")))
+    problems.extend(_check_dependencies(data.get("dependencies")))
+    return problems
+
+
+def _check_interface(data: dict, skill_name: str) -> list[str]:
+    if "interface" not in data:
+        return ["no 'interface' section, so the skill renders with no display metadata"]
+    interface = data["interface"]
+    if not isinstance(interface, dict):
+        return []  # already reported as a non-mapping section
+    problems: list[str] = []
+    for key in REQUIRED_INTERFACE_KEYS:
+        value = interface.get(key)
+        if not isinstance(value, str) or not value.strip():
+            problems.append(f"interface.{key} is missing or empty")
+    short = interface.get("short_description")
+    if isinstance(short, str) and short.strip():
+        low, high = SHORT_DESCRIPTION_RANGE
+        if not low <= len(short) <= high:
+            problems.append(
+                f"interface.short_description is {len(short)} characters; "
+                f"Codex documents {low}-{high}"
+            )
+    prompt = interface.get("default_prompt")
+    if isinstance(prompt, str) and prompt.strip() and f"${skill_name}" not in prompt:
+        problems.append(
+            f"interface.default_prompt must invoke the skill as '${skill_name}'"
+        )
+    return problems
+
+
+def _check_policy(policy: object) -> list[str]:
+    if not isinstance(policy, dict):
+        return []
+    allow = policy.get("allow_implicit_invocation")
+    if "allow_implicit_invocation" in policy and not isinstance(allow, bool):
+        return [
+            "policy.allow_implicit_invocation must be true or false, "
+            f"got {_describe(allow)}"
+        ]
+    return []
+
+
+def _check_dependencies(dependencies: object) -> list[str]:
+    if not isinstance(dependencies, dict):
+        return []
+    tools = dependencies.get("tools")
+    if tools is None:
+        return []
+    if not isinstance(tools, list):
+        return [f"dependencies.tools must be a list, got {_describe(tools)}"]
+    problems: list[str] = []
+    for index, tool in enumerate(tools):
+        where = f"dependencies.tools[{index}]"
+        if not isinstance(tool, dict):
+            problems.append(f"{where} must be a mapping, got {_describe(tool)}")
+            continue
+        unknown = sorted(set(tool) - DEPENDENCY_TOOL_KEYS)
+        if unknown:
+            allowed = ", ".join(sorted(DEPENDENCY_TOOL_KEYS))
+            problems.append(
+                f"{where}: unknown key(s) {', '.join(unknown)}; Codex reads only: {allowed}"
+            )
+        for key in ("type", "value"):
+            if not tool.get(key):
+                problems.append(f"{where}.{key} is missing or empty")
+        if tool.get("type") not in (None, "mcp"):
+            problems.append(f"{where}.type must be 'mcp'; got {tool['type']!r}")
+    return problems
+
+
+def _check_metadata_icons(rel: Path, skill_dir: Path, text: str) -> None:
+    """Check that interface icon paths resolve, relative to the skill directory."""
+    try:
+        data = parse_simple_yaml(text)
+    except YamlError:
+        return
+    interface = data.get("interface") if isinstance(data, dict) else None
+    if not isinstance(interface, dict):
+        return
+    prefix = skill_dir.relative_to(REPO_ROOT)
+    for key in ("icon_small", "icon_large"):
+        value = interface.get(key)
+        if isinstance(value, str) and value:
+            check_path(rel, f"interface.{key}", f"./{prefix}/{value.removeprefix('./')}")
+
+
+def _describe(value: object) -> str:
+    if value is None:
+        return "nothing"
+    return {dict: "a mapping", list: "a list", bool: "a boolean"}.get(
+        type(value), f"the value {value!r}"
+    )
 
 
 def main() -> int:

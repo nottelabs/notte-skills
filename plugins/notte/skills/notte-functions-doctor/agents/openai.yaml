@@ -1,4 +1,4 @@
 interface:
   display_name: "Notte Functions Doctor"
-  short_description: "Diagnose and repair a failing Notte Function, then promote the fix behind a gate."
+  short_description: "Diagnose and repair a failing Notte Function"
   default_prompt: "Use $notte-functions-doctor to diagnose why this Notte Function is failing, verify a fix in isolation, and promote it only after I approve."
