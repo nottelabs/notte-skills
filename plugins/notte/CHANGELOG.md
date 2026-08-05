@@ -65,7 +65,27 @@ from the default branch will need the new invocation.
   the plan gate
 * `notte-functions-doctor` Phase 1 called a bare `notte functions list`, which
   pages at 10 — on any busy account the Function being repaired simply would not
-  appear. It now widens the page size and prints id + name
+  appear. Phase 1 now pages properly: the API caps `--page-size` at 100
+  (measured: 500 returns `Input should be less than or equal to 100`) and the
+  CLI prints a bare array with no `has_next`, so the only way to know you have
+  reached the end is a short page. Ships an `all_functions()` helper that loops
+  until one comes back, and says never to conclude a Function is missing from a
+  single request
+* the deleted-Function check used `--include-deleted`, which does not exist in
+  the released CLI — it ships in nottelabs/notte-cli#58, still open. Switched to
+  `--only-active=false`, which works on every version, with the newer flag named
+  as an alternative
+* `[doctor-verify]` throwaways were matched by display name, so two repairs of
+  Functions sharing a name could collide - reuse would overwrite the wrong copy
+  and the prefix-only cleanup guard would then delete it. The throwaway is now
+  named after the **live Function's id**, which is unique and immutable; reuse
+  matches that name exactly and aborts rather than guessing if several match,
+  and the cleanup guard is an exact match rather than a prefix
+* `scripts/validate-plugins.py` now checks that every relative markdown link
+  inside a skill resolves. Renaming a skill directory silently breaks the
+  cross-references pointing at it and nothing else in the repo would notice —
+  verified against this release's own rename by pointing a link back at
+  `notte-functions-forge`, which the check rejects
 * move the "it may have been deleted rather than broken" check into
   `notte-functions-doctor` Phase 1, where the Function fails to turn up, instead
   of Phase 2, where it was too late to be useful

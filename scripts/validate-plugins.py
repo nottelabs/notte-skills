@@ -35,6 +35,7 @@ against malformed and incomplete fixtures; both run in CI.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -680,6 +681,42 @@ def _describe(value: object) -> str:
     )
 
 
+def validate_skill_links() -> None:
+    """Every relative markdown link inside a skill must resolve.
+
+    Renaming a skill directory silently breaks the cross-references that point
+    at it - notte-functions-doctor links into notte-functions-build, and both
+    link back into notte-browser. Nothing else in this repo would catch that,
+    so check it here.
+
+    Only relative targets are followed. External URLs, bare anchors, and the
+    literal `...` placeholder used in notte-migrate's report templates are
+    skipped.
+    """
+    link_re = re.compile(r"\[[^\]]+\]\((?!https?://|#|mailto:)([^)#\s]+)(?:#[^)]*)?\)")
+    md_files = sorted(
+        path
+        for path in (REPO_ROOT / "plugins").rglob("*.md")
+        if path.name != "CHANGELOG.md"
+    )
+    if not md_files:
+        fail("plugins/: no markdown files found to link-check")
+        return
+
+    broken = 0
+    for md in md_files:
+        rel = md.relative_to(REPO_ROOT)
+        for match in link_re.finditer(md.read_text(encoding="utf-8")):
+            target = match.group(1).strip()
+            if target == "..." or not target:
+                continue
+            if not (md.parent / target).exists():
+                fail(f"{rel}: link target does not exist -> {target}")
+                broken += 1
+    if not broken:
+        ok(f"{len(md_files)} skill markdown file(s): all relative links resolve")
+
+
 def main() -> int:
     print(f"Validating {REPO_ROOT}\n")
     validate_marketplace()
@@ -688,6 +725,7 @@ def main() -> int:
     validate_plugin_manifests()
     validate_skills()
     validate_skill_metadata()
+    validate_skill_links()
 
     print()
     if errors:

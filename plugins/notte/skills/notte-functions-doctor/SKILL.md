@@ -60,23 +60,43 @@ If auth is missing, follow the [notte-browser auth handling](../notte-browser/SK
 
 ## Phase 1 - Identify the broken Function
 
-Locate the Function from whatever the user gave (an id, a name, "my Indeed function"):
+Locate the Function from whatever the user gave (an id, a name, "my Indeed function").
+
+If they gave an id, go straight to `notte functions show`. If they gave a name, you have to search - and `functions list` is paginated, so a single call is not a search:
+
+- it defaults to **10** items per page,
+- the API caps `--page-size` at **100**,
+- the CLI prints a bare JSON array and drops the `has_next` field, so the only way to know you have reached the end is a page shorter than the page size.
+
+Page until a short page comes back. Never conclude a Function is missing from one request:
 
 ```bash
-# `functions list` pages at 10 by default, so a bare call will not show a
-# Function on any busy account. Widen it, or filter by name.
-notte functions list --page-size 100 -o json | jq -r '.[] | "\(.function_id)  \(.name)"'
+# Print every Function, one JSON object per line. Pass --only-active=false to
+# include deleted ones.
+all_functions() {
+  local page=1 batch
+  while :; do
+    batch=$(notte functions list --page "$page" --page-size 100 "$@" -o json) || return 1
+    jq -e 'length > 0' <<<"$batch" >/dev/null || break
+    jq -c '.[]' <<<"$batch"
+    jq -e 'length == 100' <<<"$batch" >/dev/null || break
+    page=$((page + 1))
+  done
+}
+
+# Search live Functions by name
+all_functions | jq -r 'select(.name | test("indeed"; "i")) | "\(.function_id)  \(.name)"'
+
 notte functions show --function-id "{function_id}" -o json
 ```
 
-**If you cannot find it, check whether it was deleted rather than broken.**
-`functions list` hides deleted records by default:
+**If it still does not turn up, check whether it was deleted rather than broken.** `functions list` hides deleted records by default:
 
 ```bash
-notte functions list --page-size 100 --include-deleted -o json | jq -r '.[] | "\(.function_id)  \(.name)"'
+all_functions --only-active=false | jq -r 'select(.name | test("indeed"; "i")) | "\(.function_id)  \(.name)"'
 ```
 
-A deleted Function is not a repair job - report it and ask the user whether to recreate it.
+`--only-active=false` works on every CLI version; newer CLIs also accept the clearer `--include-deleted`. A deleted Function is not a repair job - report it and ask the user whether to recreate it.
 
 `notte functions show` returns the Function's metadata plus a **download URL** for its workflow file (the `url` field) - it does not inline the source. Record the **name** and **description**, then download the current source so you can read its contract and diff your fix against it later:
 
@@ -157,16 +177,30 @@ Produce the repaired code, then verify it **without touching the live Function**
 
 2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its id**, and from here on pass `--function-id "$VERIFY_ID"` on every command - never rely on the implicit "current function" pointer, which `create` and `delete` move around. This keeps testing fully isolated from the live Function:
 
-   ```bash
-   # Reuse a throwaway left by an earlier attempt instead of stacking up copies.
-   VERIFY_ID=$(notte functions list --page-size 100 -o json \
-     | jq -r --arg n "[doctor-verify] {original name}" '.[] | select(.name == $n) | .function_id' | head -1)
+   Name the throwaway after the **live Function's id**, not its display name.
+   The id is unique and immutable; a display name is neither, so two repairs of
+   different Functions that happen to share a name would collide - and the
+   cleanup guard would then delete whichever one it found first.
 
-   if [ -z "$VERIFY_ID" ]; then
-     VERIFY_ID=$(notte functions create --file repaired_function.py \
-       --name "[doctor-verify] {original name}" -o json | jq -r '.function_id')
-   else
+   ```bash
+   LIVE_ID="{function_id}"
+   VERIFY_NAME="[doctor-verify] $LIVE_ID"
+
+   # Reuse a throwaway left by an earlier attempt on THIS Function rather than
+   # stacking copies. all_functions() is the paginated helper from Phase 1.
+   MATCHES=$(all_functions --only-active=false \
+     | jq -r --arg n "$VERIFY_NAME" 'select(.name == $n) | .function_id')
+   COUNT=$(printf '%s' "$MATCHES" | grep -c . || true)
+
+   if [ "$COUNT" -gt 1 ]; then
+     # Never guess which one is yours.
+     echo "ABORT: $COUNT Functions named '$VERIFY_NAME' - resolve by hand"
+   elif [ "$COUNT" -eq 1 ]; then
+     VERIFY_ID="$MATCHES"
      notte functions update --function-id "$VERIFY_ID" --file repaired_function.py
+   else
+     VERIFY_ID=$(notte functions create --file repaired_function.py \
+       --name "$VERIFY_NAME" -o json | jq -r '.function_id')
    fi
 
    # functions run blocks and returns status + result inline:
@@ -208,11 +242,16 @@ Only after the verification copy passes the contract:
 
    ```bash
    NAME=$(notte functions show --function-id "$VERIFY_ID" -o json | jq -r '.name')
-   case "$NAME" in
-     "[doctor-verify]"*) notte functions delete --function-id "$VERIFY_ID" --yes ;;
-     *) echo "ABORT: $VERIFY_ID is '$NAME', not a throwaway - not deleting" ;;
-   esac
+   if [ "$NAME" = "$VERIFY_NAME" ]; then
+     notte functions delete --function-id "$VERIFY_ID" --yes
+   else
+     echo "ABORT: $VERIFY_ID is '$NAME', not this repair's throwaway - not deleting"
+   fi
    ```
+
+   The guard is an **exact** match on `[doctor-verify] $LIVE_ID`, not a prefix
+   match on `[doctor-verify]`. A prefix would happily delete a throwaway
+   belonging to a different repair.
 
 4. **Confirm the live Function is healthy, then restore its schedule:**
 
