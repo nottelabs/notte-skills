@@ -1,7 +1,7 @@
 {
   "name": "notte",
   "displayName": "Notte",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Browser automation for AI agents — real cloud or local browsers, observe/click/fill/scrape primitives, structured Pydantic extraction from dynamic pages, captcha solving and stealth mode, authenticated sessions via Vault, and one-command deployment of any browser automation as a scheduled, API-callable Notte Function.",
   "author": {
     "name": "Notte",

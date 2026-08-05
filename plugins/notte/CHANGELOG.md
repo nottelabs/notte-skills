@@ -9,6 +9,47 @@ from `git log` so that downstream consumers can tell which skill content
 corresponds to which version. Tag releases as `notte-v<version>` from now
 on so consumers can pin instead of tracking the default branch.
 
+## [2.0.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.6.0...notte-v2.0.0) (2026-08-06)
+
+### ⚠ BREAKING CHANGES
+
+* **`notte-functions-forge` is renamed to `notte-functions-build`.** Invocations
+  change accordingly: `/notte-functions-build` in Claude Code,
+  `$notte:notte-functions-build` in Codex. "Forge" was a metaphor nobody types —
+  the skill description had to enumerate "forge, build, generate, or bake" to be
+  discoverable, which is a tell that the name was not carrying itself. "Build"
+  also matches the vocabulary of the `anything-api` MCP server, whose `build`
+  tool does the same job from natural language, so the two now read as one
+  concept. `notte-functions-doctor` keeps its name: the metaphor is apt,
+  unambiguous, and less prone to over-triggering than "repair" or "fix" would be.
+  Prose, filenames (`built_function.py`), and cross-references were updated with it
+
+### Bug Fixes
+
+* **the marketplace check ran before there was anything to search for.** It sat
+  in `notte-functions-build` Phase 0, ahead of the phase that works out the
+  target site and fields. Moved to Phase 1c, after intent is parsed and before
+  the plan gate
+* `notte-functions-doctor` Phase 1 called a bare `notte functions list`, which
+  pages at 10 — on any busy account the Function being repaired simply would not
+  appear. It now widens the page size and prints id + name
+* move the "it may have been deleted rather than broken" check into
+  `notte-functions-doctor` Phase 1, where the Function fails to turn up, instead
+  of Phase 2, where it was too late to be useful
+* `[doctor-verify]` throwaway Functions leaked. Cleanup only ran in Phase 6,
+  after the contract passed *and* the user approved, so an abandoned or rejected
+  repair left copies behind. Phase 5 now reuses an existing throwaway rather than
+  stacking new ones, and states that the name-guarded delete runs however the
+  repair ends
+* `notte-functions-doctor` Phase 6 re-runs the live Function to confirm health,
+  which writes again if the Function writes. It now says to let the user decide
+  for a Function with side effects, rather than invoking it reflexively
+* correct `notte-functions-build` Phase 3, which said to *add* a `run(...)` entry
+  point when the export already defines one — an agent could reasonably end up
+  with two
+* Delivery promised to show "three ways" to invoke a Function and listed two
+* the `--var` example used a parameter absent from the worked example
+
 ## [1.6.0](https://github.com/nottelabs/notte-skills/compare/notte-v1.5.0...notte-v1.6.0) (2026-08-05)
 
 Skill content. Every documented command and flag was re-verified against `notte`

@@ -1,6 +1,6 @@
 ---
 name: self-test
-description: Validate a forged Function in the cloud against its health contract, and self-repair until it passes
+description: Validate a built Function in the cloud against its health contract, and self-repair until it passes
 ---
 
 # Self-Test Reference
@@ -38,7 +38,7 @@ This is why the [health contract](health-contract.md) assertions matter: a broke
 
 Capture the Function id once and pass `--function-id "$TARGET_ID"` on every `run`, `run-metadata`, and `update` below. Do not rely on the implicit "current function" pointer: `notte functions create` and `delete` move it, so a bare command can run against - or overwrite - the wrong Function once more than one exists.
 
-- **Forge** sets `TARGET_ID` to the Function it just created.
+- **notte-functions-build** sets `TARGET_ID` to the Function it just created.
 - **Doctor** sets `TARGET_ID` to the throwaway verify Function, never the live one.
 
 ```bash
@@ -89,7 +89,7 @@ On a FAIL, diagnose from the `result` (and logs, below), fix the Function file, 
 
 ```bash
 # edit the function file to fix the issue, then:
-notte functions update --function-id "$TARGET_ID" --file forged_function.py
+notte functions update --function-id "$TARGET_ID" --file built_function.py
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
 ```
 

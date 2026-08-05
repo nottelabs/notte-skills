@@ -5,7 +5,7 @@ description: How to explore a site once and find a stable, reproducible data pat
 
 # Exploration Reference
 
-The exploration phase is the expensive, non-deterministic part of forging a Function. Do it **once**, find the most stable path to the target data, record exactly how to reproduce it, then stop. Everything downstream (the generated Function, every future run) inherits the stability of what you find here.
+The exploration phase is the expensive, non-deterministic part of building a Function. Do it **once**, find the most stable path to the target data, record exactly how to reproduce it, then stop. Everything downstream (the generated Function, every future run) inherits the stability of what you find here.
 
 ## Stability ranking - prefer paths in this order
 

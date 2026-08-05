@@ -29,7 +29,7 @@ The `notte` plugin also ships two hosted MCP servers. **Prefer the CLI for every
 | Server | URL | What it is | When to use it |
 |--------|-----|------------|----------------|
 | `notte-browser` | `https://api.notte.cc/mcp` | The Notte browser API over MCP | Only when the client cannot run shell commands. Otherwise the CLI is more direct and better documented. |
-| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions, plus natural-language `build` | **Before forging a new Function**, call its `search` tool - someone may already have published one for the target site. |
+| `anything-api` | `https://anything.notte.cc/mcp` | Marketplace of ready-made Notte Functions, plus natural-language `build` | **Before building a new Function**, call its `search` tool - someone may already have published one for the target site. |
 
 `anything-api` exposes `search` (browse the marketplace, no auth), `spec` (get a function's variable schema), `run`, and `build` (natural language -> a new deployed Function, 2-10 minutes). `build` and `run` need authentication - OAuth via your client, or `Authorization: Bearer $NOTTE_API_KEY`. Browse it visually at <https://anything.notte.cc/marketplace>.
 

@@ -1,4 +1,4 @@
-"""Notte Function skeleton (forged).
+"""Notte Function skeleton (built).
 
 A complete, parameterized starting point for a Notte Function. Start from
 `notte sessions workflow-code --session-id <id>` to capture the path that
@@ -57,7 +57,7 @@ client = NotteClient()
 
 
 def run(max_stories: int = 10):  # CUSTOMIZE: business variables become parameters
-    """Forged Function entry point.
+    """Built Function entry point.
 
     Parameters become invocation variables. The returned value (JSON-serializable)
     becomes the run result.

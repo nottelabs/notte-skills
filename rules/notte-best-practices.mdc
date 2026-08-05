@@ -17,7 +17,7 @@ alwaysApply: false
 - `notte functions run` blocks until the run finishes, so it is bounded by the global `--timeout` (default 60s). Raise it for slow Functions instead of assuming the Function is broken.
 - judge a run on `result`, not `status`: an error raised inside `run()` can still report `status: "closed"`.
 - to find pages, use `notte search` — it hits the search API directly and does not need a browser session. Reserve sessions for interacting with a page.
-- before forging a new Function, check the `anything-api` marketplace (`search` tool, or https://anything.notte.cc/marketplace) — someone may already have published one.
+- before building a new Function, check the `anything-api` marketplace (`search` tool, or https://anything.notte.cc/marketplace) — someone may already have published one.
 - `max_steps` is a hard stop. If the agent runs out, raise it rather than rephrasing the task.
 - the second time a task runs successfully and the page hasn't changed, promote it to a Notte Function for fast/cheap deterministic reruns.
 - when creating a reusable Notte Function from browser automation, first test the flow interactively with CLI session commands, then run `notte sessions workflow-code` and use the exported script as the base. Capture the session ID; if the session is stopped or no longer current, export with `notte sessions workflow-code --session-id <session-id>`. Don't hand-write the Function first unless no successful session exists.
