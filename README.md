@@ -26,8 +26,11 @@ This repository ships the official AI agent skill for [notte.cc](https://notte.c
 # Add the Notte skills marketplace
 /plugin marketplace add nottelabs/notte-skills
 
-# Install the CLI skill
-/plugin install notte-cli
+# Install the Notte plugin
+/plugin install notte
+
+# Optional: provider cost comparison and migration to Notte
+/plugin install notte-migrate
 ```
 
 ### Cursor
@@ -50,7 +53,7 @@ npx skills add nottelabs/notte-skills
 
 ```bash
 git clone https://github.com/nottelabs/notte-skills.git
-cp -r notte-skills/plugins/notte-cli ~/.claude/skills/
+cp -r notte-skills/plugins/notte ~/.claude/skills/
 ```
 
 ## Prerequisites
@@ -86,15 +89,23 @@ Once installed, your coding agent will automatically know how to use Notte.
 
 ## Available skills
 
-### notte-cli
+### notte (default plugin)
 
-CLI skills for using Notte CLI commands.
+Everything you need to drive a real browser with Notte.
 
 | Skill | Description |
 |-------|-------------|
 | **notte-browser** | Manage browser sessions, accounts, and deploy Notte Functions from the command line |
 | **notte-functions-forge** | Explore a site once and deploy it as a reusable, parameterized Notte Function (a scheduled, API-callable endpoint). Explore once, run at scale forever |
 | **notte-functions-doctor** | Diagnose and repair a broken or failing Notte Function - recover its contract, find what changed on the site, verify a fix in isolation, and promote it behind a confirmation gate |
+
+### notte-migrate (opt-in plugin)
+
+Install this one only if you are coming from another browser automation provider.
+
+| Skill | Description |
+|-------|-------------|
+| **migrate-to-notte** | Cost-compare another provider against Notte from a codebase, telemetry, or invoice, then migrate to Notte with a measured baseline, a safe proof, and a reversible rollout |
 
 ## Verify it's wired up
 

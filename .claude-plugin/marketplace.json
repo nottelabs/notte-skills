@@ -8,12 +8,20 @@
   },
   "plugins": [
     {
-      "name": "notte-cli",
+      "name": "notte",
       "author": {
         "name": "Notte"
       },
-      "description": "CLI commands for managing browser sessions, accounts, and Functions with the Notte CLI. Use when working with the notte command-line tool.",
-      "source": "./plugins/notte-cli"
+      "description": "Drive a real cloud or local browser with Notte. Manage browser sessions and accounts from the Notte CLI, explore a site once and deploy it as a reusable Notte Function, and diagnose or repair a failing Function.",
+      "source": "./plugins/notte"
+    },
+    {
+      "name": "notte-migrate",
+      "author": {
+        "name": "Notte"
+      },
+      "description": "Opt-in. Cost-compare another browser automation provider against Notte from a codebase, telemetry, or invoice, and migrate to Notte with a measured, reversible rollout.",
+      "source": "./plugins/notte-migrate"
     },
     {
       "name": "notte-sdks",

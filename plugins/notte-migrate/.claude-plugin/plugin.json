@@ -1,7 +1,7 @@
 {
-  "name": "notte-cli",
+  "name": "notte-migrate",
   "version": "1.0.0",
-  "description": "CLI commands for managing browser sessions, accounts, and Functions with the Notte CLI",
+  "description": "Opt-in skill to cost-compare another browser automation provider against Notte and migrate to Notte safely",
   "author": {
     "name": "Notte",
     "url": "https://notte.cc"
