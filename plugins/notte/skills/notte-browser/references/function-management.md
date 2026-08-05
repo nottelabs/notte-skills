@@ -97,8 +97,7 @@ def run(max_stories: int = 5):
         return {"stories": [s.model_dump() for s in stories], "count": len(stories)}
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 **Step 5-8 — create, test, iterate, schedule:**
@@ -165,20 +164,11 @@ Function files define browser automation steps with the following requirements:
 **Required:**
 - Must contain a `def run()` function - this is the entry point
 - Must create a session using `NotteClient().Session()`
-- **Must not call `run()` unguarded at module level.** The Notte runtime imports
-  the workflow file and calls `run()` itself. A bare module-level `run()` fires
-  during that import and the runtime then calls it again, so the Function
-  **executes twice** - two browser sessions, double the cost, and any side
-  effect (a form submission, a purchase, a write) performed twice. Guard it:
-
-  ```python
-  if __name__ == "__main__":
-      run()
-  ```
-
-  This keeps the file directly runnable for local testing (`python
-  my_function.py`) while staying single-shot in the cloud. `notte sessions
-  workflow-code` emits an unguarded `run()` - add the guard before deploying.
+A trailing module-level `run()` call is **optional**. `notte sessions
+workflow-code` emits one and the examples below keep it for consistency with the
+export, but the runtime invokes `run()` itself - leaving the call in or taking it
+out makes no difference to a deployed Function. Do not write logic that depends
+on either behaviour.
 
 **Do not include `from __future__ import annotations`.** Under PEP 563 the
 Pydantic field annotations become unresolved forward references, and a deployed
@@ -214,8 +204,7 @@ def run(url: str):
         return data
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 **Advanced Example with Variables:**
@@ -284,8 +273,7 @@ def run(
         }
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 **Triggering with Parameters:**
@@ -554,8 +542,7 @@ def run(competitor_url: str = "https://competitor.com/products"):
         return {"prices": [p.model_dump() for p in rows], "count": len(rows)}
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 ```bash
@@ -596,8 +583,7 @@ def run(dashboard_url: str = "https://dashboard.example.com"):
         return report
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 ```bash
@@ -645,8 +631,7 @@ def run(status_url: str = "https://app.example.com/status", max_retries: int = 3
                 return {"success": False, "error": f"Failed after {max_retries} attempts: {e}"}
 
 
-if __name__ == "__main__":
-    run()
+run()
 ```
 
 ## Best Practices

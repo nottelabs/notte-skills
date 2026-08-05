@@ -137,7 +137,7 @@ Then edit the export to make it reusable:
 3. **Confirm the response model** - the exported Pydantic model is the output schema. Keep it tight and typed.
 4. **Stamp a health contract** - a short, machine-readable comment block plus light runtime assertions describing what a *correct* result looks like (schema + sanity bounds, e.g. "at least 1 row", "price is numeric"). This is what makes a forged Function repairable later by `notte-functions-doctor`.
 5. **Secrets, if the Function needs one** - have the operator store them with `notte functions secrets set NAME <value>`, and read them from `os.environ["NAME"]` inside `run()`. Inspect with `notte functions secrets list` / `get NAME`, and remove with `delete NAME`. Never hardcode a secret or pass it as a run variable - run variables are recorded with the run.
-6. **Guard the trailing `run()` call** with `if __name__ == "__main__":`. The Notte runtime imports the workflow file and calls `run()` itself, so an unguarded module-level call makes the Function **run twice** - two browser sessions, double the cost, and every side effect duplicated. The export emits an unguarded call, so this is part of cleaning it.
+6. **Leave the trailing `run()` call alone** - the export ends with one, and it is optional either way. The runtime invokes `run()` itself, so keeping or removing the call makes no difference. Don't spend a repair cycle on it.
 
 Read these before editing:
 

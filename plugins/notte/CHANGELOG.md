@@ -63,16 +63,12 @@ output does not state.
 * **one name for file storage.** `use_file_storage=True` was written three ways
   across four files (`enable_file_storage=True`, `storage=...`). Standardised on
   the real keyword, which matches the `--use-file-storage` flag
-* **guard the `run()` call — it was making Functions execute twice.** Examples
-  disagreed on whether a Function file should call `run()` at module level. The
-  Notte runtime imports the workflow file and calls `run()` itself, so an
-  unguarded call fires during import and again from the runtime: two browser
-  sessions, double the cost, and every side effect (a form submission, a
-  purchase, a write) performed twice. Every example now uses
-  `if __name__ == "__main__": run()`, which stays single-shot in the cloud while
-  keeping the file runnable locally. `notte sessions workflow-code` emits an
-  unguarded call, so adding the guard is now part of the documented
-  clean-the-export step alongside removing `from __future__ import annotations`
+* **settle the trailing `run()` question.** Examples disagreed on whether a
+  Function file should call `run()` at module level, with no note either way.
+  It is optional — the runtime invokes `run()` itself, so keeping or removing
+  the call makes no difference. Said so explicitly in the reference, the interop
+  notes, the skeleton, the forge cleanup step, and the rules, so the next reader
+  does not infer a rule from the inconsistency
 * **fix `len()` on a scrape result.** Four examples called `len()` on
   `session.scrape(...)` output to produce a `count`, which counts dict *keys*
   rather than rows. Rewritten to use `response_format` and count the typed list

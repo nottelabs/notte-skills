@@ -24,12 +24,9 @@ annotations become unresolved forward references, so a deployed Function fails a
 without it, so the simplest fix is to omit it. (`notte sessions workflow-code`
 may emit that import in its export - remove it before deploying.)
 
-Guard the `run()` call at the bottom with `if __name__ == "__main__":`. The Notte
-runtime imports this file and calls `run()` itself, so a bare module-level call
-executes the Function TWICE - two browser sessions, double the cost, and any
-side effect performed twice. The guard keeps the file runnable locally
-(`python function-skeleton.py`) while staying single-shot in the cloud.
-`notte sessions workflow-code` emits an unguarded call - add the guard.
+The module-level `run()` call at the bottom is optional - the runtime invokes
+`run()` itself. It is kept here to match what `notte sessions workflow-code`
+emits; removing it changes nothing.
 """
 
 from notte_sdk import NotteClient
@@ -93,5 +90,4 @@ def run(max_stories: int = 10):  # CUSTOMIZE: business variables become paramete
         return result
 
 
-if __name__ == "__main__":
-    run()
+run()
