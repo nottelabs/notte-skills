@@ -16,10 +16,13 @@ tracking the default branch.
 
 First versioned state of the plugin, and the first entry after the version
 reset. Combines everything on this branch: a full re-verification of every
-documented command against `notte` CLI **v0.0.29** (reading the CLI source, and
+documented command against the `notte` CLI (reading the CLI source, and
 deploying real Functions, where `--help` did not settle the behaviour), and the
 `notte-functions-build` rename. These were drafted as two versions before the
 reset and are one release now.
+
+**Targets CLI v0.0.30 or newer.** The audit began against v0.0.29 and the fixes
+it produced shipped in v0.0.30, so the skills now assume that release.
 
 ### Renames
 
@@ -71,10 +74,18 @@ from the default branch will need the new invocation.
   reached the end is a short page. Ships an `all_functions()` helper that loops
   until one comes back, and says never to conclude a Function is missing from a
   single request
-* the deleted-Function check used `--include-deleted`, which does not exist in
-  the released CLI — it ships in nottelabs/notte-cli#58, still open. Switched to
-  `--only-active=false`, which works on every version, with the newer flag named
-  as an alternative
+* **target CLI v0.0.30 and drop the compatibility hedging.** nottelabs/notte-cli#58
+  and #59 merged and shipped in v0.0.30, so `--include-deleted`, `-a`/`--all` and
+  `--running` are available and `notte functions runs` now returns the full
+  history by default. The skills target that release — stated in Setup, with
+  `notte version` as the check — and the `--only-active=false` workarounds are
+  gone. This removed a live error (`--include-deleted` was documented while still
+  unreleased, so it failed on v0.0.29) and corrected a claim that v0.0.30
+  invalidated: the recovery path for a timed-out run said the active-only default
+  on `functions runs` surfaces in-flight runs, which was true before the change
+  and is not now — it takes `--running`. Verified against v0.0.30: `functions runs`
+  returns 2 where `--running` returns 0; `functions list` 64 vs 100 with
+  `--include-deleted`; `sessions list` 0 vs 100 with `-a`
 * `[doctor-verify]` throwaways were matched by display name, so two repairs of
   Functions sharing a name could collide - reuse would overwrite the wrong copy
   and the prefix-only cleanup guard would then delete it. The throwaway is now

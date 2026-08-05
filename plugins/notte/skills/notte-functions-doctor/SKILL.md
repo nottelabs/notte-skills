@@ -71,7 +71,7 @@ If they gave an id, go straight to `notte functions show`. If they gave a name, 
 Page until a short page comes back. Never conclude a Function is missing from one request:
 
 ```bash
-# Print every Function, one JSON object per line. Pass --only-active=false to
+# Print every Function, one JSON object per line. Pass --include-deleted to
 # include deleted ones.
 all_functions() {
   local page=1 batch
@@ -93,10 +93,10 @@ notte functions show --function-id "{function_id}" -o json
 **If it still does not turn up, check whether it was deleted rather than broken.** `functions list` hides deleted records by default:
 
 ```bash
-all_functions --only-active=false | jq -r 'select(.name | test("indeed"; "i")) | "\(.function_id)  \(.name)"'
+all_functions --include-deleted | jq -r 'select(.name | test("indeed"; "i")) | "\(.function_id)  \(.name)"'
 ```
 
-`--only-active=false` works on every CLI version; newer CLIs also accept the clearer `--include-deleted`. A deleted Function is not a repair job - report it and ask the user whether to recreate it.
+A deleted Function is not a repair job - report it and ask the user whether to recreate it.
 
 `notte functions show` returns the Function's metadata plus a **download URL** for its workflow file (the `url` field) - it does not inline the source. Record the **name** and **description**, then download the current source so you can read its contract and diff your fix against it later:
 
@@ -117,17 +117,16 @@ You cannot repair toward an unknown target. Recover it from two sources:
 2. **The last good run** - the strongest evidence of correct output, when you can get it:
 
    ```bash
-   # --only-active=false matters here. For runs, "active" means still executing,
-   # so on older CLIs a Function whose runs have all finished lists as [] and you
-   # would wrongly conclude it never ran. This form works on every CLI version.
-   notte functions runs --function-id "{function_id}" --only-active=false -o json
+   # `functions runs` returns the full history by default (--running would
+   # narrow it to runs still executing, which is not what you want here).
+   notte functions runs --function-id "{function_id}" -o json
    # pick a past run whose result is a valid object, then:
    notte functions run-metadata --function-id "{function_id}" --run-id "{good_run_id}" -o json | jq '.result'
    ```
 
    (`run-metadata`'s `result` is a Python `repr` rather than clean JSON - single-quoted and not `jq`-parseable, but still readable as evidence of the expected shape.)
 
-   If history is genuinely empty even with `--only-active=false`, treat that as uninformative rather than as evidence the Function never worked: fall back to the health contract and the response model, and say in your report that no run history was available.
+   If history is genuinely empty, treat that as uninformative rather than as evidence the Function never worked: fall back to the health contract and the response model, and say in your report that no run history was available.
 
 If the Function has **no** contract (older or hand-written), infer one: the response model gives the schema, and the last good run gives realistic bounds (field presence, typical counts). Note that you inferred it, and offer to stamp a real contract as part of the repair so the next failure is easier.
 
@@ -188,7 +187,7 @@ Produce the repaired code, then verify it **without touching the live Function**
 
    # Reuse a throwaway left by an earlier attempt on THIS Function rather than
    # stacking copies. all_functions() is the paginated helper from Phase 1.
-   MATCHES=$(all_functions --only-active=false \
+   MATCHES=$(all_functions --include-deleted \
      | jq -r --arg n "$VERIFY_NAME" 'select(.name == $n) | .function_id')
    COUNT=$(printf '%s' "$MATCHES" | grep -c . || true)
 

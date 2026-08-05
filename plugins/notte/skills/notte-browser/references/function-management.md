@@ -115,8 +115,7 @@ FUNCTION_ID=$(notte functions create \
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # If you need execution logs, take the run id from the run you just did.
-# (To find it from history instead, `notte functions runs` needs
-#  --only-active=false on older CLIs, or completed runs are filtered out.)
+# (`notte functions runs` also lists it - the full history, newest first.)
 RUN_ID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
 notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 
@@ -137,9 +136,9 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
 - **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
 - **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
-- **Ask for run history explicitly**: for runs, "active" means *still executing*, so on older CLIs `notte functions runs` lists `[]` once every run has finished. Pass `--only-active=false` (works on every version) or, on newer CLIs, just read the default and use `--running` to narrow. The simplest path is to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
+- **Run history is the default**: `notte functions runs` lists every run, newest first; `--running` narrows to those still executing. The simplest path is still to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
 - **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Set it generously on the first invocation: `notte functions run --timeout 600`.
-- **Never re-run after a command timeout**: the client giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Find the in-flight run with `notte functions runs --function-id <id>` (the active-only default shows exactly those), read its outcome once it leaves `active`, and only start a fresh run if nothing is pending.
+- **Never re-run after a command timeout**: the client giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Find the in-flight run with `notte functions runs --function-id <id> --running`, read its outcome from the full history once it leaves `active`, and only start a fresh run if nothing is pending.
 
 ## Creating Functions
 
@@ -411,7 +410,7 @@ This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. U
 notte functions runs
 
 # With pagination and filters
-notte functions runs --page 1 --page-size 10 --only-active=false   # include finished runs
+notte functions runs --page 1 --page-size 10   # full history; --running narrows to in-flight
 ```
 
 Output includes:
