@@ -567,7 +567,8 @@ vault = client.Vault("my-vault-id")
 
 def run(dashboard_url: str = "https://dashboard.example.com"):
     # `use_file_storage=True` attaches FileStorage - the same thing the
-    # `--use-file-storage` CLI flag does. Needed here for the PDF download.
+    # `--use-file-storage` CLI flag does. Note the CLI downloads files into the
+    # session store without it; whether the SDK path needs it here is untested.
     with client.Session(use_file_storage=True, vault=vault) as session:
         session.execute(type="goto", url=f"{dashboard_url}/login")
 

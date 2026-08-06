@@ -57,7 +57,7 @@ notte sessions start \
   --viewport-width 1920 \         # Custom viewport
   --viewport-height 1080 \
   --user-agent "Custom UA" \      # Custom user agent
-  --use-file-storage              # Enable file storage for downloads
+  --use-file-storage              # Attach FileStorage (downloads work without it)
 ```
 
 See the main SKILL.md for the full flag list, including `--aspect-ratio`,
