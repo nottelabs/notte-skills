@@ -127,7 +127,8 @@ notte sessions start [flags]
                              explicit --viewport-width/--viewport-height
   --user-agent               Custom user agent string
   --cdp-url                  CDP URL of remote session provider
-  --use-file-storage         Enable file storage for the session
+  --use-file-storage         Attach FileStorage to the session (not needed just
+                             to download files - see Files below)
   --screenshot-type <type>   raw, full, or last_action
   --chrome-args              Override the Chrome instance arguments (repeatable)
   --extra-http-headers       Extra HTTP headers as JSON
@@ -254,11 +255,13 @@ notte page check "#my-checkbox"
 # Select dropdown option
 notte page select "#dropdown-element" "Option 1"
 
-# Download file by clicking element
+# Download a file by clicking an element. The file lands in the REMOTE session,
+# not on your machine - see "Files: upload and download" below.
 notte page download "L5"
 
-# Upload file to input
-notte page upload "#file-input" --file /path/to/file
+# Fill a file input. --file names a file already in your Notte uploads store,
+# NOT a path on your machine - see below.
+notte page upload "#file-input" --file report.pdf
 ```
 
 **Run JavaScript in the page:**
@@ -552,6 +555,44 @@ notte vaults credentials get --vault-id <vault-id> --url "https://site.com"
 notte vaults credentials delete --vault-id <vault-id> --url "https://site.com"
 ```
 
+### Files: upload and download
+
+The browser runs **remotely**, so files do not move between it and your machine on their own. There are two separate stores, selected with `--from`:
+
+| Store | Holds | Populated by |
+|-------|-------|--------------|
+| `uploads` | your account's file library, available to any session | `notte files upload <local-path>` |
+| `session` *(default)* | files this session's browser downloaded | `notte page download` |
+
+```bash
+notte files upload <local-path>          # local machine -> uploads store
+notte files list   [--from uploads|session] [--session-id <id>]
+notte files download <filename> [--from uploads|session] [--path <local-path>]
+```
+
+**Sending a local file into a web form** takes two steps. `notte page upload --file` resolves the name against the **uploads store**, not your filesystem - passing a local path that was never uploaded fails with `Unable to get file: <path> for upload`:
+
+```bash
+notte files upload ./invoice.pdf                      # 1. into the uploads store
+notte page upload "#file-input" --file invoice.pdf    # 2. into the page
+notte page click "#submit"
+```
+
+**Getting a downloaded file onto your machine** takes two steps as well - `page download` only moves it as far as the session:
+
+```bash
+notte page observe                                    # required before using an element ID
+notte page download "L3"                              # -> the session store, still remote
+notte files list --from session                       # confirm it arrived
+notte files download report.csv --from session --path ./report.csv
+```
+
+Notes:
+
+- `--use-file-storage` on `sessions start` is **not** required for this; downloads land in the session store either way.
+- The session store is per-session. Retrieve anything you need before the session ends, or pass `--session-id` to reach a specific one.
+- Using an element ID (`L3`, `B1`) without a prior `notte page observe` in that session fails with `No snapshot is available in the session`. A CSS selector needs no observe.
+
 ### Browser Profiles
 
 Profiles are the persistent browser state (cookies, `localStorage`, `sessionStorage`) that `--profile-id` loads. Create one before you can reference it:
@@ -600,7 +641,6 @@ notte search "what is anthropic" --output-type sourcedAnswer
 ### Other Commands
 
 ```bash
-notte files      # Manage uploaded files available to sessions
 notte usage      # Show API usage statistics
 notte health     # Check API health status
 notte clear      # Clear all stored CLI state (current session/agent/function pointers)

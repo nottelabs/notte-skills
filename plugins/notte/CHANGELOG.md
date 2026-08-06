@@ -62,6 +62,29 @@ from the default branch will need the new invocation.
 
 ### Bug Fixes
 
+* **document file upload and download properly - the previous four lines were
+  misleading.** The browser is remote, so files do not cross between it and the
+  caller's machine on their own, and there are two separate stores selected with
+  `--from`: `uploads` (your account's library) and `session` (what this session's
+  browser downloaded). None of that was written down. Verified the round trips:
+  - `notte page upload --file <path>` resolves against the **uploads store, not
+    your filesystem**. The skill's `--file /path/to/file` example fails outright
+    with `Unable to get file: <path> for upload` unless that file was first sent
+    with `notte files upload`. Confirmed by watching the error disappear after
+    uploading the same file, then completing a real form upload end to end
+  - `notte page download` only moves a file as far as the **remote session**.
+    Retrieving it needs `notte files download <name> --from session --path <local>`,
+    a step that appeared nowhere. Confirmed a file is absent locally after
+    `page download` and present after `files download`
+  - `--use-file-storage` is **not** required for either: downloads landed in the
+    session store without it. The flag description and a
+    "Needed here for the PDF download" comment in function-management.md both
+    implied otherwise; the CLI claim is corrected and the SDK one is marked
+    untested rather than restated
+  - using an element id (`L3`) without a prior `notte page observe` in that
+    session fails with `No snapshot is available in the session`; CSS selectors
+    need no observe
+
 * **the marketplace check ran before there was anything to search for.** It sat
   in `notte-functions-build` Phase 0, ahead of the phase that works out the
   target site and fields. Moved to Phase 1c, after intent is parsed and before
