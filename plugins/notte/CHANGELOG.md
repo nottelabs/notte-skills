@@ -12,6 +12,44 @@ not need a major bump - see <https://semver.org/#spec-item-4>. Tag releases as
 `notte-v<version>` from the first real release so consumers can pin instead of
 tracking the default branch.
 
+## 0.0.3 (2026-08-06)
+
+**Targets CLI v0.0.31 or newer.**
+
+Three session options default to `true` server-side - headless, captcha solving
+and file storage - which the skills documented as if they were opt-ins. v0.0.31
+adds a positive way to turn each off (nottelabs/notte-cli#61), so the docs now
+describe what is actually on and how to disable it, rather than telling an agent
+to enable things that are already enabled.
+
+### Features
+
+* document the real session lifetime: **3 minutes idle, 15 minutes total** by
+  default. Neither appeared anywhere, and they are short enough that a long
+  exploration, a slow login or a pause for user confirmation outlives them - at
+  which point the next command fails with a bare `Session closed`. Both
+  `notte-browser` and the session reference now state the defaults and show how
+  to raise them
+* `--headed` replaces `--headless=false` for a visible browser, `--no-solve-captchas`
+  and `--no-file-storage` replace the `=false` forms
+
+### Bug Fixes
+
+* **stop advising `--solve-captchas` on a blocked session.** `notte-functions-doctor`'s
+  anti-bot class and the exploration budget both suggested enabling it, but it
+  is on by default - the advice changed nothing while reading as a fix that had
+  been applied. They now point at `--proxy`/`--proxy-country` or an established
+  profile, which are the levers that remain
+* **correct the claim that a visible browser is unavailable remotely.**
+  `notte-browser` said `--headless=false` was for a local window and "not
+  available on remote/CI environments"; a cloud session accepts it and reports
+  `headless: false`. Watch it through the viewer URL
+* drop `--headless` from examples that only passed it to get the default
+  behaviour, and note that file storage and captcha solving need no flag either
+* the SDK notes and Cursor rules said file storage had to be switched on; it is
+  attached by default, and `use_file_storage=True` is now described as explicit
+  rather than required
+
 ## 0.0.2 (2026-08-06)
 
 First versioned state of the plugin, and the first entry after the version

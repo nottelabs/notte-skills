@@ -37,7 +37,7 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.30 or newer** - that release renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.31 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--headed`, `--no-solve-captchas` and `--no-file-storage`. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
@@ -110,14 +110,16 @@ Control browser session lifecycle:
 ```bash
 # Start a new session
 notte sessions start [flags]
-  --headless                 Run in headless mode (default: true)
+  --headed                   Show a browser window. Headless is the default,
+                             so this is the flag you want, not --headless
+  --headless                 Force headless explicitly (already the default)
   --browser-type <type>      chromium (default) or chrome. chrome-nightly and
                              chrome-turbo are legacy aliases for chrome.
-  --idle-timeout-minutes     Idle timeout in minutes
-  --max-duration-minutes     Maximum session lifetime in minutes
+  --idle-timeout-minutes     Idle timeout in minutes (default: 3)
+  --max-duration-minutes     Maximum session lifetime in minutes (default: 15)
   --proxy                    Use default proxies
   --proxy-country <code>     Proxy country code (e.g. us, gb, fr). Implies --proxy
-  --solve-captchas           Automatically solve captchas
+  --no-solve-captchas        Turn OFF captcha solving (it is on by default)
   --vault-id <vault-id>      Attach a vault so sentinel placeholders resolve (see below)
   --profile-id <profile-id>  Load browser state from a profile
   --profile-persist          Save browser state back to the profile on session close
@@ -127,8 +129,9 @@ notte sessions start [flags]
                              explicit --viewport-width/--viewport-height
   --user-agent               Custom user agent string
   --cdp-url                  CDP URL of remote session provider
-  --use-file-storage         Attach FileStorage to the session (not needed just
-                             to download files - see Files below)
+  --no-file-storage          Detach FileStorage (it is attached by default).
+                             This disables `notte page download` and
+                             `notte files --from session`
   --screenshot-type <type>   raw, full, or last_action
   --chrome-args              Override the Chrome instance arguments (repeatable)
   --extra-http-headers       Extra HTTP headers as JSON
@@ -150,6 +153,16 @@ notte sessions stop
 # List sessions (with optional pagination and filters)
 notte sessions list [--page N] [--page-size N] [-a|--all]   # running only; -a includes stopped
 ```
+
+> **Sessions expire sooner than you might expect.** A session closes after
+> **3 minutes idle** or **15 minutes total**, whichever comes first. Long
+> exploration, a slow login, or a pause for user confirmation can all outlast
+> that, and the next command then fails with `Session closed` rather than
+> anything descriptive. Raise both when the task will not finish quickly:
+>
+> ```bash
+> notte sessions start --idle-timeout-minutes 15 --max-duration-minutes 60
+> ```
 
 **Note:** When you start a session, it automatically becomes the "current" session (i.e NOTTE_SESSION_ID environment variable is set). All subsequent commands use this session by default. Use `--session-id <session-id>` only when you need to manage multiple sessions simultaneously or reference a specific session.
 
@@ -589,7 +602,7 @@ notte files download report.csv --from session --path ./report.csv
 
 Notes:
 
-- `--use-file-storage` on `sessions start` is **not** required for this; downloads land in the session store either way.
+- **File storage is on by default**, so nothing extra is needed to download. Starting a session with `--no-file-storage` detaches it, after which `notte page download` fails with `Cannot execute download_file because no storage object was provided`.
 - The session store is per-session. Retrieve anything you need before the session ends, or pass `--session-id` to reach a specific one.
 - Using an element ID (`L3`, `B1`) without a prior `notte page observe` in that session fails with `No snapshot is available in the session`. A CSS selector needs no observe.
 
@@ -698,13 +711,13 @@ Session ID is resolved in this order:
 
 ```bash
 # Scrape with session
-notte sessions start --headless
+notte sessions start
 notte page goto "https://news.ycombinator.com"
 notte page scrape --instructions "Extract top 10 story titles"
 notte sessions stop
 
 # Multi-page scraping
-notte sessions start --headless
+notte sessions start
 notte page goto "https://example.com/products"
 notte page observe
 notte page scrape --instructions "Extract product names and prices"
@@ -760,7 +773,7 @@ notte sessions stop
 
 ```bash
 # 1. Build the workflow interactively, then export the session that worked
-notte sessions start --headless
+notte sessions start
 notte page goto "https://news.ycombinator.com"
 notte page scrape --instructions "Extract the top 10 stories with title, url, points"
 notte sessions workflow-code > collect_data.py
@@ -837,11 +850,11 @@ notte page click "#target-element"
 
 ### Viewing Headless Sessions
 
-Running with `--headless` (the default) doesn't mean you can't see the browser:
+Sessions are headless by default, which doesn't mean you can't see the browser:
 
 - **ViewerUrl**: When you start a session, the output includes a `ViewerUrl` - open it in your browser to watch the session live
 - **Viewer command**: `notte sessions viewer` opens the viewer directly
-- **Non-headless mode**: Use `--headless=false` only if you need a local browser window (not available on remote/CI environments)
+- **Headed mode**: `notte sessions start --headed` runs with a visible browser window. Cloud sessions accept this - watch it through the viewer URL rather than expecting a window on your own machine.
 
 ```bash
 # Start headless session and get viewer URL

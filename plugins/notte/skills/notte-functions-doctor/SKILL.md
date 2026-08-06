@@ -29,7 +29,7 @@ Be honest about the boundary. Not every failure is a code fix, and flailing on a
 | Selector / endpoint drift (runs OK, returns empty/wrong shape) | **Fix** - re-explore, patch, verify, promote |
 | Hard exception in `run()` | **Fix** - re-explore the failing step, patch |
 | Expired credentials / auth wall | **Diagnose and report** - the user must refresh the vault/persona; not a code fix |
-| Anti-bot block / captcha | **Diagnose and advise** - suggest `--proxy` / `--solve-captchas`; do not blindly retry |
+| Anti-bot block / captcha | **Diagnose and advise** - suggest `--proxy` / a trusted profile; captcha solving is already on. Do not blindly retry |
 | Site genuinely gone or restructured | **Report** - confirm the new target/intent with the user before rebuilding |
 
 For the non-code-fixable classes, stop after diagnosis and tell the user the root cause and remedy. Do not edit code hoping it helps.
@@ -157,7 +157,7 @@ Decide: is this **code-fixable** (drift / exception) or **not** (auth / block / 
 For drift or an exception, find what changed by driving the **current** live site - exactly the exploration discipline `notte-functions-build` uses, but scoped to the step that broke:
 
 ```bash
-notte sessions start --headless
+notte sessions start
 notte page goto "{url from the function}"
 notte page observe
 notte page wait 1500

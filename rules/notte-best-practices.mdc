@@ -7,11 +7,12 @@ alwaysApply: false
 - prefer `client.scrape(url=...)` over an agent when the task is "read this URL and give me X". Agents cost 5–10x more per run.
 - when the user wants structured output, define a Pydantic model and pass it as `response_format` to `agent.run` or `client.scrape`. Don't parse free-text answers.
 - script the deterministic parts with `session.execute(type=...)` and only hand the ambiguous step to the agent. This is Notte's biggest reliability + cost win.
-- enable `solve_captchas=True` and `proxies=True` on `Session` (not `Agent`) when scraping anti-bot sites. Putting them on `Agent` silently does nothing.
+- put `solve_captchas=True` and `proxies=True` on `Session`, never `Agent` — on `Agent` they silently do nothing. Captcha solving is already the default, so `proxies=True` is the one that changes anything when a site blocks you.
 - store credentials in `client.Vault()` — never paste them into the agent's `task` string. They will leak into logs.
 - `notte` (local) and `notte_sdk` (hosted) are two different imports, not aliases. Don't mix them in one file.
 - `reasoning_model` is a LiteLLM model string ("gemini/gemini-2.5-flash"), not a provider name, and must be one the platform advertises — run `notte agents start --help` for the current list rather than inventing one.
-- file storage on a session is `use_file_storage=True` (matching the `--use-file-storage` CLI flag). There is no `enable_file_storage` or `storage=` keyword.
+- file storage on a session is `use_file_storage=True` (matching the CLI) and is attached by default. There is no `enable_file_storage` or `storage=` keyword.
+- sessions close after 3 minutes idle or 15 minutes total by default. Raise `--idle-timeout-minutes`/`--max-duration-minutes` for anything slow, or the next command fails with an unexplained `Session closed`.
 - the trailing module-level `run()` call in a Function file is optional — the runtime invokes `run()` itself, so keeping or removing it makes no difference. `notte sessions workflow-code` emits one; leave it as-is.
 - never put `from __future__ import annotations` in a Function file — it breaks `response_format` with `PydanticUserError: Model is not fully defined`.
 - `notte functions run` blocks until the run finishes, so it is bounded by the global `--timeout` (default 60s). Raise it for slow Functions instead of assuming the Function is broken.

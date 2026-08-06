@@ -22,7 +22,7 @@ A Function built on an internal API keeps working far longer than one built on C
 The data you see on the page almost always arrives via a background request. Find it:
 
 ```bash
-notte sessions start --headless
+notte sessions start
 notte page goto "{url}"
 # Trigger the data load: search, scroll, paginate, or click into a detail page
 notte page observe
@@ -109,7 +109,7 @@ Bake the pagination mechanism into a parameter (`max_pages`, `cursor`) so one Fu
 
 ## Exploration budget
 
-Cap exploration at roughly 100 tool steps. If you still cannot find a stable path - heavy bot protection, signed endpoints, a login wall you lack credentials for - stop and report the specific obstacle to the user with options (provide credentials, enable `--proxy`/`--solve-captchas`, accept a DOM-only path, pick a different source). Do not burn an unbounded number of steps.
+Cap exploration at roughly 100 tool steps. If you still cannot find a stable path - heavy bot protection, signed endpoints, a login wall you lack credentials for - stop and report the specific obstacle to the user with options (provide credentials, enable `--proxy`, accept a DOM-only path, pick a different source - captcha solving is already on by default, so it is not a lever you still have). Do not burn an unbounded number of steps.
 
 ## Success criteria
 
