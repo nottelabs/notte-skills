@@ -61,10 +61,10 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
 
 - Use `from notte_sdk import NotteClient` for hosted workflows. Do not mix it with local `import notte` examples in the same file.
 - Use `client.Session(...)` as a context manager.
-- Put `solve_captchas=True` and `proxies=True` on `Session`, not on `Agent`.
-- File storage is `client.Session(use_file_storage=True)` - matching the
-  `--use-file-storage` CLI flag. There is no `enable_file_storage` or `storage=`
-  keyword; those will raise a `TypeError`.
+- Put `solve_captchas=True` and `proxies=True` on `Session`, not on `Agent` - on `Agent` they are silently ignored. Captcha solving is already the server-side default, so `proxies=True` is the one that actually changes behaviour when a site blocks you.
+- File storage is `client.Session(use_file_storage=True)`, matching the CLI. It
+  is attached by default, so pass it only to be explicit. There is no
+  `enable_file_storage` or `storage=` keyword; those raise a `TypeError`.
 - Omit `from __future__ import annotations`. Under PEP 563 the Pydantic
   annotations become unresolved forward references and `response_format=Model`
   fails at runtime with `PydanticUserError: Model is not fully defined`.

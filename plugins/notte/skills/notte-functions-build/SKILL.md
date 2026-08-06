@@ -106,7 +106,7 @@ After the user confirms, run the rest without further questions unless something
 Start a session and develop the task interactively (this is exactly the `notte-browser` flow):
 
 ```bash
-notte sessions start --headless
+notte sessions start
 notte page goto "{url}"
 notte page observe
 notte page scrape --instructions "Extract {fields} as JSON" -o json

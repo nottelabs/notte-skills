@@ -24,8 +24,8 @@ Complete guide to managing browser sessions with the notte CLI.
 # Start with defaults (headless chromium)
 notte sessions start
 
-# Start with visible browser
-notte sessions start --headless=false
+# Start with a visible browser
+notte sessions start --headed
 ```
 
 ### Browser Selection
@@ -45,19 +45,19 @@ are accepted as legacy aliases for `chrome`. There is no Firefox option.
 
 ```bash
 notte sessions start \
-  --headless=false \              # Show browser window
+  --headed \                      # Show a browser window (headless is default)
   --browser-type chromium \       # chromium or chrome
   --idle-timeout-minutes 10 \     # Close after 10 min of inactivity
   --max-duration-minutes 60 \     # Maximum 60 min session lifetime
   --proxy \                       # Use rotating proxies
-  --solve-captchas \              # Auto-solve CAPTCHAs
+  --no-solve-captchas \           # Turn OFF captcha solving (on by default)
   --vault-id <vault-id> \         # Attach a vault for sentinel credential fills
   --profile-id <profile-id> \     # Load browser state from a profile
   --profile-persist \             # Save browser state on session close
   --viewport-width 1920 \         # Custom viewport
   --viewport-height 1080 \
   --user-agent "Custom UA" \      # Custom user agent
-  --use-file-storage              # Attach FileStorage (downloads work without it)
+  --no-file-storage               # Detach FileStorage (attached by default)
 ```
 
 See the main SKILL.md for the full flag list, including `--aspect-ratio`,
@@ -208,9 +208,14 @@ notte page scrape --instructions "Extract:
 
 ## Session Timeouts
 
+Defaults are **3 minutes idle** and **15 minutes total** - short enough that a
+long exploration or a pause for user confirmation will hit them. When that
+happens the next command fails with `Session closed`, which does not say why, so
+raise them up front for anything slow.
+
 ### Idle Timeout
 
-Session closes after period of inactivity:
+Session closes after period of inactivity (default: 3 minutes):
 
 ```bash
 # Close after 10 minutes of no activity
@@ -221,7 +226,7 @@ Activity includes any command: observe, execute, scrape, etc.
 
 ### Max Duration
 
-Absolute maximum session lifetime:
+Absolute maximum session lifetime (default: 15 minutes):
 
 ```bash
 # Session closes after 60 minutes regardless of activity

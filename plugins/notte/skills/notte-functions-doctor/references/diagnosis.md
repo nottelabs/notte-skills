@@ -50,7 +50,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 **Meaning:** the site started challenging the session. The data path may be unchanged.
 
-**Action:** advise the session-level mitigations rather than touching extraction logic - `--proxy` / `--proxy-country`, `--solve-captchas`, or a profile with established trust. These are Function/session configuration. Do not loop retries blindly; that escalates the block.
+**Action:** advise the session-level mitigations rather than touching extraction logic - `--proxy` / `--proxy-country`, or a profile with established trust. **Do not suggest `--solve-captchas`: captcha solving is on by default**, so recommending it changes nothing and reads as a fix when none was applied. If a captcha is getting through anyway, the answer is a different IP or an established profile, not the flag. Do not loop retries blindly; that escalates the block.
 
 ### 5. Site gone or restructured  -  REPORT, then maybe rebuild
 
