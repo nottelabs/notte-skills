@@ -587,8 +587,6 @@ def run(dashboard_url: str = "https://dashboard.example.com"):
 
         # The vault resolves sentinel placeholders into real credentials.
         # The secret never appears in this file.
-        agent = client.Agent(session, vault=vault, max_steps=5)
-        agent.run(task="Login to dashboard")
 
         session.execute(type="goto", url=f"{dashboard_url}/reports/weekly")
 

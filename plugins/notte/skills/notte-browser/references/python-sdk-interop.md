@@ -61,7 +61,6 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
 
 - Use `from notte_sdk import NotteClient` for hosted workflows. Do not mix it with local `import notte` examples in the same file.
 - Use `client.Session(...)` as a context manager.
-- Put `solve_captchas=True` and `proxies=True` on `Session`, not on `Agent` - on `Agent` they are silently ignored. Captcha solving is already the server-side default, so `proxies=True` is the one that actually changes behaviour when a site blocks you.
 - File storage is `client.Session(use_file_storage=True)`, matching the CLI. It
   is attached by default, so pass it only to be explicit. There is no
   `enable_file_storage` or `storage=` keyword; those raise a `TypeError`.
@@ -70,9 +69,7 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   fails at runtime with `PydanticUserError: Model is not fully defined`.
 - Cast run variables you use numerically (`page = int(page)`). Variables passed
   with `--var` arrive as strings and are not coerced to your type hints.
-- Use `session.execute(...)` for known URLs/selectors and `client.Agent(session=session).run(...)` only for ambiguous steps.
 - If using observe IDs in Python, call `session.observe()` first. Pass the plain ID, such as `B3` or `I1`.
-- If an agent reports that it ran out of steps, raise `max_steps`; retrying the same config usually repeats the failure.
 - Do not put credentials in task strings. Use vaults or environment-backed setup.
 
 ## Structured Extraction
@@ -83,7 +80,6 @@ For CLI scraping, prefer narrow instructions:
 notte page scrape --instructions "Extract title, price, and URL as JSON"
 ```
 
-For Python SDK scraping, use `client.scrape(...)` for one-shot extraction or `session.scrape(...)` after navigation/authentication. Keep the instructions narrow and skip an agent unless the task requires judgment or interaction.
 
 ```python
 from notte_sdk import NotteClient
