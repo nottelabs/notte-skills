@@ -269,7 +269,7 @@ before the keystrokes reach the page.
 | MFA code | `999779`             |
 
 The match must be exact - any other string is filled literally. The same
-sentinels work in agent fill actions when the agent is started with
+sentinels work when a session is started with
 `--vault-id`. This is what keeps the real secret out of your scripts, logs, and
 shell history.
 
