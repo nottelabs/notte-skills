@@ -38,7 +38,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 ### 3. Expired credentials / auth wall  -  NOT a code fix
 
-**Signals:** `result` (the returned object, or the error string) shows a login page, a redirect to `/login` or an SSO host, a 401/403, or scraped content that is a sign-in form instead of the target data. Confirm with a `notte page screenshot` during re-exploration.
+**Signals:** `result` (the returned object, or the error string) shows a login page, a redirect to `/login` or an SSO host, a 401/403, or scraped content that is a sign-in form instead of the target data. Confirm with a `notte page screenshot --session-id <session-id>` during re-exploration.
 
 **Meaning:** the session is no longer authenticated - the vault credential expired, the persona/profile lost its cookies, or MFA is now required.
 
@@ -46,7 +46,7 @@ notte functions run --function-id "{function_id}" -o json | jq '{status, result}
 
 ### 4. Anti-bot block / captcha  -  NOT a code fix (config, not code)
 
-**Signals:** `result` shows a captcha challenge, a "verify you are human" interstitial, a Cloudflare/DataDome block page, or sudden empty results that coincide with a block page in a `notte page screenshot` taken during re-exploration.
+**Signals:** `result` shows a captcha challenge, a "verify you are human" interstitial, a Cloudflare/DataDome block page, or sudden empty results that coincide with a block page in a `notte page screenshot --session-id <session-id>` taken during re-exploration.
 
 **Meaning:** the site started challenging the session. The data path may be unchanged.
 

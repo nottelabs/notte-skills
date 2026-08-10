@@ -23,14 +23,14 @@ The data you see on the page almost always arrives via a background request. Fin
 
 ```bash
 notte sessions start
-notte page goto "{url}"
+notte page goto --session-id <session-id> "{url}"
 # Trigger the data load: search, scroll, paginate, or click into a detail page
-notte page observe
-notte page wait 1500
-# Capture what the page fetched. `notte sessions network` DOWNLOADS the network
+notte page observe --session-id <session-id>
+notte page wait --session-id <session-id> 1500
+# Capture what the page fetched. `notte sessions network --session-id <session-id>` DOWNLOADS the network
 # logs (HAR) to a folder and prints the path - read those files to inspect the
-# requests. `notte sessions network --urls-only` instead prints just the URLs inline.
-notte sessions network
+# requests. `notte sessions network --session-id <session-id> --urls-only` instead prints just the URLs inline.
+notte sessions network --session-id <session-id>
 ```
 
 In the downloaded logs (or the `--urls-only` list), look for the request that returns the target data as JSON (not HTML, not analytics, not ads). When you find it, record:
@@ -42,7 +42,7 @@ In the downloaded logs (or the `--urls-only` list), look for the request that re
 Confirm the endpoint reproduces the data directly. You can replay a discovered fetch from the page context to verify it returns what you expect:
 
 ```bash
-notte page eval-js '
+notte page eval-js --session-id <session-id> '
 async () => {
   const r = await fetch("/api/search?q=laptop&page=1", { headers: { "accept": "application/json" } });
   const j = await r.json();
@@ -55,7 +55,7 @@ If the endpoint returns the data reliably, that is your path. Note it and move t
 
 ### Network capture tips
 
-- **Network data is page-scoped.** After navigating to a new page, re-`observe`, `wait`, then re-read `notte sessions network`. Earlier requests may not carry over.
+- **Network data is page-scoped.** After navigating to a new page, re-`observe`, `wait`, then re-read `notte sessions network --session-id <session-id>`. Earlier requests may not carry over.
 - **Wait for stability** before reading the network log - trigger the interaction, give it ~1-1.5s, then read.
 - **Filter mentally for JSON.** Ignore static assets, fonts, images, telemetry. You want the call whose response contains your fields.
 - **Authenticated endpoints are fine** when the session is logged in (via a profile or vault) - the Function will run under the same authenticated session. Do not bypass authentication or access controls; only read data the logged-in user can already see.
@@ -65,7 +65,7 @@ If the endpoint returns the data reliably, that is your path. Note it and move t
 When there is no usable API (data is server-rendered into HTML, or the API is signed/obfuscated past reach), fall back to extraction. Prefer the structured `scrape` command over hand-written selectors - it is more resilient and produces typed output directly:
 
 ```bash
-notte page scrape --instructions "Extract each product as JSON with: title (string), price (number), url (string)" -o json
+notte page scrape --session-id <session-id> --instructions "Extract each product as JSON with: title (string), price (number), url (string)" -o json
 ```
 
 With `-o json`, the shape depends on whether you passed `--instructions`:
@@ -74,7 +74,7 @@ With `-o json`, the shape depends on whether you passed `--instructions`:
 - **Without `--instructions`** you get `{"markdown": "..."}` - the raw page text and nothing else.
 
 ```bash
-notte page scrape --instructions "Extract heading and subheading as JSON" -o json
+notte page scrape --session-id <session-id> --instructions "Extract heading and subheading as JSON" -o json
 # -> {"heading": "...", "subheading": "..."}
 ```
 
@@ -86,7 +86,7 @@ Only drop to raw selectors when `scrape` cannot reliably target the data. If you
 data-testid  >  id  >  name  >  aria-label  >  stable structural path
 ```
 
-Avoid pure positional selectors (`:nth-child`, `[3]`) unless the structure is genuinely stable. Test a candidate selector with `notte page eval-js` and confirm it hits the expected count before committing to it.
+Avoid pure positional selectors (`:nth-child`, `[3]`) unless the structure is genuinely stable. Test a candidate selector with `notte page eval-js --session-id <session-id>` and confirm it hits the expected count before committing to it.
 
 ## When a means fails
 

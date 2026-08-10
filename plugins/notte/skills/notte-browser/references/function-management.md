@@ -24,7 +24,7 @@ Think of a Function as the endpoint version of a browser task. A tested `notte p
 
 Decide how the Function will actually fetch its data before writing it. Prefer, in this order:
 
-1. **A documented or observed JSON/HTTP endpoint** that returns the needed fields - check the page's own XHR calls with `notte sessions network`. Fastest, cheapest, and deterministic.
+1. **A documented or observed JSON/HTTP endpoint** that returns the needed fields - check the page's own XHR calls with `notte sessions network --session-id <session-id>`. Fastest, cheapest, and deterministic.
 2. **A deterministic parse of rigidly structured HTML**, when the markup is stable and the fields map to fixed elements. Still deterministic, still no model in the hot path.
 3. **`session.scrape(...)`**, the right tool for dynamic, irregular, or JS-rendered pages. It costs an LLM call on every invocation, is output-bound (roughly seconds proportional to the number of fields extracted), and returns results that vary from run to run.
 
@@ -35,7 +35,7 @@ Rank by the page, not by habit: a site with a public API or a fixed table should
 Building a function should start from a tested CLI session. The easiest and most reliable path is:
 
 1. Try the browser task directly with `notte sessions start` and `notte page ...` commands until it works.
-2. Export the successful session with `notte sessions workflow-code`. If the current-session pointer is gone, or the session has already been stopped, pass the captured session ID explicitly with `notte sessions workflow-code --session-id <session-id>`.
+2. Export the successful session with `notte sessions workflow-code --session-id <session-id>`.
 3. Use the exported script as the implementation base for the Function.
 
 For interactive, stateful, or authenticated flows - logins, multi-step forms, anything where the working sequence and session state are painful to reconstruct by hand - export `workflow-code` before hand-writing the Function. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser, which is precisely what is hard to guess back. For a stateless Function built on an endpoint or HTML structure you already confirmed, writing that request directly is fine.
@@ -43,13 +43,13 @@ For interactive, stateful, or authenticated flows - logins, multi-step forms, an
 ### Step-by-Step Process
 
 1. **Build interactively** - Use `notte sessions start` and `notte page` commands to develop your automation step-by-step in the terminal
-2. **Export code** - Run `notte sessions workflow-code` to generate a working Python script from your session. If the session is no longer current, use `notte sessions workflow-code --session-id <session-id>`.
+2. **Export code** - Run `notte sessions workflow-code --session-id <session-id>` to generate a working Python script from your session.
 3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
-4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` (becomes current function)
-5. **Test in cloud** - Run `notte functions run`, which blocks until the run finishes and returns `status` and `result` inline
-6. **Inspect logs if needed** - `notte functions run-metadata --run-id <run-id>` exposes the `logs` field for deeper debugging
-7. **Iterate** - Update your code based on results, then use `notte functions update --file my_function.py`
-8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --cron "0 9 * * *"`
+4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` and capture the returned ID
+5. **Test in cloud** - Run `notte functions run --function-id <function-id>`, which blocks until the run finishes and returns `status` and `result` inline
+6. **Inspect logs if needed** - `notte functions run-metadata --function-id <function-id> --run-id <run-id>` exposes the `logs` field for deeper debugging
+7. **Iterate** - Update your code based on results, then use `notte functions update --function-id <function-id> --file my_function.py`
+8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --function-id <function-id> --cron "0 9 * * *"`
 
 ### Complete Example
 
@@ -60,9 +60,9 @@ This example uses `scrape` to demonstrate the end-to-end CLI flow, not because i
 ```bash
 # Build your automation interactively and keep the session ID
 SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
-notte page goto "https://news.ycombinator.com"
-notte page observe
-notte page scrape --instructions "Extract top 5 story titles and URLs"
+notte page goto --session-id <session-id> "https://news.ycombinator.com"
+notte page observe --session-id <session-id>
+notte page scrape --session-id <session-id> --instructions "Extract top 5 story titles and URLs"
 
 # Stop the session when the interactive test is done
 notte sessions stop --session-id "$SESSION_ID"
@@ -117,8 +117,7 @@ run()
 **Step 5-8 — create, test, iterate, schedule:**
 
 ```bash
-# Create the function and capture its id (it also becomes the current function,
-# but referencing it explicitly is safer once you have more than one)
+# Create the function and capture its ID
 FUNCTION_ID=$(notte functions create \
   --file hn_scraper.py \
   --name "HN Top Stories" \
@@ -129,7 +128,7 @@ FUNCTION_ID=$(notte functions create \
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # If you need execution logs, take the run id from the run you just did.
-# (`notte functions runs` also lists it - the full history, newest first.)
+# (`notte functions runs --function-id "$FUNCTION_ID"` also lists it - the full history, newest first.)
 RUN_ID=$(notte functions run --function-id "$FUNCTION_ID" -o json | jq -r '.function_run_id')
 notte functions run-metadata --function-id "$FUNCTION_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 
@@ -144,19 +143,21 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
 ### Tips for Iterative Development
 
 - **Start simple**: Build a minimal version first, then add features
-- **Test frequently**: Run `notte functions run` after each change to catch issues early
+- **Test frequently**: Run `notte functions run --function-id <function-id>` after each change to catch issues early
 - **Monitor logs**: The `logs` field in run-metadata shows print statements and errors
 - **Use variables**: Add function parameters for flexibility (e.g., `max_stories` in the example)
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
-- **Read `result`, not `status` alone**: `notte functions run -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
+- **Read `result`, not `status` alone**: `notte functions run --function-id <function-id> -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
 - **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
-- **Run history is the default**: `notte functions runs` lists every run, newest first; `--running` narrows to those still executing. The simplest path is still to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
-- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Set it generously on the first invocation: `notte functions run --timeout 600`.
+- **Run history is the default**: `notte functions runs --function-id <function-id>` lists every run, newest first; `--running` narrows to those still executing. The simplest path is still to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
+- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Set it generously on the first invocation: `notte functions run --function-id <function-id> --timeout 600`.
 - **Never re-run after a command timeout**: the client giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Find the in-flight run with `notte functions runs --function-id <id> --running`, read its outcome from the full history once it leaves `active`, and only start a fresh run if nothing is pending.
 
 ## Creating Functions
 
-**Note:** When you create a function, it automatically becomes the "current" function. All subsequent commands (run, update, schedule, etc.) use this function by default. Use `--function-id <function-id>` only when you need to manage multiple functions simultaneously or reference a specific function.
+**Skill rule:** Always pass `--function-id <function-id>` to every command that
+targets a Function. Capture it from `functions create` or obtain it from
+`functions list`; do not rely on the CLI's current-Function fallback.
 
 ### From a Python File
 
@@ -200,7 +201,7 @@ before deploying.
 - Default values make parameters optional when triggering
 
 **Return Values:**
-- Data returned from `run()` is stored and accessible via `notte functions run-metadata`
+- Data returned from `run()` is stored and accessible via `notte functions run-metadata --function-id <function-id> --run-id <run-id>`
 - Return structured data (dict, list) for easy parsing
 - The return value appears in the `result` field of run-metadata
 
@@ -299,7 +300,7 @@ When running the function, pass parameters as Function variables. The CLI is con
 
 ```bash
 # Run with default parameters
-notte functions run
+notte functions run --function-id <function-id>
 
 # Invoke the same Function over HTTP
 curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
@@ -317,13 +318,13 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   }'
 ```
 
-The HTTP response returns a run identifier. Use `notte functions run-metadata --run-id <run-id>` to fetch logs and the value returned by `run(...)`.
+The HTTP response returns a run identifier. Use `notte functions run-metadata --function-id <function-id> --run-id <run-id>` to fetch logs and the value returned by `run(...)`.
 
 **Accessing Return Values:**
 
 ```bash
 # Get the result from run-metadata
-notte functions run-metadata --run-id <run-id> -o json | jq '.result'
+notte functions run-metadata --function-id <function-id> --run-id <run-id> -o json | jq '.result'
 
 # Output:
 # {
@@ -356,7 +357,7 @@ Output includes function ID, name, description, and creation date.
 ### View Function Details
 
 ```bash
-notte functions show
+notte functions show --function-id <function-id>
 ```
 
 Returns function metadata plus a **download URL** for the workflow file (the
@@ -390,7 +391,7 @@ with the run.
 ### Update Function Code
 
 ```bash
-notte functions update --file workflow_v2.py
+notte functions update --function-id <function-id> --file workflow_v2.py
 ```
 
 Updates the workflow code while preserving function ID and schedule.
@@ -398,7 +399,7 @@ Updates the workflow code while preserving function ID and schedule.
 ### Delete Function
 
 ```bash
-notte functions delete
+notte functions delete --function-id <function-id>
 ```
 
 Prompts for confirmation. Use `--yes` to skip.
@@ -408,7 +409,7 @@ Prompts for confirmation. Use `--yes` to skip.
 ### Run On-Demand
 
 ```bash
-notte functions run
+notte functions run --function-id <function-id>
 ```
 
 Runs the Function in the cloud and **blocks until it finishes**, returning
@@ -420,11 +421,11 @@ This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. U
 ### Check Run Status
 
 ```bash
-# List all runs for current function
-notte functions runs
+# List all runs for a function
+notte functions runs --function-id <function-id>
 
 # With pagination and filters
-notte functions runs --page 1 --page-size 10   # full history; --running narrows to in-flight
+notte functions runs --function-id <function-id> --page 1 --page-size 10   # full history; --running narrows to in-flight
 ```
 
 Output includes:
@@ -436,7 +437,7 @@ Output includes:
 ### Stop a Running Function
 
 ```bash
-notte functions run-stop --run-id <run-id>
+notte functions run-stop --function-id <function-id> --run-id <run-id>
 ```
 
 ## Run Metadata
@@ -446,7 +447,7 @@ Store and retrieve custom data for function runs:
 ### Get Metadata
 
 ```bash
-notte functions run-metadata --run-id <run-id>
+notte functions run-metadata --function-id <function-id> --run-id <run-id>
 ```
 
 ### Metadata Use Cases
@@ -461,7 +462,7 @@ notte functions run-metadata --run-id <run-id>
 ### Set a Cron Schedule
 
 ```bash
-notte functions schedule --cron "0 9 * * *"
+notte functions schedule --function-id <function-id> --cron "0 9 * * *"
 ```
 
 ### Cron Expression Format
@@ -480,28 +481,28 @@ notte functions schedule --cron "0 9 * * *"
 
 ```bash
 # Every hour
-notte functions schedule --cron "0 * * * *"
+notte functions schedule --function-id <function-id> --cron "0 * * * *"
 
 # Every day at 9 AM
-notte functions schedule --cron "0 9 * * *"
+notte functions schedule --function-id <function-id> --cron "0 9 * * *"
 
 # Every Monday at 6 PM
-notte functions schedule --cron "0 18 * * 1"
+notte functions schedule --function-id <function-id> --cron "0 18 * * 1"
 
 # Every 15 minutes
-notte functions schedule --cron "*/15 * * * *"
+notte functions schedule --function-id <function-id> --cron "*/15 * * * *"
 
 # First day of each month at midnight
-notte functions schedule --cron "0 0 1 * *"
+notte functions schedule --function-id <function-id> --cron "0 0 1 * *"
 
 # Weekdays at 8 AM
-notte functions schedule --cron "0 8 * * 1-5"
+notte functions schedule --function-id <function-id> --cron "0 8 * * 1-5"
 ```
 
 ### Remove Schedule
 
 ```bash
-notte functions unschedule
+notte functions unschedule --function-id <function-id>
 ```
 
 Function remains but will no longer run automatically.
@@ -664,7 +665,7 @@ notte functions create \
 
 ```bash
 # Functions return data that can be retrieved via run metadata
-notte functions run-metadata --run-id <run-id> -o json
+notte functions run-metadata --function-id <function-id> --run-id <run-id> -o json
 ```
 
 ### 3. Monitor Run History
@@ -673,7 +674,7 @@ notte functions run-metadata --run-id <run-id> -o json
 # Check for failed runs. A script error may report status "failed", but an error
 # inside run() can also come back as status "closed" with the error string in
 # `result`, so match both.
-notte functions runs -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
+notte functions runs --function-id <function-id> -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
 ```
 
 Note this list can return `[]` even for a Function with completed runs, so an
@@ -683,13 +684,13 @@ empty result here is not evidence that the Function never ran.
 
 ```bash
 # Run manually first
-notte functions run
+notte functions run --function-id <function-id>
 
 # Check it completed successfully
-notte functions runs
+notte functions runs --function-id <function-id>
 
 # Then schedule
-notte functions schedule --cron "0 9 * * *"
+notte functions schedule --function-id <function-id> --cron "0 9 * * *"
 ```
 
 ### 5. Use Appropriate Schedules
@@ -708,7 +709,6 @@ notte functions list
 # Confirm you have the right target by reading its name back
 notte functions show --function-id <old-func-id> -o json | jq -r '.name'
 
-# Delete that specific id - never rely on the implicit "current function"
-# pointer for a destructive command
+# Delete that specific ID
 notte functions delete --function-id <old-func-id> --yes
 ```

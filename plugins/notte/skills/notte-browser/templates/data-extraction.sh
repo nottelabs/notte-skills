@@ -7,6 +7,7 @@
 # Prerequisites:
 #   - notte CLI installed and authenticated (notte auth login)
 #   - NOTTE_API_KEY environment variable set
+#   - jq installed (used to capture the explicit session ID)
 #
 # Examples:
 #   ./data-extraction.sh "https://news.ycombinator.com"
@@ -41,6 +42,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+SESSION_ID=""
 
 log_info() { echo -e "${GREEN}[INFO]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
@@ -49,7 +51,9 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1" >&2; }
 
 cleanup() {
     log_info "Cleaning up..."
-    notte sessions stop --yes 2>/dev/null || true
+    if [[ -n "$SESSION_ID" ]]; then
+        notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true
+    fi
 }
 
 trap cleanup EXIT
@@ -60,12 +64,12 @@ session_scrape() {
     local instructions="$2"
 
     log_step "Starting browser session..."
-    notte sessions start > /dev/null
+    SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
 
     log_step "Navigating to: $url"
-    notte page goto "$url"
-    notte page observe > /dev/null
-    notte page wait 1500
+    notte page goto --session-id "$SESSION_ID" "$url"
+    notte page observe --session-id "$SESSION_ID" > /dev/null
+    notte page wait --session-id "$SESSION_ID" 1500
 
     local all_results="[]"
     local page_num=1
@@ -80,9 +84,9 @@ session_scrape() {
 
         local page_result
         # shellcheck disable=SC2086
-        page_result=$(notte page scrape --instructions "$instructions" $flags -o json)
+        page_result=$(notte page scrape --session-id "$SESSION_ID" --instructions "$instructions" $flags -o json)
 
-        # With --instructions, `notte page scrape -o json` returns the extracted
+        # With --instructions, `notte page scrape --session-id "$SESSION_ID" -o json` returns the extracted
         # object at the TOP LEVEL (the requested fields are the JSON keys) - there
         # is no wrapper to unpack. Normalise to an array and append.
         if command -v jq &> /dev/null; then
@@ -104,12 +108,12 @@ $page_result"
 
         # Try to click next page
         log_step "Looking for next page..."
-        if ! notte page click "$NEXT_PAGE_SELECTOR" 2>/dev/null; then
+        if ! notte page click --session-id "$SESSION_ID" "$NEXT_PAGE_SELECTOR" 2>/dev/null; then
             log_info "No more pages found"
             break
         fi
 
-        notte page wait 2000
+        notte page wait --session-id "$SESSION_ID" 2000
         page_num=$((page_num + 1))
     done
 
@@ -122,13 +126,13 @@ batch_scrape() {
     local all_results="[]"
 
     log_step "Starting browser session for batch scrape..."
-    notte sessions start > /dev/null
+    SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
 
     for url in "${urls[@]}"; do
         log_step "Scraping: $url"
-        notte page goto "$url"
-        notte page observe > /dev/null
-        notte page wait 1500
+        notte page goto --session-id "$SESSION_ID" "$url"
+        notte page observe --session-id "$SESSION_ID" > /dev/null
+        notte page wait --session-id "$SESSION_ID" 1500
 
         local flags=""
         if [[ "$ONLY_MAIN_CONTENT" == "true" ]]; then
@@ -137,7 +141,7 @@ batch_scrape() {
 
         local result
         # shellcheck disable=SC2086
-        result=$(notte page scrape --instructions "$EXTRACTION_INSTRUCTIONS" $flags -o json)
+        result=$(notte page scrape --session-id "$SESSION_ID" --instructions "$EXTRACTION_INSTRUCTIONS" $flags -o json)
 
         # Tag each row with its source URL and append. The scrape result is the
         # extracted object itself (see note above), not a wrapper.

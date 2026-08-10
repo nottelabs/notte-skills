@@ -6,6 +6,7 @@
 #
 # Prerequisites:
 #   - notte CLI installed and authenticated (notte auth login)
+#   - jq installed (used to capture the explicit session ID)
 #   - A vault holding the credential for the target site. Add it ONCE, from a
 #     shell you control, with values expanded from environment variables:
 #
@@ -59,6 +60,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+SESSION_ID=""
 
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
@@ -66,9 +68,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 cleanup() {
-    if [[ "${KEEP_SESSION:-false}" != "true" ]]; then
+    if [[ "${KEEP_SESSION:-false}" != "true" && -n "$SESSION_ID" ]]; then
         log_info "Stopping session..."
-        notte sessions stop --yes 2>/dev/null || true
+        notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true
     else
         log_info "Keeping session alive (KEEP_SESSION=true)"
     fi
@@ -84,7 +86,7 @@ trap cleanup EXIT
 # cannot prove success, return failure rather than assuming it.
 check_login_success() {
     local current_url
-    current_url=$(notte page observe -o json | jq -r '.url // empty')
+    current_url=$(notte page observe --session-id "$SESSION_ID" -o json | jq -r '.url // empty')
 
     if [[ -z "$current_url" ]]; then
         log_warn "Could not read current URL from observe"
@@ -103,16 +105,16 @@ check_login_success() {
 
     # Anywhere else off the login page: treat as success only if the dashboard
     # itself loads without bouncing back to login.
-    notte page goto "$DASHBOARD_URL"
-    notte page wait 1500
-    current_url=$(notte page observe -o json | jq -r '.url // empty')
+    notte page goto --session-id "$SESSION_ID" "$DASHBOARD_URL"
+    notte page wait --session-id "$SESSION_ID" 1500
+    current_url=$(notte page observe --session-id "$SESSION_ID" -o json | jq -r '.url // empty')
     [[ "$current_url" == "$DASHBOARD_URL"* ]]
 }
 
 restore_cookies() {
     if [[ -f "$COOKIES_FILE" ]]; then
         log_step "Restoring saved cookies..."
-        if notte sessions cookies-set --file "$COOKIES_FILE" 2>/dev/null; then
+        if notte sessions cookies-set --session-id "$SESSION_ID" --file "$COOKIES_FILE" 2>/dev/null; then
             log_info "Cookies restored"
             return 0
         fi
@@ -123,7 +125,7 @@ restore_cookies() {
 save_cookies() {
     if [[ "$SAVE_COOKIES" == "true" ]]; then
         log_step "Saving session cookies..."
-        notte sessions cookies -o json > "$COOKIES_FILE"
+        notte sessions cookies --session-id "$SESSION_ID" -o json > "$COOKIES_FILE"
         chmod 600 "$COOKIES_FILE"
         log_info "Cookies saved to $COOKIES_FILE (mode 600 - these are session secrets)"
     fi
@@ -131,31 +133,31 @@ save_cookies() {
 
 perform_login() {
     log_step "Navigating to login page..."
-    notte page goto "$LOGIN_URL"
-    notte page observe > /dev/null
-    notte page wait 1000
+    notte page goto --session-id "$SESSION_ID" "$LOGIN_URL"
+    notte page observe --session-id "$SESSION_ID" > /dev/null
+    notte page wait --session-id "$SESSION_ID" 1000
 
     # Fill the identifier field with a sentinel - the vault supplies the value
     if [[ "$USE_USERNAME" == "true" ]]; then
         log_info "Filling username (vault-substituted)"
-        notte page fill "$EMAIL_SELECTOR" "$SENTINEL_USERNAME"
+        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" "$SENTINEL_USERNAME"
     else
         log_info "Filling email (vault-substituted)"
-        notte page fill "$EMAIL_SELECTOR" "$SENTINEL_EMAIL"
+        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" "$SENTINEL_EMAIL"
     fi
-    notte page wait 300
+    notte page wait --session-id "$SESSION_ID" 300
 
     log_info "Filling password (vault-substituted)"
-    notte page fill "$PASSWORD_SELECTOR" "$SENTINEL_PASSWORD"
-    notte page wait 300
+    notte page fill --session-id "$SESSION_ID" "$PASSWORD_SELECTOR" "$SENTINEL_PASSWORD"
+    notte page wait --session-id "$SESSION_ID" 300
 
     log_step "Submitting login form..."
-    notte page click "$SUBMIT_SELECTOR"
-    notte page wait 2000
+    notte page click --session-id "$SESSION_ID" "$SUBMIT_SELECTOR"
+    notte page wait --session-id "$SESSION_ID" 2000
 
     # Check for an MFA prompt
     local observe_result
-    observe_result=$(notte page observe -o json)
+    observe_result=$(notte page observe --session-id "$SESSION_ID" -o json)
 
     if echo "$observe_result" | grep -qiE "(mfa|two.?factor|verification|authenticator|2fa|one.?time)"; then
         log_step "MFA prompt detected"
@@ -169,11 +171,11 @@ handle_mfa() {
     # the literal sentinel and fail - store the secret instead of hardcoding a
     # code here.
     log_info "Filling MFA code (vault-generated TOTP)"
-    notte page fill "$MFA_SELECTOR" "$SENTINEL_MFA" --enter
-    notte page wait 3000
+    notte page fill --session-id "$SESSION_ID" "$MFA_SELECTOR" "$SENTINEL_MFA" --enter
+    notte page wait --session-id "$SESSION_ID" 3000
 
     local current_url
-    current_url=$(notte page observe -o json | jq -r '.url // empty')
+    current_url=$(notte page observe --session-id "$SESSION_ID" -o json | jq -r '.url // empty')
 
     if echo "$current_url" | grep -qiE "(mfa|verify|2fa)"; then
         log_warn "Still on the MFA page."
@@ -200,14 +202,14 @@ main() {
     # Attach the vault to the session. Without this, the sentinels above are
     # filled literally and the login will fail.
     log_step "Starting browser session with vault attached..."
-    notte sessions start --vault-id "$VAULT_ID" > /dev/null
-    log_info "Session started"
+    SESSION_ID=$(notte sessions start --vault-id "$VAULT_ID" -o json | jq -r '.session_id')
+    log_info "Session started: $SESSION_ID"
 
     # Try to restore cookies first (skip login if still valid)
     if restore_cookies; then
         log_step "Checking if the saved session is still valid..."
-        notte page goto "$DASHBOARD_URL"
-        notte page wait 2000
+        notte page goto --session-id "$SESSION_ID" "$DASHBOARD_URL"
+        notte page wait --session-id "$SESSION_ID" 2000
 
         if check_login_success; then
             log_info "=== Login successful (restored from cookies) ==="
@@ -231,14 +233,14 @@ main() {
     fi
 
     log_step "Navigating to dashboard..."
-    notte page goto "$DASHBOARD_URL"
-    notte page wait 1000
+    notte page goto --session-id "$SESSION_ID" "$DASHBOARD_URL"
+    notte page wait --session-id "$SESSION_ID" 1000
 
     log_info "Ready for authenticated actions"
-    log_info "Session ID: $(notte sessions status -o json | jq -r '.session_id // empty')"
+    log_info "Session ID: $SESSION_ID"
 
     # Example: Scrape data from the authenticated page
-    # notte page scrape --instructions "Extract user profile information"
+    # notte page scrape --session-id "$SESSION_ID" --instructions "Extract user profile information"
 }
 
 main "$@"

@@ -36,9 +36,9 @@ run()
 Deploy with:
 
 ```bash
-notte functions create --file workflow.py --name "Search Workflow"
-notte functions run
-notte functions run-metadata --run-id <run-id>
+FUNCTION_ID=$(notte functions create --file workflow.py --name "Search Workflow" -o json | jq -r '.function_id')
+notte functions run --function-id "$FUNCTION_ID"
+notte functions run-metadata --function-id "$FUNCTION_ID" --run-id <run-id>
 ```
 
 Invoke the deployed Function as an API endpoint:
@@ -77,7 +77,7 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
 For CLI scraping, prefer narrow instructions:
 
 ```bash
-notte page scrape --instructions "Extract title, price, and URL as JSON"
+notte page scrape --session-id <session-id> --instructions "Extract title, price, and URL as JSON"
 ```
 
 

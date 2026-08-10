@@ -62,7 +62,7 @@ If auth is missing, follow the [notte-browser auth handling](../notte-browser/SK
 
 Locate the Function from whatever the user gave (an id, a name, "my Indeed function").
 
-If they gave an id, go straight to `notte functions show`. If they gave a name, you have to search - and `functions list` is paginated, so a single call is not a search:
+If they gave an ID, go straight to `notte functions show --function-id "{function_id}"`. If they gave a name, you have to search - and `functions list` is paginated, so a single call is not a search:
 
 - it defaults to **10** items per page,
 - the API caps `--page-size` at **100**,
@@ -98,7 +98,7 @@ all_functions --include-deleted | jq -r 'select(.name | test("indeed"; "i")) | "
 
 A deleted Function is not a repair job - report it and ask the user whether to recreate it.
 
-`notte functions show` returns the Function's metadata plus a **download URL** for its workflow file (the `url` field) - it does not inline the source. Record the **name** and **description**, then download the current source so you can read its contract and diff your fix against it later:
+`notte functions show --function-id "{function_id}"` returns the Function's metadata plus a **download URL** for its workflow file (the `url` field) - it does not inline the source. Record the **name** and **description**, then download the current source so you can read its contract and diff your fix against it later:
 
 ```bash
 URL=$(notte functions show --function-id "{function_id}" -o json | jq -r '.url')
@@ -158,10 +158,10 @@ For drift or an exception, find what changed by driving the **current** live sit
 
 ```bash
 notte sessions start
-notte page goto "{url from the function}"
-notte page observe
-notte page wait 1500
-notte sessions network        # has the internal API endpoint moved or changed shape?
+notte page goto --session-id <session-id> "{url from the function}"
+notte page observe --session-id <session-id>
+notte page wait --session-id <session-id> 1500
+notte sessions network --session-id <session-id>        # has the internal API endpoint moved or changed shape?
 ```
 
 Find the new stable path (API-first, DOM fallback). For the full method, read -> **[notte-functions-build exploration reference](../notte-functions-build/references/exploration.md)**.
@@ -174,7 +174,7 @@ Produce the repaired code, then verify it **without touching the live Function**
 
 1. **Patch.** Re-export the corrected path (`notte sessions workflow-code --session-id <id>`) and merge the changed selectors/endpoint into `current_function.py`, or hand-edit using the [Python SDK Interop reference](../notte-browser/references/python-sdk-interop.md). Save as `repaired_function.py`. Keep the same `run(...)` signature and response model so callers are unaffected.
 
-2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its id**, and from here on pass `--function-id "$VERIFY_ID"` on every command - never rely on the implicit "current function" pointer, which `create` and `delete` move around. This keeps testing fully isolated from the live Function:
+2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its ID**, and from here on pass `--function-id "$VERIFY_ID"` on every command. This keeps testing fully isolated from the live Function:
 
    **Always create your own copy. Never adopt one by name.** The id returned by
    `notte functions create` is the only proof of ownership you have. A matching

@@ -120,14 +120,14 @@ PERSONA=$(notte personas create --create-vault -o json)
 PERSONA_ID=$(echo "$PERSONA" | jq -r '.id')
 EMAIL=$(echo "$PERSONA" | jq -r '.email')
 
-# Start browser session
-notte sessions start
+# Start browser session and capture its ID
+SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
 
 # Fill signup form
-notte page goto "https://example.com/signup"
-notte page observe
-notte page fill "I1" "$EMAIL"
-notte page click "B1"
+notte page goto --session-id "$SESSION_ID" "https://example.com/signup"
+notte page observe --session-id "$SESSION_ID"
+notte page fill --session-id "$SESSION_ID" "I1" "$EMAIL"
+notte page click --session-id "$SESSION_ID" "B1"
 
 # Wait for verification email
 sleep 10
@@ -138,12 +138,12 @@ CODE=$(notte personas emails --persona-id "$PERSONA_ID" -o json | \
   grep -oE '[0-9]{6}')
 
 # Enter verification code
-notte page observe
-notte page fill "I1" "$CODE"
-notte page click "B1"
+notte page observe --session-id "$SESSION_ID"
+notte page fill --session-id "$SESSION_ID" "I1" "$CODE"
+notte page click --session-id "$SESSION_ID" "B1"
 
 # Cleanup
-notte sessions stop
+notte sessions stop --session-id "$SESSION_ID"
 ```
 
 ## User-Provided Vaults
@@ -308,11 +308,11 @@ notte vaults credentials add --vault-id <vault-id> \
 # Then attach the vault to the session and fill with sentinel placeholders.
 # Notte substitutes the real credential before the keystrokes reach the page,
 # so the script never contains the secret.
-notte sessions start --vault-id <vault-id>
-notte page goto "https://dashboard.example.com/login"
-notte page fill "input[name='email']" "user@example.org"
-notte page fill "input[name='password']" "mycoolpassword"
-notte page fill "input[name='otp']" "999779"       # TOTP generated from the stored seed
+SESSION_ID=$(notte sessions start --vault-id <vault-id> -o json | jq -r '.session_id')
+notte page goto --session-id "$SESSION_ID" "https://dashboard.example.com/login"
+notte page fill --session-id "$SESSION_ID" "input[name='email']" "user@example.org"
+notte page fill --session-id "$SESSION_ID" "input[name='password']" "mycoolpassword"
+notte page fill --session-id "$SESSION_ID" "input[name='otp']" "999779"       # TOTP generated from the stored seed
 ```
 
 ### Combined Pattern
@@ -377,28 +377,28 @@ VAULT_ID="vault_abc123"
 
 # Start the session with the vault attached - this is what enables sentinel
 # substitution. Without --vault-id the sentinels are filled literally.
-notte sessions start --vault-id "$VAULT_ID"
+SESSION_ID=$(notte sessions start --vault-id "$VAULT_ID" -o json | jq -r '.session_id')
 
 # Navigate to login and fill with sentinels, not real values
-notte page goto "https://analytics.example.com/login"
-notte page fill "input[name='email']" "user@example.org"
-notte page fill "input[name='password']" "mycoolpassword"
-notte page click "button[type='submit']"
+notte page goto --session-id "$SESSION_ID" "https://analytics.example.com/login"
+notte page fill --session-id "$SESSION_ID" "input[name='email']" "user@example.org"
+notte page fill --session-id "$SESSION_ID" "input[name='password']" "mycoolpassword"
+notte page click --session-id "$SESSION_ID" "button[type='submit']"
 
 # If the site prompts for MFA, fill the MFA sentinel - the TOTP is generated
 # from the seed stored in the vault
-notte page wait 2000
-notte page fill "input[name='otp']" "999779" 2>/dev/null || true
+notte page wait --session-id "$SESSION_ID" 2000
+notte page fill --session-id "$SESSION_ID" "input[name='otp']" "999779" 2>/dev/null || true
 
 # Now logged in, collect data
-notte page goto "https://analytics.example.com/reports/weekly"
-REPORT=$(notte page scrape --instructions "Extract the weekly metrics summary")
+notte page goto --session-id "$SESSION_ID" "https://analytics.example.com/reports/weekly"
+REPORT=$(notte page scrape --session-id "$SESSION_ID" --instructions "Extract the weekly metrics summary")
 
 # Save cookies for faster future logins
-notte sessions cookies -o json > analytics_cookies.json
+notte sessions cookies --session-id "$SESSION_ID" -o json > analytics_cookies.json
 
 # Cleanup
-notte sessions stop
+notte sessions stop --session-id "$SESSION_ID"
 
 echo "Report collected: $REPORT"
 ```

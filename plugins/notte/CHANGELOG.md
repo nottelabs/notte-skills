@@ -12,6 +12,20 @@ not need a major bump - see <https://semver.org/#spec-item-4>. Tag releases as
 `notte-v<version>` from the first real release so consumers can pin instead of
 tracking the default branch.
 
+## 0.0.4 (2026-08-10)
+
+**Targets CLI v0.0.31 or newer.**
+
+### Behavior Changes
+
+* make the skills always use explicit resource IDs throughout browser and
+  Function workflows: every page/session command now passes `--session-id`,
+  every Function command passes `--function-id`, and session-backed file
+  commands pass `--session-id`
+* capture IDs from `sessions start` and `functions create` in every end-to-end
+  example and shell template; stop relying on current-session/current-Function
+  or environment-variable fallback behavior
+
 ## 0.0.3 (2026-08-06)
 
 **Targets CLI v0.0.31 or newer.**

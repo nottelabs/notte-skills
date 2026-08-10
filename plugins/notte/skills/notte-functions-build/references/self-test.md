@@ -9,7 +9,7 @@ A Function is not done when it is created - it is done when a real cloud run ret
 
 ## `functions run` blocks and returns the result inline
 
-`notte functions run -o json` runs the Function in the cloud, **waits for it to finish**, and returns both `status` and `result` in one payload. For the common case you do not need a separate poll:
+`notte functions run --function-id <function-id> -o json` runs the Function in the cloud, **waits for it to finish**, and returns both `status` and `result` in one payload. For the common case you do not need a separate poll:
 
 ```bash
 notte functions run --function-id "$TARGET_ID" -o json | jq '{status, result}'
@@ -36,7 +36,9 @@ This is why the [health contract](health-contract.md) assertions matter: a broke
 
 ## Always target an explicit Function id
 
-Capture the Function id once and pass `--function-id "$TARGET_ID"` on every `run`, `run-metadata`, and `update` below. Do not rely on the implicit "current function" pointer: `notte functions create` and `delete` move it, so a bare command can run against - or overwrite - the wrong Function once more than one exists.
+Capture the Function ID once and pass `--function-id "$TARGET_ID"` on every
+`run`, `run-metadata`, and `update` below. This skill must not rely on the CLI's
+current-Function fallback.
 
 - **notte-functions-build** sets `TARGET_ID` to the Function it just created.
 - **Doctor** sets `TARGET_ID` to the throwaway verify Function, never the live one.
@@ -133,9 +135,9 @@ RUN_ID=$(notte functions run --function-id "$TARGET_ID" -o json | jq -r '.functi
 notte functions run-metadata --function-id "$TARGET_ID" --run-id "$RUN_ID" -o json | jq -r '.logs[]'
 ```
 
-Looking it up in history works too: `notte functions runs` returns every run, newest first. `--running` narrows to runs still executing, which is only useful when chasing a run that outlived its request timeout.
+Looking it up in history works too: `notte functions runs --function-id <function-id>` returns every run, newest first. `--running` narrows to runs still executing, which is only useful when chasing a run that outlived its request timeout.
 
-`run-metadata`'s `result` can come back as a Python `repr` rather than clean JSON, so prefer the `notte functions run` output (above) for contract validation, and use `run-metadata` only for logs and history.
+`run-metadata`'s `result` can come back as a Python `repr` rather than clean JSON, so prefer the `notte functions run --function-id <function-id>` output (above) for contract validation, and use `run-metadata` only for logs and history.
 
 ## Optional - isolate the self-test in a sub-agent
 
