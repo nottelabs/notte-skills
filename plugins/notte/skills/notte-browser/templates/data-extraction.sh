@@ -43,6 +43,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 SESSION_ID=""
+SCRAPE_RESULT=""
 
 log_info() { echo -e "${GREEN}[INFO]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
@@ -64,7 +65,16 @@ session_scrape() {
     local instructions="$2"
 
     log_step "Starting browser session..."
-    SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+    local session_result
+    session_result=$(notte sessions start -o json)
+    if ! SESSION_ID=$(echo "$session_result" | jq -er '
+        .session_id // .sessionId // .id
+        | select(type == "string" and length > 0)
+    '); then
+        SESSION_ID=""
+        log_error "Session start returned no valid session ID"
+        return 1
+    fi
 
     log_step "Navigating to: $url"
     notte page goto --session-id "$SESSION_ID" "$url"
@@ -117,7 +127,7 @@ $page_result"
         page_num=$((page_num + 1))
     done
 
-    echo "$all_results"
+    SCRAPE_RESULT="$all_results"
 }
 
 # Scrape multiple URLs
@@ -126,7 +136,16 @@ batch_scrape() {
     local all_results="[]"
 
     log_step "Starting browser session for batch scrape..."
-    SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+    local session_result
+    session_result=$(notte sessions start -o json)
+    if ! SESSION_ID=$(echo "$session_result" | jq -er '
+        .session_id // .sessionId // .id
+        | select(type == "string" and length > 0)
+    '); then
+        SESSION_ID=""
+        log_error "Session start returned no valid session ID"
+        return 1
+    fi
 
     for url in "${urls[@]}"; do
         log_step "Scraping: $url"
@@ -156,7 +175,7 @@ batch_scrape() {
         log_info "Completed: $url"
     done
 
-    echo "$all_results"
+    SCRAPE_RESULT="$all_results"
 }
 
 format_output() {
@@ -194,7 +213,8 @@ main() {
     else
         log_info "Mode: Single-page session scrape"
     fi
-    result=$(session_scrape "$TARGET_URL" "$EXTRACTION_INSTRUCTIONS")
+    session_scrape "$TARGET_URL" "$EXTRACTION_INSTRUCTIONS"
+    result="$SCRAPE_RESULT"
 
     # Format and output
     local formatted
@@ -208,7 +228,8 @@ main() {
 # Handle batch mode if multiple URLs provided
 if [[ $# -gt 1 ]]; then
     log_info "Batch mode: ${#} URLs"
-    result=$(batch_scrape "$@")
+    batch_scrape "$@"
+    result="$SCRAPE_RESULT"
     formatted=$(format_output "$result")
     save_output "$formatted" "$OUTPUT_FILE"
 else

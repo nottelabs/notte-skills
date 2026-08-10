@@ -60,9 +60,9 @@ This example uses `scrape` to demonstrate the end-to-end CLI flow, not because i
 ```bash
 # Build your automation interactively and keep the session ID
 SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
-notte page goto --session-id <session-id> "https://news.ycombinator.com"
-notte page observe --session-id <session-id>
-notte page scrape --session-id <session-id> --instructions "Extract top 5 story titles and URLs"
+notte page goto --session-id "$SESSION_ID" "https://news.ycombinator.com"
+notte page observe --session-id "$SESSION_ID"
+notte page scrape --session-id "$SESSION_ID" --instructions "Extract top 5 story titles and URLs"
 
 # Stop the session when the interactive test is done
 notte sessions stop --session-id "$SESSION_ID"

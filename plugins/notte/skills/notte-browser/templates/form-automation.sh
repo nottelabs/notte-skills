@@ -7,6 +7,7 @@
 # Prerequisites:
 #   - notte CLI installed and authenticated (notte auth login)
 #   - NOTTE_API_KEY environment variable set
+#   - jq installed (used to capture the explicit session ID)
 #
 # Customize the variables below for your form
 
@@ -74,10 +75,12 @@ main() {
     # Start browser session
     log_info "Starting browser session..."
     SESSION_RESULT=$(notte sessions start -o json)
-    SESSION_ID=$(echo "$SESSION_RESULT" | jq -r '.session_id // .sessionId // .id')
-
-    if [[ -z "$SESSION_ID" || "$SESSION_ID" == "null" ]]; then
-        log_error "Failed to start session"
+    if ! SESSION_ID=$(echo "$SESSION_RESULT" | jq -er '
+        .session_id // .sessionId // .id
+        | select(type == "string" and length > 0)
+    '); then
+        SESSION_ID=""
+        log_error "Session start returned no valid session ID"
         exit 1
     fi
     log_info "Session started: $SESSION_ID"

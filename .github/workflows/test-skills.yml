@@ -43,6 +43,9 @@ jobs:
       - name: Test the validator
         run: python3 scripts/test-validate-plugins.py
 
+      - name: Test browser templates
+        run: python3 scripts/test-browser-templates.py
+
   lint-scripts:
     runs-on: ubuntu-latest
     steps:

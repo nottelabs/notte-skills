@@ -202,7 +202,16 @@ main() {
     # Attach the vault to the session. Without this, the sentinels above are
     # filled literally and the login will fail.
     log_step "Starting browser session with vault attached..."
-    SESSION_ID=$(notte sessions start --vault-id "$VAULT_ID" -o json | jq -r '.session_id')
+    local session_result
+    session_result=$(notte sessions start --vault-id "$VAULT_ID" -o json)
+    if ! SESSION_ID=$(echo "$session_result" | jq -er '
+        .session_id // .sessionId // .id
+        | select(type == "string" and length > 0)
+    '); then
+        SESSION_ID=""
+        log_error "Session start returned no valid session ID"
+        exit 1
+    fi
     log_info "Session started: $SESSION_ID"
 
     # Try to restore cookies first (skip login if still valid)
