@@ -62,7 +62,7 @@ From the user's request, pin down:
 - **Target site** - a specific URL/platform, or only an objective ("track competitor prices").
 - **Output fields** - the exact data to return (title, price, url, ...).
 - **Parameters** - the business variables that change between runs (keyword, location, page count, category). These become `run(...)` arguments and Function invocation variables.
-- **Scale / recurrence** - one input or many? On a schedule? This decides whether to offer `notte functions schedule` at the end.
+- **Scale / recurrence** - one input or many? On a schedule? This decides whether to offer `notte functions schedule --function-id <function-id>` at the end.
 
 ### 1b. Research the target (only when no URL is given)
 
@@ -78,7 +78,7 @@ Then propose 1-5 candidates ranked by data reliability with short pros/cons. Con
 
 Now that you know the target and the fields, check whether someone has already published a Function for it - building is the expensive path. If the plugin's `anything-api` MCP server is available (`https://anything.notte.cc/mcp`), call its **`search`** tool; the marketplace carries ready-made Functions for common targets (Zillow, Amazon, LinkedIn, and similar). Browsing needs no authentication.
 
-- A published Function that fits: use `spec` to read its variable schema, then `run` it, or `notte functions fork` it to own a copy. Report this to the user instead of building a duplicate - it saves the entire exploration cost.
+- A published Function that fits: use `spec` to read its variable schema, then `run` it, or `notte functions fork --function-id <shared-function-id>` it to own a copy. Report this to the user instead of building a duplicate - it saves the entire exploration cost.
 - Nothing fits: continue to the gate below.
 
 If the MCP server is not wired up, say so once and proceed; it is an optimization, not a prerequisite. The marketplace is also browsable at <https://anything.notte.cc/marketplace>.
@@ -107,12 +107,12 @@ Start a session and develop the task interactively (this is exactly the `notte-b
 
 ```bash
 notte sessions start
-notte page goto "{url}"
-notte page observe
-notte page scrape --instructions "Extract {fields} as JSON" -o json
+notte page goto --session-id <session-id> "{url}"
+notte page observe --session-id <session-id>
+notte page scrape --session-id <session-id> --instructions "Extract {fields} as JSON" -o json
 ```
 
-For the full discipline - API-first endpoint discovery via `notte sessions network`, DOM fallback, selector priority, and when to stop - read:
+For the full discipline - API-first endpoint discovery via `notte sessions network --session-id <session-id>`, DOM fallback, selector priority, and when to stop - read:
 
 -> **[references/exploration.md](references/exploration.md)**
 
@@ -149,7 +149,8 @@ Read these before editing:
 
 ## Phase 4 - Publish and self-test
 
-Create the Function and capture its id (creation also makes it the current function, but referencing it explicitly is safer once more than one Function exists):
+Create the Function and capture its ID; this skill must pass that explicit ID to
+all later commands:
 
 ```bash
 FUNCTION_ID=$(notte functions create \
@@ -159,7 +160,7 @@ FUNCTION_ID=$(notte functions create \
   -o json | jq -r '.function_id')
 ```
 
-Then **self-test in the cloud** and verify the result against the health contract. `notte functions run` blocks until the run finishes and returns `status` and `result` inline. Pass non-default parameters with `--var key=value` (or `--vars '{json}'`):
+Then **self-test in the cloud** and verify the result against the health contract. `notte functions run --function-id <function-id>` blocks until the run finishes and returns `status` and `result` inline. Pass non-default parameters with `--var key=value` (or `--vars '{json}'`):
 
 ```bash
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
@@ -215,7 +216,7 @@ The CLI passes the expression straight through and reports back the API's respon
 
 ### Promote to the catalog (optional)
 
-A built Function that is broadly useful (not tied to one user's private inputs) is a candidate for a shared, reusable Function. Mention this to the user; if they want it shared, create it with `--shared` so others can `notte functions fork` it.
+A built Function that is broadly useful (not tied to one user's private inputs) is a candidate for a shared, reusable Function. Mention this to the user; if they want it shared, create it with `--shared` so others can `notte functions fork --function-id <shared-function-id>` it.
 
 ---
 

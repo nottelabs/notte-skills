@@ -7,6 +7,7 @@
 # Prerequisites:
 #   - notte CLI installed and authenticated (notte auth login)
 #   - NOTTE_API_KEY environment variable set
+#   - jq installed (used to capture the explicit session ID)
 #
 # Customize the variables below for your form
 
@@ -39,6 +40,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+SESSION_ID=""
 
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -54,7 +56,9 @@ log_error() {
 
 cleanup() {
     log_info "Cleaning up..."
-    notte sessions stop --yes 2>/dev/null || true
+    if [[ -n "$SESSION_ID" ]]; then
+        notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null || true
+    fi
 }
 
 # Ensure cleanup on exit
@@ -71,21 +75,23 @@ main() {
     # Start browser session
     log_info "Starting browser session..."
     SESSION_RESULT=$(notte sessions start -o json)
-    SESSION_ID=$(echo "$SESSION_RESULT" | jq -r '.session_id // .sessionId // .id')
-
-    if [[ -z "$SESSION_ID" || "$SESSION_ID" == "null" ]]; then
-        log_error "Failed to start session"
+    if ! SESSION_ID=$(echo "$SESSION_RESULT" | jq -er '
+        .session_id // .sessionId // .id
+        | select(type == "string" and length > 0)
+    '); then
+        SESSION_ID=""
+        log_error "Session start returned no valid session ID"
         exit 1
     fi
     log_info "Session started: $SESSION_ID"
 
     # Navigate to form page
     log_info "Navigating to: $TARGET_URL"
-    notte page goto "$TARGET_URL"
-    notte page observe > /dev/null
+    notte page goto --session-id "$SESSION_ID" "$TARGET_URL"
+    notte page observe --session-id "$SESSION_ID" > /dev/null
 
     # Wait for page to load
-    notte page wait 1000
+    notte page wait --session-id "$SESSION_ID" 1000
 
     # Fill form fields
     log_info "Filling form fields..."
@@ -94,28 +100,28 @@ main() {
         value="${field#*|}"
 
         log_info "  Filling $selector"
-        if ! notte page fill "$selector" "$value"; then
+        if ! notte page fill --session-id "$SESSION_ID" "$selector" "$value"; then
             log_warn "Failed to fill $selector, continuing..."
         fi
-        notte page wait 200
+        notte page wait --session-id "$SESSION_ID" 200
     done
 
     # Take screenshot before submit
     if [[ "$TAKE_SCREENSHOTS" == "true" ]]; then
         log_info "Taking pre-submit screenshot..."
-        notte page screenshot
+        notte page screenshot --session-id "$SESSION_ID"
     fi
 
     # Submit form
     log_info "Submitting form..."
-    notte page click "$SUBMIT_SELECTOR"
+    notte page click --session-id "$SESSION_ID" "$SUBMIT_SELECTOR"
 
     # Wait for response
-    notte page wait 2000
+    notte page wait --session-id "$SESSION_ID" 2000
 
     # Verify submission
     log_info "Verifying submission..."
-    SCRAPE_RESULT=$(notte page scrape --instructions "Check if the page shows a success message")
+    SCRAPE_RESULT=$(notte page scrape --session-id "$SESSION_ID" --instructions "Check if the page shows a success message")
 
     if echo "$SCRAPE_RESULT" | grep -qi "$SUCCESS_INDICATOR"; then
         log_info "Form submitted successfully!"
@@ -123,7 +129,7 @@ main() {
         # Take success screenshot
         if [[ "$TAKE_SCREENSHOTS" == "true" ]]; then
             log_info "Taking success screenshot..."
-            notte page screenshot
+            notte page screenshot --session-id "$SESSION_ID"
         fi
     else
         log_warn "Could not verify success. Check the result manually."

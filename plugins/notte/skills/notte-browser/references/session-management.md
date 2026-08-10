@@ -85,19 +85,17 @@ notte sessions start --cdp-url "ws://localhost:9222/devtools/browser/..."
 
 ## Session ID Management
 
-### Current Session
+### Capture and Pass the ID
 
-When you start a session, it becomes the "current session" automatically:
+Capture the ID returned by `sessions start`, then pass it on every command that
+targets that session:
 
 ```bash
-notte sessions start
-# Session ID saved to ~/.notte/cli/current_session
-
-# These commands use the current session automatically:
-notte page observe
-notte page click "B3"
-notte page scrape
-notte sessions stop
+SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+notte page observe --session-id "$SESSION_ID"
+notte page click --session-id "$SESSION_ID" "B3"
+notte page scrape --session-id "$SESSION_ID"
+notte sessions stop --session-id "$SESSION_ID"
 ```
 
 ### Explicit Session ID
@@ -105,17 +103,10 @@ notte sessions stop
 ```bash
 # Via --session-id flag
 notte page observe --session-id sess_abc123
-
-# Via environment variable
-export NOTTE_SESSION_ID=sess_abc123
-notte page observe
 ```
 
-### Priority Order
-
-1. `--session-id` flag (highest)
-2. `NOTTE_SESSION_ID` environment variable
-3. Current session file (set by `sessions start`)
+Skill rule: always pass `--session-id`. Do not rely on the CLI's
+environment-variable or local-current-session fallback behavior.
 
 ## Observing Page State
 
@@ -123,8 +114,8 @@ The `observe` command returns the current page state including available actions
 
 ```bash
 # Observe the current page. `observe` takes no arguments - navigate first.
-notte page goto "https://example.com"
-notte page observe
+notte page goto --session-id <session-id> "https://example.com"
+notte page observe --session-id <session-id>
 ```
 
 ### Observe Response
@@ -151,9 +142,9 @@ IDs are prefixed by element class - `I*` for inputs, `B*` for buttons, `L*` for
 links. Use them directly in page commands:
 
 ```bash
-notte page fill "I1" "user@example.com"
-notte page fill "I2" "password"
-notte page click "B1"
+notte page fill --session-id <session-id> "I1" "user@example.com"
+notte page fill --session-id <session-id> "I2" "password"
+notte page click --session-id <session-id> "B1"
 ```
 
 ## Executing Actions
@@ -162,19 +153,19 @@ Use the `page` commands for interacting with the browser:
 
 ```bash
 # Navigate
-notte page goto "https://example.com"
+notte page goto --session-id <session-id> "https://example.com"
 
 # Click
-notte page click "B3"
+notte page click --session-id <session-id> "B3"
 
 # Fill
-notte page fill "B1" "hello"
+notte page fill --session-id <session-id> "B1" "hello"
 
 # Select dropdown
-notte page select "select[name='country']" "Option 1"
+notte page select --session-id <session-id> "select[name='country']" "Option 1"
 
 # Press key
-notte page press "Enter"
+notte page press --session-id <session-id> "Enter"
 ```
 
 See the main SKILL.md for complete page command reference.
@@ -185,13 +176,13 @@ See the main SKILL.md for complete page command reference.
 
 ```bash
 # Scrape entire page
-notte page scrape
+notte page scrape --session-id <session-id>
 
 # With extraction instructions
-notte page scrape --instructions "Extract all product names and prices as JSON"
+notte page scrape --session-id <session-id> --instructions "Extract all product names and prices as JSON"
 
 # Only main content (skip headers, footers, ads)
-notte page scrape --only-main-content
+notte page scrape --session-id <session-id> --only-main-content
 ```
 
 ### Structured Extraction
@@ -199,7 +190,7 @@ notte page scrape --only-main-content
 Extraction instructions accept natural language:
 
 ```bash
-notte page scrape --instructions "Extract:
+notte page scrape --session-id <session-id> --instructions "Extract:
 - Article title
 - Author name
 - Publication date
@@ -245,9 +236,9 @@ notte sessions start --idle-timeout-minutes 10 --max-duration-minutes 60
 Download the network logs (HAR) and print where they landed:
 
 ```bash
-notte sessions network                  # downloads to a temp directory
-notte sessions network --path ./har     # choose the output directory
-notte sessions network --urls-only      # print request URLs inline, no download
+notte sessions network --session-id <session-id>                  # downloads to a temp directory
+notte sessions network --session-id <session-id> --path ./har     # choose the output directory
+notte sessions network --session-id <session-id> --urls-only      # print request URLs inline, no download
 ```
 
 Useful for debugging API calls, failed requests, and for finding a site's
@@ -258,21 +249,22 @@ internal data API during exploration.
 Download the session replay video:
 
 ```bash
-notte sessions replay
+notte sessions replay --session-id <session-id>
 ```
 
-To watch a session live instead, use `notte sessions viewer`.
+To watch a session live instead, use
+`notte sessions viewer --session-id <session-id>`.
 
 ### Export Code
 
 Export session steps as reusable code:
 
 ```bash
-notte sessions workflow-code
+notte sessions workflow-code --session-id <session-id>
 ```
 
 Generates a workflow script from your session actions, in the shape
-`notte functions create` expects. `notte sessions code` hits the same endpoint
+`notte functions create` expects. `notte sessions code --session-id <session-id>` hits the same endpoint
 without the workflow wrapper and returns a plain replay script - prefer
 `workflow-code` when the target is a Function.
 
@@ -281,10 +273,10 @@ without the workflow wrapper and returns a plain replay script - prefer
 ### Get Cookies
 
 ```bash
-notte sessions cookies
+notte sessions cookies --session-id <session-id>
 ```
 
-Returns all cookies for the current session.
+Returns all cookies for the specified session.
 
 ### Set Cookies
 
@@ -294,19 +286,19 @@ Restore cookies from a previous session:
 # cookies.json format:
 # [{"name": "session", "value": "abc123", "domain": ".example.com", ...}]
 
-notte sessions cookies-set --file cookies.json
+notte sessions cookies-set --session-id <session-id> --file cookies.json
 ```
 
 ### Cookie Persistence Pattern
 
 ```bash
 # Save cookies after login
-notte sessions cookies -o json > cookies.json
+notte sessions cookies --session-id <session-id> -o json > cookies.json
 
 # Restore in new session
-notte sessions start
-notte sessions cookies-set --file cookies.json
-notte page goto "https://example.com/dashboard"  # Already logged in
+NEW_SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+notte sessions cookies-set --session-id "$NEW_SESSION_ID" --file cookies.json
+notte page goto --session-id "$NEW_SESSION_ID" "https://example.com/dashboard"  # Already logged in
 ```
 
 ## Session Status
@@ -314,7 +306,7 @@ notte page goto "https://example.com/dashboard"  # Already logged in
 Check if session is still active:
 
 ```bash
-notte sessions status
+notte sessions status --session-id <session-id>
 ```
 
 ### List All Sessions
@@ -330,14 +322,11 @@ notte sessions list --page 2 --page-size 10   # running only; add -a/--all for s
 ## Stopping Sessions
 
 ```bash
-# Stop current session
-notte sessions stop
-
-# Stop specific session
+# Stop a specific session
 notte sessions stop --session-id sess_abc123
 
 # Skip confirmation prompt
-notte sessions stop --yes
+notte sessions stop --session-id <session-id> --yes
 ```
 
 ## Best Practices
@@ -347,8 +336,9 @@ notte sessions stop --yes
 Sessions consume resources. Always stop when done:
 
 ```bash
-# In scripts, use trap for cleanup
-trap 'notte sessions stop --yes 2>/dev/null' EXIT
+# In scripts, capture the ID and use it in the cleanup trap
+SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+trap 'notte sessions stop --session-id "$SESSION_ID" --yes 2>/dev/null' EXIT
 ```
 
 ### 2. Use Appropriate Timeouts
@@ -368,26 +358,26 @@ notte sessions start --idle-timeout-minutes 15 --max-duration-minutes 120
 Always observe to get current element IDs:
 
 ```bash
-notte page goto "https://example.com"
-notte page observe
+notte page goto --session-id <session-id> "https://example.com"
+notte page observe --session-id <session-id>
 # Now you know the element IDs
-notte page click "B3"
+notte page click --session-id <session-id> "B3"
 ```
 
 ### 4. Use JSON Output for Scripts
 
 ```bash
 # Parse response in scripts
-RESULT=$(notte page observe -o json)
+RESULT=$(notte page observe --session-id <session-id> -o json)
 URL=$(echo "$RESULT" | jq -r '.url')
 ```
 
 ### 5. Handle Errors Gracefully
 
 ```bash
-if ! notte page click "button[type='submit']"; then
+if ! notte page click --session-id <session-id> "button[type='submit']"; then
   echo "Click failed, retrying..."
-  notte page wait 1000
-  notte page click "button[type='submit']"
+  notte page wait --session-id <session-id> 1000
+  notte page click --session-id <session-id> "button[type='submit']"
 fi
 ```
