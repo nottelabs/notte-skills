@@ -357,12 +357,20 @@ notte page wait --session-id <session-id> 1000
 # Solve CAPTCHA - pass the challenge type, e.g. recaptcha_v2 or hcaptcha
 notte page captcha-solve --session-id <session-id> "recaptcha_v2"
 
+# Cloudflare WAF challenge pages and Turnstile use the cloudflare type
+notte page captcha-solve --session-id <session-id> "cloudflare"
+
 # Mark task complete
 notte page complete --session-id <session-id> "Task finished successfully" [--success=true]
 
 # Fill form with JSON data
 notte page form-fill --session-id <session-id> --data '{"email": "test@example.com", "name": "John"}'
 ```
+
+CAPTCHA solving is enabled automatically for a session unless it was started
+with `--no-solve-captchas`. If a Cloudflare WAF interstitial or Turnstile
+challenge is still visible, explicitly run `captcha-solve` with the
+`cloudflare` type before continuing with page actions.
 
 ### Functions (Workflow Automation and API Endpoints)
 
