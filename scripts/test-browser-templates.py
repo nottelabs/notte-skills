@@ -119,6 +119,20 @@ class BrowserTemplateTests(unittest.TestCase):
                         commands,
                     )
 
+    def test_authenticated_template_uses_named_vault_fields(self) -> None:
+        completed, commands = self.run_template(
+            "authenticated-session.sh", '{"session_id":"sess_test"}'
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+
+        fills = [command for command in commands if command.startswith("page fill ")]
+        self.assertTrue(
+            any("--vault-field email" in command for command in fills), fills
+        )
+        self.assertTrue(
+            any("--vault-field password" in command for command in fills), fills
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

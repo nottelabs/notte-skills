@@ -210,7 +210,7 @@ notte vaults credentials add \
 > secret out of your **shell history** and out of committed files, but the shell
 > expands it before `exec`, so it does **not** hide the value from `ps`. Add each
 > credential to the vault **once**, from a machine and shell you control, then
-> rely on the vault and sentinel placeholders so the secret never crosses `argv`
+> rely on the vault and `--vault-field` so the secret never crosses `argv`
 > again. Avoid running these commands on shared or multi-tenant hosts.
 
 ### Listing Credentials
@@ -254,24 +254,23 @@ notte vaults credentials add \
 
 The MFA secret is the base32-encoded key shown when setting up authenticator apps (usually displayed as a QR code or "manual entry" key).
 
-## Sentinel Placeholders
+## Named Vault Fields
 
 Credentials do **not** auto-fill on navigation. Attaching a vault to a session
-(`notte sessions start --vault-id <vault-id>`) enables *substitution*: you fill
-these exact sentinel strings, and Notte swaps in the matching real credential
-before the keystrokes reach the page.
+(`notte sessions start --vault-id <vault-id>`) enables credential substitution.
+Pass one of these names to `notte page fill --vault-field`; the CLI maps it to
+the placeholder that Notte replaces before the keystrokes reach the page.
 
-| Field    | Sentinel             |
-|----------|----------------------|
-| email    | `user@example.org`   |
-| username | `cooljohnny1567`     |
-| password | `mycoolpassword`     |
-| MFA code | `999779`             |
+| Credential | `--vault-field` value |
+|------------|-----------------------|
+| email      | `email`               |
+| username   | `username`            |
+| password   | `password`            |
+| MFA code   | `mfa`                 |
 
-The match must be exact - any other string is filled literally. The same
-sentinels work when a session is started with
-`--vault-id`. This is what keeps the real secret out of your scripts, logs, and
-shell history.
+The field name must be exact. Supplying both a literal value and `--vault-field`
+is an error. This interface keeps both the implementation-specific sentinel and
+the real secret out of your scripts, logs, and shell history.
 
 ## Authentication Patterns
 
@@ -305,14 +304,14 @@ notte vaults credentials add --vault-id <vault-id> \
   --password "$DASHBOARD_PASSWORD" \
   --mfa-secret "$DASHBOARD_MFA_SECRET"
 
-# Then attach the vault to the session and fill with sentinel placeholders.
+# Then attach the vault to the session and fill by credential field name.
 # Notte substitutes the real credential before the keystrokes reach the page,
-# so the script never contains the secret.
+# so the script contains neither the sentinel nor the secret.
 SESSION_ID=$(notte sessions start --vault-id <vault-id> -o json | jq -r '.session_id')
 notte page goto --session-id "$SESSION_ID" "https://dashboard.example.com/login"
-notte page fill --session-id "$SESSION_ID" "input[name='email']" "user@example.org"
-notte page fill --session-id "$SESSION_ID" "input[name='password']" "mycoolpassword"
-notte page fill --session-id "$SESSION_ID" "input[name='otp']" "999779"       # TOTP generated from the stored seed
+notte page fill --session-id "$SESSION_ID" "input[name='email']" --vault-field email
+notte page fill --session-id "$SESSION_ID" "input[name='password']" --vault-field password
+notte page fill --session-id "$SESSION_ID" "input[name='otp']" --vault-field mfa # TOTP generated from the stored seed
 ```
 
 ### Combined Pattern
@@ -375,20 +374,19 @@ set -euo pipefail
 
 VAULT_ID="vault_abc123"
 
-# Start the session with the vault attached - this is what enables sentinel
-# substitution. Without --vault-id the sentinels are filled literally.
+# Start the session with the vault attached so named credential fills resolve.
 SESSION_ID=$(notte sessions start --vault-id "$VAULT_ID" -o json | jq -r '.session_id')
 
-# Navigate to login and fill with sentinels, not real values
+# Navigate to login and fill by vault field, not with sentinels or real values
 notte page goto --session-id "$SESSION_ID" "https://analytics.example.com/login"
-notte page fill --session-id "$SESSION_ID" "input[name='email']" "user@example.org"
-notte page fill --session-id "$SESSION_ID" "input[name='password']" "mycoolpassword"
+notte page fill --session-id "$SESSION_ID" "input[name='email']" --vault-field email
+notte page fill --session-id "$SESSION_ID" "input[name='password']" --vault-field password
 notte page click --session-id "$SESSION_ID" "button[type='submit']"
 
-# If the site prompts for MFA, fill the MFA sentinel - the TOTP is generated
-# from the seed stored in the vault
+# If the site prompts for MFA, request it by field name. The TOTP is generated
+# from the seed stored in the vault.
 notte page wait --session-id "$SESSION_ID" 2000
-notte page fill --session-id "$SESSION_ID" "input[name='otp']" "999779" 2>/dev/null || true
+notte page fill --session-id "$SESSION_ID" "input[name='otp']" --vault-field mfa 2>/dev/null || true
 
 # Now logged in, collect data
 notte page goto --session-id "$SESSION_ID" "https://analytics.example.com/reports/weekly"
