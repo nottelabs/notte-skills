@@ -12,6 +12,18 @@ not need a major bump - see <https://semver.org/#spec-item-4>. Tag releases as
 `notte-v<version>` from the first real release so consumers can pin instead of
 tracking the default branch.
 
+## 0.0.5 (2026-08-20)
+
+**Targets CLI v0.0.33 or newer.**
+
+### Behavior Changes
+
+* use the CLI's named `page fill --vault-field` interface for vault-backed
+  email, username, password, and MFA values instead of embedding Notte's
+  implementation-specific sentinel strings in skills and templates
+* keep both sentinel values and real credentials out of generated shell
+  commands while preserving server-side vault substitution
+
 ## 0.0.4 (2026-08-10)
 
 **Targets CLI v0.0.31 or newer.**

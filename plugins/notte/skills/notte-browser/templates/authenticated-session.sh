@@ -19,9 +19,9 @@
 #
 # HOW THIS WORKS - read before editing:
 #   This script never reads your password. It attaches the vault to the session
-#   with --vault-id and fills SENTINEL PLACEHOLDERS; Notte substitutes the real
-#   credential server-side, before the keystrokes reach the page. That keeps the
-#   secret out of argv, out of `ps`, out of this file, and out of your logs.
+#   with --vault-id and selects credentials with --vault-field; Notte substitutes
+#   the real credential server-side, before the keystrokes reach the page. That
+#   keeps both sentinels and secrets out of argv, `ps`, this file, and logs.
 #
 #   Do NOT "improve" this by calling `notte vaults credentials get` and filling
 #   the returned password - that pulls the plaintext secret into the shell and
@@ -39,13 +39,6 @@ EMAIL_SELECTOR="input[type='email']"
 PASSWORD_SELECTOR="input[type='password']"
 SUBMIT_SELECTOR="button[type='submit']"
 MFA_SELECTOR="input[name='otp']"  # Optional: selector for MFA input
-
-# Sentinel placeholders - these exact strings are replaced with the matching
-# vault credential at fill time. Do not substitute real values here.
-SENTINEL_EMAIL="user@example.org"
-SENTINEL_USERNAME="cooljohnny1567"
-SENTINEL_PASSWORD="mycoolpassword"
-SENTINEL_MFA="999779"
 
 # Set to true if the site's first field takes a username rather than an email
 USE_USERNAME=false
@@ -137,18 +130,18 @@ perform_login() {
     notte page observe --session-id "$SESSION_ID" > /dev/null
     notte page wait --session-id "$SESSION_ID" 1000
 
-    # Fill the identifier field with a sentinel - the vault supplies the value
+    # Select the identifier field by name; the vault supplies the value.
     if [[ "$USE_USERNAME" == "true" ]]; then
         log_info "Filling username (vault-substituted)"
-        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" "$SENTINEL_USERNAME"
+        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" --vault-field username
     else
         log_info "Filling email (vault-substituted)"
-        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" "$SENTINEL_EMAIL"
+        notte page fill --session-id "$SESSION_ID" "$EMAIL_SELECTOR" --vault-field email
     fi
     notte page wait --session-id "$SESSION_ID" 300
 
     log_info "Filling password (vault-substituted)"
-    notte page fill --session-id "$SESSION_ID" "$PASSWORD_SELECTOR" "$SENTINEL_PASSWORD"
+    notte page fill --session-id "$SESSION_ID" "$PASSWORD_SELECTOR" --vault-field password
     notte page wait --session-id "$SESSION_ID" 300
 
     log_step "Submitting login form..."
@@ -166,12 +159,10 @@ perform_login() {
 }
 
 handle_mfa() {
-    # The MFA sentinel is replaced with a TOTP generated from the --mfa-secret
-    # stored in the vault. If no MFA secret was stored, this fill will submit
-    # the literal sentinel and fail - store the secret instead of hardcoding a
-    # code here.
+    # The MFA vault field produces a TOTP from the --mfa-secret stored in the
+    # vault. Store the seed instead of hardcoding a code here.
     log_info "Filling MFA code (vault-generated TOTP)"
-    notte page fill --session-id "$SESSION_ID" "$MFA_SELECTOR" "$SENTINEL_MFA" --enter
+    notte page fill --session-id "$SESSION_ID" "$MFA_SELECTOR" --vault-field mfa --enter
     notte page wait --session-id "$SESSION_ID" 3000
 
     local current_url
@@ -199,8 +190,7 @@ main() {
         exit 1
     fi
 
-    # Attach the vault to the session. Without this, the sentinels above are
-    # filled literally and the login will fail.
+    # Attach the vault to the session so --vault-field fills can resolve.
     log_step "Starting browser session with vault attached..."
     local session_result
     session_result=$(notte sessions start --vault-id "$VAULT_ID" -o json)

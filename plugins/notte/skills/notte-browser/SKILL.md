@@ -37,7 +37,7 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.31 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--headed`, `--no-solve-captchas` and `--no-file-storage`. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.33 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--headed`, `--no-solve-captchas` and `--no-file-storage`; v0.0.33 adds named `--vault-field` credential fills. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
@@ -120,7 +120,7 @@ notte sessions start [flags]
   --proxy                    Use default proxies
   --proxy-country <code>     Proxy country code (e.g. us, gb, fr). Implies --proxy
   --no-solve-captchas        Turn OFF captcha solving (it is on by default)
-  --vault-id <vault-id>      Attach a vault so sentinel placeholders resolve (see below)
+  --vault-id <vault-id>      Attach a vault so --vault-field fills resolve (see below)
   --profile-id <profile-id>  Load browser state from a profile
   --profile-persist          Save browser state back to the profile on session close
   --viewport-width           Viewport width in pixels
@@ -263,6 +263,8 @@ notte page click --session-id <session-id> "#submit-button"
 notte page fill --session-id <session-id> "I1" "hello world"
   --clear       Clear field before filling
   --enter       Press Enter after filling
+  --vault-field Fill from the attached vault instead of using a literal value:
+                email, username, password, or mfa
 
 # Check/uncheck a checkbox
 notte page check --session-id <session-id> "#my-checkbox"
@@ -712,26 +714,27 @@ notte vaults credentials add --vault-id <vault-id> \
   --password "$MYSERVICE_PASSWORD" \
   --mfa-secret "EXAMPLEMFASECRET"   # placeholder — replace with your real base32 TOTP seed
 
-# Attach the vault to the session, then fill with sentinel placeholders.
-# When a vault is attached, the sentinels below are substituted with the
-# matching real credential at run-time, so the script never contains the
-# secret itself.
+# Attach the vault to the session, then select credentials by field name.
+# The CLI sends the corresponding placeholder for server-side substitution,
+# so the script never contains the sentinel or the real secret.
 SESSION_ID=$(notte sessions start --vault-id <vault-id> -o json | jq -r '.session_id')
 notte page goto --session-id "$SESSION_ID" "https://myservice.com/login"
-notte page fill --session-id "$SESSION_ID" "input[name='email']" "user@example.org"
-notte page fill --session-id "$SESSION_ID" "input[name='password']" "mycoolpassword"
-notte page fill --session-id "$SESSION_ID" "input[name='otp']" "999779"
+notte page fill --session-id "$SESSION_ID" "input[name='email']" --vault-field email
+notte page fill --session-id "$SESSION_ID" "input[name='password']" --vault-field password
+notte page fill --session-id "$SESSION_ID" "input[name='otp']" --vault-field mfa
 notte sessions stop --session-id "$SESSION_ID"
 ```
 
-**Sentinel placeholders.** Use these exact strings as the value for `notte page fill --session-id <session-id>`; they're replaced with the matching vault credential before the keystrokes hit the page. Any other string is filled as-is, so the match must be exact.
+**Named vault fields.** Pass one of these names to `--vault-field`; the CLI maps
+it to the placeholder that Notte replaces with the matching vault credential
+before the keystrokes hit the page. Do not write sentinel strings directly.
 
-| Field    | Sentinel             |
-|----------|----------------------|
-| email    | `user@example.org`   |
-| username | `cooljohnny1567`     |
-| password | `mycoolpassword`     |
-| MFA code | `999779`             |
+| Credential | `--vault-field` value |
+|------------|-----------------------|
+| email      | `email`               |
+| username   | `username`            |
+| password   | `password`            |
+| MFA code   | `mfa`                 |
 
 ### Scheduled Data Collection
 
@@ -856,7 +859,7 @@ Be precise about what the env-var form does and does not buy you:
 Given that, the practical rule is to **minimize how often the secret crosses `argv` at all**:
 
 - **DO** add each credential to a vault **once**, from a machine and shell you control, with the value expanded from an environment variable or a `.env` file you own.
-- **DO** rely on the vault plus sentinel placeholders from then on. Automation scripts and Functions reference the sentinels, so the real secret never appears in a command again.
+- **DO** rely on the vault plus `--vault-field` from then on. The CLI references the credential by name, so neither the sentinel nor the real secret appears in the command.
 - **DO** use `notte functions secrets set` for values a Function reads from `os.environ`, rather than baking them into the workflow file or passing them as run variables.
 - **DON'T** type real credentials inline. The values in this skill (`$MYSERVICE_PASSWORD`, `EXAMPLEMFASECRET`, etc.) are placeholders.
 - **DON'T** run credential-adding commands on a shared or multi-tenant host, where another user can read `ps` output during the call.
