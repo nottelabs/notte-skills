@@ -51,6 +51,8 @@ async () => {
 '
 ```
 
+Inside a deployed Function the equivalent is `session.evaluate_js(code)`, which returns the evaluated string directly (objects and arrays as JSON) and raises with the actual JavaScript error on failure — so `json.loads(session.evaluate_js(code))` is the whole read.
+
 If the endpoint returns the data reliably, that is your path. Note it and move to generation.
 
 ### Network capture tips
