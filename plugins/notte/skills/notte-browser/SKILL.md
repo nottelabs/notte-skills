@@ -285,8 +285,14 @@ notte page upload --session-id <session-id> "#file-input" --file report.pdf
 **Run JavaScript in the page:**
 
 - Escape single quotes if needed.
-- Don't use logging - stdout is not captured.
+- `console.log` output is discarded - only the returned value comes back.
 - Use a single expression, or a function that returns a value.
+- **The returned value is printed alone on stdout** (objects and arrays as JSON,
+  a JS `null` as `null`), with the status line on stderr - so it captures into a
+  shell variable and pipes without post-processing. Use `-o json` when you want
+  the whole execution result instead.
+- A failing script exits non-zero and reports the actual JavaScript error, so
+  `set -e` and `||` fallbacks behave.
 
 ```bash
 # Single expression
@@ -299,7 +305,17 @@ notte page eval-js --session-id <session-id> '
   return els.length;
 }
 '
+
+# Capture the value, or pipe it - the value is all stdout carries
+title=$(notte page eval-js --session-id <session-id> 'document.title')
+
+notte page eval-js --session-id <session-id> \
+  'JSON.stringify([...document.querySelectorAll("a")].map(a => a.href))' | jq length
 ```
+
+Return `JSON.stringify(...)` whenever the answer is structured: it arrives as a
+JSON document, so `jq` does the filtering instead of another round trip through
+the page.
 
 **Navigation:**
 ```bash
