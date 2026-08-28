@@ -42,8 +42,8 @@ tracking the default branch.
 
 **Targets CLI v0.0.31 or newer.**
 
-Three session options default to `true` server-side - headless, captcha solving
-and file storage - which the skills documented as if they were opt-ins. v0.0.31
+Two session options default to `true` server-side - captcha solving and file
+storage - which the skills documented as if they were opt-ins. v0.0.31
 adds a positive way to turn each off (nottelabs/notte-cli#61), so the docs now
 describe what is actually on and how to disable it, rather than telling an agent
 to enable things that are already enabled.
@@ -56,8 +56,7 @@ to enable things that are already enabled.
   which point the next command fails with a bare `Session closed`. Both
   `notte-browser` and the session reference now state the defaults and show how
   to raise them
-* `--headed` replaces `--headless=false` for a visible browser, `--no-solve-captchas`
-  and `--no-file-storage` replace the `=false` forms
+* `--no-solve-captchas` and `--no-file-storage` replace the `=false` forms
 
 ### Bug Fixes
 
@@ -66,12 +65,9 @@ to enable things that are already enabled.
   is on by default - the advice changed nothing while reading as a fix that had
   been applied. They now point at `--proxy`/`--proxy-country` or an established
   profile, which are the levers that remain
-* **correct the claim that a visible browser is unavailable remotely.**
-  `notte-browser` said `--headless=false` was for a local window and "not
-  available on remote/CI environments"; a cloud session accepts it and reports
-  `headless: false`. Watch it through the viewer URL
-* drop `--headless` from examples that only passed it to get the default
-  behaviour, and note that file storage and captcha solving need no flag either
+* **document session viewing.** Browser display modes have been removed;
+  sessions are always headless. Watch a session through the viewer URL.
+* note that file storage and captcha solving need no flag
 * the SDK notes and Cursor rules said file storage had to be switched on; it is
   attached by default, and `use_file_storage=True` is now described as explicit
   rather than required

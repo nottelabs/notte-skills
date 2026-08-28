@@ -37,7 +37,7 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.33 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--headed`, `--no-solve-captchas` and `--no-file-storage`; v0.0.33 adds named `--vault-field` credential fills. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.33 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas` and `--no-file-storage`; v0.0.33 adds named `--vault-field` credential fills. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
@@ -110,9 +110,6 @@ Control browser session lifecycle:
 ```bash
 # Start a new session
 notte sessions start [flags]
-  --headed                   Show a browser window. Headless is the default,
-                             so this is the flag you want, not --headless
-  --headless                 Force headless explicitly (already the default)
   --browser-type <type>      chromium (default) or chrome. chrome-nightly and
                              chrome-turbo are legacy aliases for chrome.
   --idle-timeout-minutes     Idle timeout in minutes (default: 3)
@@ -833,14 +830,13 @@ notte page click --session-id <session-id> "#target-element"
 
 ### Viewing Headless Sessions
 
-Sessions are headless by default, which doesn't mean you can't see the browser:
+All sessions run headlessly, which doesn't mean you can't see the browser:
 
 - **ViewerUrl**: When you start a session, the output includes a `ViewerUrl` - open it in your browser to watch the session live
 - **Viewer command**: `notte sessions viewer --session-id <session-id>` opens the viewer directly
-- **Headed mode**: `notte sessions start --headed` runs with a visible browser window. Cloud sessions accept this - watch it through the viewer URL rather than expecting a window on your own machine.
 
 ```bash
-# Start headless session and get viewer URL
+# Start a session and get viewer URL
 notte sessions start -o json | jq -r '.viewer_url'
 
 # Or open the viewer for that session
