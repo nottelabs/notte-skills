@@ -21,11 +21,8 @@ Complete guide to managing browser sessions with the notte CLI.
 ### Basic Start
 
 ```bash
-# Start with defaults (headless chromium)
+# Start a session with the default Chromium browser
 notte sessions start
-
-# Start with a visible browser
-notte sessions start --headed
 ```
 
 ### Browser Selection
@@ -45,7 +42,6 @@ are accepted as legacy aliases for `chrome`. There is no Firefox option.
 
 ```bash
 notte sessions start \
-  --headed \                      # Show a browser window (headless is default)
   --browser-type chromium \       # chromium or chrome
   --idle-timeout-minutes 10 \     # Close after 10 min of inactivity
   --max-duration-minutes 60 \     # Maximum 60 min session lifetime
