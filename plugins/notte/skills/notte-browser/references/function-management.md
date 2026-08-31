@@ -49,7 +49,7 @@ For interactive, stateful, or authenticated flows - logins, multi-step forms, an
 5. **Test in cloud** - Run `notte functions run --function-id <function-id>`, which blocks until the run finishes and returns `status` and `result` inline
 6. **Inspect logs if needed** - `notte functions run-metadata --function-id <function-id> --run-id <run-id>` exposes the `logs` field for deeper debugging
 7. **Iterate** - Update your code based on results, then use `notte functions update --function-id <function-id> --file my_function.py`
-8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --function-id <function-id> --cron "0 0 9 ? * *"`
+8. **Schedule** - When stable, add a cron schedule: `notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"`
 
 ### Complete Example
 
@@ -137,7 +137,7 @@ notte functions update --function-id "$FUNCTION_ID" --file hn_scraper.py
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # Schedule when ready (every day at 9 AM)
-notte functions schedule --function-id "$FUNCTION_ID" --cron "0 0 9 ? * *"
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 ```
 
 ### Tips for Iterative Development
@@ -512,41 +512,49 @@ notte functions run-metadata --function-id <function-id> --run-id <run-id>
 ### Set a Cron Schedule
 
 ```bash
-notte functions schedule --function-id <function-id> --cron "0 0 9 ? * *"
+notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 ```
 
 ### Cron Expression Format
 
+The API takes **six** fields, in the AWS EventBridge form. A five-field crontab
+line is rejected outright:
+
 ```
 ┌───────────── minute (0-59)
 │ ┌───────────── hour (0-23)
-│ │ ┌───────────── day of month (1-31)
-│ │ │ ┌───────────── month (1-12)
-│ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
-│ │ │ │ │
-* * * * *
+│ │ ┌───────────── day of month (1-31, or ?)
+│ │ │ ┌───────────── month (1-12, or JAN-DEC)
+│ │ │ │ ┌───────────── day of week (1-7, or MON-SUN, or ?)
+│ │ │ │ │ ┌───────────── year (1970-2199)
+│ │ │ │ │ │
+* * * * ? *
 ```
+
+Exactly one of **day-of-month** and **day-of-week** must be `?`; setting both to
+a value, or both to `*`, is rejected. So "every day at 9 AM" is `0 9 ? * * *`
+or `0 9 * * ? *`, and never `0 9 * * * *`.
 
 ### Common Cron Examples
 
 ```bash
 # Every hour
-notte functions schedule --function-id <function-id> --cron "0 0 * ? * *"
+notte functions schedule --function-id <function-id> --cron "0 * * * ? *"
 
 # Every day at 9 AM
-notte functions schedule --function-id <function-id> --cron "0 0 9 ? * *"
+notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 
 # Every Monday at 6 PM
-notte functions schedule --function-id <function-id> --cron "0 0 18 ? * MON *"
+notte functions schedule --function-id <function-id> --cron "0 18 ? * MON *"
 
 # Every 15 minutes
-notte functions schedule --function-id <function-id> --cron "0 */15 * ? * *"
+notte functions schedule --function-id <function-id> --cron "*/15 * * * ? *"
 
 # First day of each month at midnight
-notte functions schedule --function-id <function-id> --cron "0 0 0 1 * ? *"
+notte functions schedule --function-id <function-id> --cron "0 0 1 * ? *"
 
 # Weekdays at 8 AM
-notte functions schedule --function-id <function-id> --cron "0 0 8 ? * MON-FRI *"
+notte functions schedule --function-id <function-id> --cron "0 8 ? * MON-FRI *"
 ```
 
 ### Remove Schedule
@@ -616,7 +624,7 @@ run()
 ```bash
 # Create and schedule
 FUNCTION_ID=$(notte functions create --file price_monitor.py --name "Price Monitor" -o json | jq -r '.function_id')
-notte functions schedule --function-id "$FUNCTION_ID" --cron "0 0 9 ? * *"
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 ```
 
 ### Weekly Report Generator
@@ -655,7 +663,7 @@ run()
 ```bash
 # Create and schedule for Monday mornings
 FUNCTION_ID=$(notte functions create --file weekly_report.py --name "Weekly Report" -o json | jq -r '.function_id')
-notte functions schedule --function-id "$FUNCTION_ID" --cron "0 0 8 ? * MON *"
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 8 ? * MON *"
 ```
 
 ### Error Monitoring with Retries
@@ -740,7 +748,7 @@ notte functions run --function-id <function-id>
 notte functions runs --function-id <function-id>
 
 # Then schedule
-notte functions schedule --function-id <function-id> --cron "0 0 9 ? * *"
+notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 ```
 
 ### 5. Use Appropriate Schedules

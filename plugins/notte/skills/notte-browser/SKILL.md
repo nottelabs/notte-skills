@@ -452,7 +452,7 @@ notte functions run-stop --function-id <function-id> --run-id <run-id>
 notte functions run-metadata --function-id <function-id> --run-id <run-id>
 
 # Schedule a function with cron expression
-notte functions schedule --function-id <function-id> --cron "0 0 9 ? * *"
+notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 
 # Remove a function schedule
 notte functions unschedule --function-id <function-id>
@@ -792,7 +792,7 @@ FUNCTION_ID=$(notte functions create \
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # 5. Schedule to run every day at 9 AM
-notte functions schedule --function-id "$FUNCTION_ID" --cron "0 0 9 ? * *"
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 
 # 6. Check run history
 notte functions runs --function-id "$FUNCTION_ID"
