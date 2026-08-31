@@ -396,13 +396,29 @@ notte functions update --function-id <function-id> --file workflow_v2.py
 
 Updates the workflow code while preserving function ID and schedule.
 
+### Document a Function for Its Callers
+
+`--run-instructions` is documentation for whoever *calls* the function: how long a
+run takes, what each variable is for, which sites it trips over. Write it for
+the next agent that has to decide whether and how to invoke this endpoint.
+
+```bash
+notte functions configure --function-id <function-id> --run-instructions \
+  "Takes ~3 min, so call it async rather than blocking on it.
+   Hits a captcha on the login page every few runs; retry once before giving up.
+   \`query\` is the search term, \`max_items\` caps the results at 50."
+```
+
+It is **not** input to the self-healing agent - that is the separate
+`--self-healing` flag below.
+
 ### Configure Self-Healing
 
 ```bash
-notte functions configure --function-id <function-id> --instructions "retry the login step"
+notte functions configure --function-id <function-id> --self-healing
 ```
 
-Only the flags you pass are sent, so setting `--instructions` leaves self-healing
+Only the flags you pass are sent, so setting `--run-instructions` leaves self-healing
 as it was. Turn healing off with `--self-healing=false`; an omitted flag means
 "leave it alone" rather than "off".
 
