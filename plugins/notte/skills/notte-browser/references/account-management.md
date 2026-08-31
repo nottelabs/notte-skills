@@ -58,6 +58,9 @@ notte personas list --page 1 --page-size 20   # deleted personas are already hid
 # View persona details
 notte personas show --persona-id <persona-id>
 
+# Rename a persona
+notte personas update --persona-id <persona-id> --name "checkout tester"
+
 # Delete persona
 notte personas delete --persona-id <persona-id>
 ```

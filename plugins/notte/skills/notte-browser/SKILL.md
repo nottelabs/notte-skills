@@ -53,6 +53,13 @@ go install github.com/nottelabs/notte-cli/cmd/notte@latest
 notte auth login
 # export NOTTE_API_KEY=...
 notte auth status
+
+# Install this skill into the assistant's config, and remove it again
+notte skill add
+# notte skill remove
+
+# Clear the stored credentials when handing the machine over
+# notte auth logout
 ```
 
 ## Authentication Handling
@@ -445,7 +452,7 @@ notte functions run-stop --function-id <function-id> --run-id <run-id>
 notte functions run-metadata --function-id <function-id> --run-id <run-id>
 
 # Schedule a function with cron expression
-notte functions schedule --function-id <function-id> --cron "0 9 * * *"
+notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 
 # Remove a function schedule
 notte functions unschedule --function-id <function-id>
@@ -603,7 +610,19 @@ notte profiles show --profile-id <profile-id>
 
 # Delete a profile
 notte profiles delete --profile-id <profile-id>
+
+# Read the cookies a profile holds
+notte profiles cookies --profile-id <profile-id>
+
+# Import cookies into a profile, replacing what is there
+notte profiles cookies-set --profile-id <profile-id> --file cookies.json
 ```
+
+`notte profiles cookies-set` takes either a bare array of cookies - what
+Playwright's `storageState` and the browser extensions export - or an object
+with a `cookies` key. Add `--source-format chrome` if they came from Chrome
+rather than Playwright, and `--mode append` to add to the profile's cookies
+instead of replacing them.
 
 Typical use - log in once, persist the state, then reuse it without logging in again:
 
@@ -636,6 +655,7 @@ notte search "what is anthropic" --output-type sourcedAnswer
 
 ```bash
 notte usage      # Show API usage statistics
+notte usage logs # List the API requests made with this workspace's credentials
 notte health     # Check API health status
 notte clear      # Clear legacy stored CLI resource pointers
 ```
@@ -772,7 +792,7 @@ FUNCTION_ID=$(notte functions create \
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # 5. Schedule to run every day at 9 AM
-notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 * * *"
+notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 
 # 6. Check run history
 notte functions runs --function-id "$FUNCTION_ID"
