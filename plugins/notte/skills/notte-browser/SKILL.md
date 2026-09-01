@@ -411,6 +411,10 @@ notte functions create --file workflow.py [--name "My Function"] [--description 
 # workflow file in `url`; it does not inline the source)
 notte functions show --function-id <function-id>
 
+# Download function code to a local Python file (latest version by default)
+notte functions download current_function.py --function-id <function-id>
+notte functions download previous_function.py --function-id <function-id> --version <version>
+
 # Update function code
 notte functions update --function-id <function-id> --file workflow.py
 

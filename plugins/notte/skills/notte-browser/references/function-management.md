@@ -361,11 +361,18 @@ notte functions show --function-id <function-id>
 ```
 
 Returns function metadata plus a **download URL** for the workflow file (the
-`url` field) - it does not inline the source. To read the current code:
+`url` field) - it does not inline the source.
+
+### Download Function Code
 
 ```bash
-URL=$(notte functions show --function-id "$FUNCTION_ID" -o json | jq -r '.url')
-curl -L "$URL" -o current_function.py
+# Download the latest version. The destination must end with .py.
+notte functions download current_function.py --function-id "$FUNCTION_ID"
+
+# Download a specific version listed by `functions show`.
+notte functions download previous_function.py \
+  --function-id "$FUNCTION_ID" \
+  --version <version>
 ```
 
 `show` does not return the cron schedule. The CLI can set (`schedule`) and clear
