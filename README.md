@@ -20,6 +20,18 @@ This repository ships the official AI agent skill for [notte.cc](https://notte.c
 
 ## Installation
 
+### One command
+
+Install the complete Notte plugin — skills and hosted MCP servers — across all
+supported AI coding agents detected on your machine:
+
+```bash
+npx plugins add nottelabs/notte-skills
+```
+
+The installer lets you select `notte` and the optional `notte-migrate` plugin.
+Pass `--yes` only when you want to install both without confirmation.
+
 ### Claude Code
 
 ```bash
