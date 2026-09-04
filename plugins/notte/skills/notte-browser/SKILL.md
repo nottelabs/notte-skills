@@ -37,7 +37,7 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.33 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas` and `--no-file-storage`; v0.0.33 adds named `--vault-field` credential fills. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
@@ -133,9 +133,6 @@ notte sessions start [flags]
                              explicit --viewport-width/--viewport-height
   --user-agent               Custom user agent string
   --cdp-url                  CDP URL of remote session provider
-  --no-file-storage          Detach FileStorage (it is attached by default).
-                             This disables `notte page download --session-id <session-id>` and
-                             `notte files --from session`
   --screenshot-type <type>   raw, full, or last_action
   --chrome-args              Override the Chrome instance arguments (repeatable)
   --extra-http-headers       Extra HTTP headers as JSON
@@ -231,7 +228,7 @@ class Model(BaseModel):
 client = NotteClient()
 
 def run() -> Model:
-    with client.Session(use_file_storage=True) as session:
+    with client.Session() as session:
         _ = session.execute(type='goto', url='news.ycombinator.com')
 
         # directly parses the output using response_format and returns the Model
@@ -281,7 +278,7 @@ notte page select --session-id <session-id> "#dropdown-element" "Option 1"
 # not on your machine - see "Files: upload and download" below.
 notte page download --session-id <session-id> "L5"
 
-# Fill a file input. --file names a file already in your Notte uploads store,
+# Fill a file input. --file names a file already uploaded to this session,
 # NOT a path on your machine - see below.
 notte page upload --session-id <session-id> "#file-input" --file report.pdf
 ```
@@ -560,25 +557,24 @@ notte vaults credentials delete --vault-id <vault-id> --url "https://site.com"
 
 ### Files: upload and download
 
-The browser runs **remotely**, so files do not move between it and your machine on their own. There are two separate stores, selected with `--from`:
+The browser runs **remotely**, so files do not move between it and your machine on their own. Every file is owned by a browser session. Within that session, `--from` filters files by how they arrived:
 
 | Store | Holds | Populated by |
 |-------|-------|--------------|
-| `uploads` | your account's file library, available to any session | `notte files upload <local-path>` |
-| `session` *(default)* | files this session's browser downloaded | `notte page download --session-id <session-id>` |
+| `uploads` | local files uploaded to this session | `notte files upload --session-id <session-id> <local-path>` |
+| `session` | files this session's browser downloaded | `notte page download --session-id <session-id>` |
 
 ```bash
-notte files upload <local-path>                                      # local machine -> uploads store
-notte files list --from uploads                                      # account uploads
-notte files download <filename> --from uploads [--path <local-path>]
-notte files list --from session --session-id <session-id>            # session downloads
-notte files download <filename> --from session --session-id <session-id> [--path <local-path>]
+notte files upload --session-id <session-id> <local-path>             # local machine -> session
+notte files list --session-id <session-id> --from uploads             # source=user_upload
+notte files list --session-id <session-id> --from session             # source=session_download
+notte files download --session-id <session-id> <file-id> [--path <local-path>]
 ```
 
-**Sending a local file into a web form** takes two steps. `notte page upload --session-id <session-id> --file` resolves the name against the **uploads store**, not your filesystem - passing a local path that was never uploaded fails with `Unable to get file: <path> for upload`:
+**Sending a local file into a web form** takes two steps. `notte page upload --session-id <session-id> --file` resolves the name against files already uploaded to that same session, not your filesystem. Passing a local path that was never uploaded fails with `Unable to get file: <path> for upload`:
 
 ```bash
-notte files upload ./invoice.pdf                      # 1. into the uploads store
+notte files upload --session-id <session-id> ./invoice.pdf                      # 1. into this session
 notte page upload --session-id <session-id> "#file-input" --file invoice.pdf    # 2. into the page
 notte page click --session-id <session-id> "#submit"
 ```
@@ -588,14 +584,15 @@ notte page click --session-id <session-id> "#submit"
 ```bash
 notte page observe --session-id <session-id>                                    # required before using an element ID
 notte page download --session-id <session-id> "L3"                              # -> the session store, still remote
-notte files list --from session --session-id <session-id>                       # confirm it arrived
-notte files download report.csv --from session --session-id <session-id> --path ./report.csv
+notte files list --from session --session-id <session-id>                       # find its immutable file ID
+notte files download --session-id <session-id> <file-id> --path ./report.csv
 ```
 
 Notes:
 
-- **File storage is on by default**, so nothing extra is needed to download. Starting a session with `--no-file-storage` detaches it, after which `notte page download --session-id <session-id>` fails with `Cannot execute download_file because no storage object was provided`.
-- The session store is per-session, so `files list` and `files download` require its `--session-id`.
+- `files upload`, `files list`, and `files download` all require the owning session's `--session-id`.
+- `files download` takes the immutable `id` returned by `files list`, not the display filename. `--from` is a filter for `files list` and is not accepted by `files download`.
+- Without `--path`, a download uses the server-provided filename when available and otherwise falls back to the file ID.
 - Using an element ID (`L3`, `B1`) without a prior `notte page observe --session-id <session-id>` in that session fails with `No snapshot is available in the session`. A CSS selector needs no observe.
 
 ### Browser Profiles

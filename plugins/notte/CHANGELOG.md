@@ -12,6 +12,24 @@ not need a major bump - see <https://semver.org/#spec-item-4>. Tag releases as
 `notte-v<version>` from the first real release so consumers can pin instead of
 tracking the default branch.
 
+## Unreleased
+
+**Targets CLI v0.0.41 or newer.**
+
+### Behavior Changes
+
+* update the file workflow for the session-scoped API introduced by
+  `nottelabs/notte-cli@f0247c5`: `files upload`, `files list`, and
+  `files download` now require `--session-id`; upload and browser-download
+  records share the session file list; and downloads use immutable file IDs
+  instead of filenames
+* describe `--from uploads|session` as a `files list` source filter and remove
+  it from download examples
+* remove the deleted `--use-file-storage` / `--no-file-storage` CLI flags and
+  the removed `use_file_storage` SDK keyword from current guidance; session
+  storage is available automatically, with `storage=...` reserved for passing
+  an explicit `RemoteFileStorage`
+
 ## 0.0.5 (2026-08-20)
 
 **Targets CLI v0.0.33 or newer.**
