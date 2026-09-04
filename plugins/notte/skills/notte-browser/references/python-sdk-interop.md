@@ -61,9 +61,10 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
 
 - Use `from notte_sdk import NotteClient` for hosted workflows. Do not mix it with local `import notte` examples in the same file.
 - Use `client.Session(...)` as a context manager.
-- File storage is `client.Session(use_file_storage=True)`, matching the CLI. It
-  is attached by default, so pass it only to be explicit. There is no
-  `enable_file_storage` or `storage=` keyword; those raise a `TypeError`.
+- File storage is session-scoped and available automatically. Use
+  `client.Session()` for the normal case. The removed `use_file_storage` and
+  `enable_file_storage` keywords raise a `TypeError`; pass `storage=...` only
+  when intentionally supplying a `RemoteFileStorage` instance.
 - Omit `from __future__ import annotations`. Under PEP 563 the Pydantic
   annotations become unresolved forward references and `response_format=Model`
   fails at runtime with `PydanticUserError: Model is not fully defined`.

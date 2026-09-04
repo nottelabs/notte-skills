@@ -25,8 +25,10 @@ tracking the default branch.
   instead of filenames
 * describe `--from uploads|session` as a `files list` source filter and remove
   it from download examples
-* remove the deleted `--no-file-storage` CLI flag from the browser and session
-  references
+* remove the deleted `--use-file-storage` / `--no-file-storage` CLI flags and
+  the removed `use_file_storage` SDK keyword from current guidance; session
+  storage is available automatically, with `storage=...` reserved for passing
+  an explicit `RemoteFileStorage`
 
 ## 0.0.5 (2026-08-20)
 

@@ -228,7 +228,7 @@ class Model(BaseModel):
 client = NotteClient()
 
 def run() -> Model:
-    with client.Session(use_file_storage=True) as session:
+    with client.Session() as session:
         _ = session.execute(type='goto', url='news.ycombinator.com')
 
         # directly parses the output using response_format and returns the Model
