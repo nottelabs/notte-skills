@@ -52,8 +52,7 @@ notte sessions start \
   --profile-persist \             # Save browser state on session close
   --viewport-width 1920 \         # Custom viewport
   --viewport-height 1080 \
-  --user-agent "Custom UA" \      # Custom user agent
-  --no-file-storage               # Detach FileStorage (attached by default)
+  --user-agent "Custom UA"        # Custom user agent
 ```
 
 See the main SKILL.md for the full flag list, including `--aspect-ratio`,
