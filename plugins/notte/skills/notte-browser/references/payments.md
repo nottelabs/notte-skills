@@ -38,21 +38,20 @@ merchant purchase separately.
 
 ## Example: complete a merchant checkout
 
-As the agent, fill card fields with **Notte's placeholders**, never the issued
-card values. Notte replaces these placeholders with the card stored in the
-session vault at execution time, before filling the merchant's form.
+As the agent, use `--vault-field` to fill card fields from the session vault.
+The CLI sends Notte's placeholder for the selected field; Notte replaces it with
+the stored card value at execution time, before filling the merchant's form.
+Do not retrieve or pass the issued card values yourself.
 
-| Checkout field | Exact placeholder |
+| Checkout field | `--vault-field` value |
 | --- | --- |
-| Card number | `4242 4242 4242 4242` |
-| Cardholder name | `John Doe` |
-| Expiration (month/year) | `[CardExpirationPlaceholder]` |
-| CVV/CVC | `[CardCVVPlaceholder]` |
+| Card number | `card_number` |
+| Cardholder name | `card_holder_name` |
+| Expiration (month/year) | `card_expiration` |
+| CVV/CVC | `card_cvv` |
 
-These are substitution markers, including the card number that resembles a test
-card. Use them for an approved payment in either mode. The CLI's `--vault-field`
-option currently supports login credentials only; pass card placeholders as the
-literal value to `notte page fill`.
+These fields work with an approved payment in either mode. Do not supply a literal
+value alongside `--vault-field`.
 
 For example, after the user asks you to buy an item, use the existing session
 containing their cart. Inspect checkout to establish the merchant and final total,
@@ -89,10 +88,10 @@ verification is pending.
 ```bash
 # Refresh the page observation, then fill with placeholders, not secrets.
 notte page observe --session-id "$SESSION_ID"
-notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-number"]' '4242 4242 4242 4242'
-notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-name"]' 'John Doe'
-notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-exp"]' '[CardExpirationPlaceholder]'
-notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-csc"]' '[CardCVVPlaceholder]'
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-number"]' --vault-field card_number
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-name"]' --vault-field card_holder_name
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-exp"]' --vault-field card_expiration
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-csc"]' --vault-field card_cvv
 
 # Recheck the merchant and total before submitting the authorized order.
 notte page observe --session-id "$SESSION_ID"

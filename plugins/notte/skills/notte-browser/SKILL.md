@@ -769,6 +769,10 @@ before the keystrokes hit the page. Do not write sentinel strings directly.
 | username   | `username`            |
 | password   | `password`            |
 | MFA code   | `mfa`                 |
+| Card number | `card_number` |
+| Cardholder name | `card_holder_name` |
+| Card expiration | `card_expiration` |
+| Card CVV/CVC | `card_cvv` |
 
 ### Scheduled Data Collection
 
