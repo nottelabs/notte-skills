@@ -1,11 +1,10 @@
 # Session payments
 
-These commands require a CLI release with the `payment` command and an API
-with payments enabled. Sandbox (`--mode test`) is the default; live spending
-requires separate server-side enablement.
+Use `--mode live` for real purchases or `--mode test` for sandbox testing.
+If omitted, `--mode` defaults to `test`.
 
 ```bash
-notte payment request --session-id "$SESSION_ID" --amount 100 --currency usd \
+notte payment request --session-id "$SESSION_ID" --mode test --amount 100 --currency usd \
   --merchant-url https://example.com --merchant-name Example \
   --description "Buy one sandbox item for this browser session, with a maximum total of one US dollar including all applicable fees." \
   --idempotency-key "$REQUEST_KEY" -o json
