@@ -35,3 +35,74 @@ card placeholders through the execution layer; do not request or print raw card
 numbers, security codes, or wallet tokens. Existing login credentials remain in
 the vault. An occupied card slot is rejected instead of overwritten. Verify the
 merchant purchase separately.
+
+## Example: complete a merchant checkout
+
+As the agent, fill card fields with **Notte's placeholders**, never the issued
+card values. Notte replaces these placeholders with the card stored in the
+session vault at execution time, before filling the merchant's form.
+
+| Checkout field | Exact placeholder |
+| --- | --- |
+| Card number | `4242 4242 4242 4242` |
+| Cardholder name | `John Doe` |
+| Expiration (month/year) | `[CardExpirationPlaceholder]` |
+| CVV/CVC | `[CardCVVPlaceholder]` |
+
+These are substitution markers, including the card number that resembles a test
+card. Use them for an approved payment in either mode. The CLI's `--vault-field`
+option currently supports login credentials only; pass card placeholders as the
+literal value to `notte page fill`.
+
+For example, after the user asks you to buy an item, use the existing session
+containing their cart. Inspect checkout to establish the merchant and final total,
+including shipping and taxes. This example assumes an authorized USD 35.00 order.
+Set `CHECKOUT_URL` to the merchant's actual checkout URL and `MERCHANT_NAME` to its
+name. The selectors below illustrate a form with standard autocomplete attributes
+and a combined expiration field; use the actual fields and submit button from
+`observe`, including the relevant iframe when the payment form is embedded.
+
+```bash
+# Inspect the checkout in the same session that holds the cart.
+notte page goto --session-id "$SESSION_ID" "$CHECKOUT_URL"
+notte page observe --session-id "$SESSION_ID"
+
+# Request the spending approval for this order.
+PAYMENT_ID=$(notte payment request --session-id "$SESSION_ID" --mode live \
+  --amount 3500 --currency usd \
+  --merchant-url "$CHECKOUT_URL" --merchant-name "$MERCHANT_NAME" \
+  --description "Purchase the item in the user's current shopping cart, with an authorized total of USD 35.00 including shipping and taxes, after explicit wallet approval." \
+  --idempotency-key "$REQUEST_KEY" -o json | jq -er '.id')
+
+# Relay connection/approval instructions to the user. They complete these steps.
+notte payment status "$PAYMENT_ID" -o json
+notte payment wait "$PAYMENT_ID" --wait-timeout 10m -o json
+```
+
+Continue only after `wait` succeeds with `status=ready`. If waiting times out,
+resume waiting on this payment ID. If wallet verification is required, relay
+`next_action` to the user: `auto_resume` continues on the same request; other
+resolutions require completing the action and explicitly requesting payment again
+with a new idempotency key. Do not fill or submit checkout while approval or
+verification is pending.
+
+```bash
+# Refresh the page observation, then fill with placeholders, not secrets.
+notte page observe --session-id "$SESSION_ID"
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-number"]' '4242 4242 4242 4242'
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-name"]' 'John Doe'
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-exp"]' '[CardExpirationPlaceholder]'
+notte page fill --session-id "$SESSION_ID" 'input[autocomplete="cc-csc"]' '[CardCVVPlaceholder]'
+
+# Recheck the merchant and total before submitting the authorized order.
+notte page observe --session-id "$SESSION_ID"
+notte page click --session-id "$SESSION_ID" 'button:has-text("Pay")'
+
+# Verify the merchant's order confirmation, amount, and order reference.
+notte page observe --session-id "$SESSION_ID"
+```
+
+Complete any merchant authentication requested by the user flow. Report the
+purchase as successful only when the merchant confirms it; `payment ready`
+proves only that the card was provisioned. If the outcome is uncertain, inspect
+the order state before retrying submission to avoid a duplicate purchase.
