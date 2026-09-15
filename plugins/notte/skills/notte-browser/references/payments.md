@@ -3,7 +3,7 @@
 To try a dev/test payment, use `--mode test`.
 
 ```bash
-notte payment request --session-id "$SESSION_ID" --mode test --amount 100 --currency usd \
+notte payment request --session-id "$SESSION_ID" --mode test --amount 1.00 --currency usd \
   --merchant-url https://example.com --merchant-name Example \
   --description "Buy one sandbox item for this browser session, with a maximum total of one US dollar including all applicable fees." \
   --idempotency-key "$REQUEST_KEY" -o json
@@ -14,7 +14,10 @@ notte payment wait "$PAYMENT_ID" --wait-timeout 10m -o json
 Use a unique `REQUEST_KEY` for each intended purchase. Reuse it with the same
 inputs after an uncertain response. Without this option, the CLI generates a
 key and prints it on stderr. The request response contains the payment `id`.
-Amounts are integer minor units (100 minor units in USD = $1.00), from 1 to 50000. Descriptions
+Amounts are in currency units: `100.91` with `--currency usd` means USD 100.91.
+The maximum is USD 500.00 for USD requests; other currencies have corresponding
+limits of 50,000 minor units. Fractional amounts unsupported by the currency are
+rejected without rounding. Descriptions
 must contain 100 to 4000 characters. Merchant URLs must use HTTPS without URL
 credentials.
 
@@ -68,7 +71,7 @@ notte page observe --session-id "$SESSION_ID"
 
 # Request the spending approval for this order.
 PAYMENT_ID=$(notte payment request --session-id "$SESSION_ID" --mode live \
-  --amount 3500 --currency usd \
+  --amount 35.00 --currency usd \
   --merchant-url "$CHECKOUT_URL" --merchant-name "$MERCHANT_NAME" \
   --description "Purchase the item in the user's current shopping cart, with an authorized total of USD 35.00 including shipping and taxes, after explicit wallet approval." \
   --idempotency-key "$REQUEST_KEY" -o json | jq -er '.id')
