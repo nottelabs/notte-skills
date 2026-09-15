@@ -1,7 +1,6 @@
 # Session payments
 
-Use `--mode live` for real purchases or `--mode test` for sandbox testing.
-If omitted, `--mode` defaults to `test`.
+To try a dev/test payment, use `--mode test`.
 
 ```bash
 notte payment request --session-id "$SESSION_ID" --mode test --amount 100 --currency usd \
