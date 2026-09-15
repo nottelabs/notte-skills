@@ -913,6 +913,7 @@ Given that, the practical rule is to **minimize how often the secret crosses `ar
 
 - [Session Management Reference](references/session-management.md) - Detailed session lifecycle guide
 - [Function Management Reference](references/function-management.md) - Workflow automation guide
+- [Session Payments](references/payments.md) - Wallet approval and temporary cards
 - [Account Management Reference](references/account-management.md) - Personas and vaults guide
 - [Python SDK Interop](references/python-sdk-interop.md) - Minimal SDK notes for exported workflows and Functions
 
