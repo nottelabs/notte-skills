@@ -617,6 +617,9 @@ notte profiles cookies --profile-id <profile-id>
 
 # Import cookies into a profile, replacing what is there
 notte profiles cookies-set --profile-id <profile-id> --file cookies.json
+
+# Sync cookies straight from your local browser into a profile
+notte profiles sync --browser firefox --domain github.com
 ```
 
 `notte profiles cookies-set` takes either a bare array of cookies - what
@@ -624,6 +627,14 @@ Playwright's `storageState` and the browser extensions export - or an object
 with a `cookies` key. Add `--source-format chrome` if they came from Chrome
 rather than Playwright, and `--mode append` to add to the profile's cookies
 instead of replacing them.
+
+`notte profiles sync` skips the export step: it reads the cookies from a local
+Firefox, Chrome, Brave, Edge or Chromium profile and uploads them into a
+profile, so a remote session starts already logged in. It runs on macOS and
+Linux, prompts for which browser profile to read when there is more than one,
+and limits the upload to the sites you pass with `--domain`. Without
+`--profile-id` it creates a new profile and prints its id; pass that id back to
+refresh the profile after a local re-login.
 
 Typical use - log in once, persist the state, then reuse it without logging in again:
 
