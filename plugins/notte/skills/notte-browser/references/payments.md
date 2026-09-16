@@ -2,6 +2,20 @@
 
 To try a dev/test payment, use `--mode test`.
 
+Connect the user's wallet first, using the same mode as the payment:
+
+```bash
+notte payment connect --mode test -o json
+```
+
+If `status=awaiting_connection`, send `connection_url` and `connection_phrase`
+to the user and let them authorize. Notte detects completion in the background.
+Run `connect` again to confirm `connected` or retrieve the pending link; it reuses
+the connection. No session is needed and there is no separate connection-status
+command. Only the authenticated wallet owner can use the connection.
+
+Once connected, request spending:
+
 ```bash
 notte payment request --session-id "$SESSION_ID" --mode test --amount 1.00 --currency usd \
   --merchant-url https://example.com --merchant-name Example \
@@ -21,13 +35,20 @@ rejected without rounding. Descriptions
 must contain 100 to 4000 characters. Merchant URLs must use HTTPS without URL
 credentials.
 
-No separate wallet-connect command is required. On first use, send the user the
-`connection_url` and `connection_phrase`. Once connected, send the user the
-`approval_url` from the updated status. The user controls wallet connection and
-spending approval. Do not treat a browser redirect as proof of approval.
+`request` fails with `wallet_not_connected` if connection is incomplete. Run
+`connect` and complete authorization before retrying; no payment was created by
+that rejection. A successful request returns the payment ID and spending approval
+URL (or briefly `creating`; use `status` to retrieve the URL when available).
 
-`wait` polls the backend and prints new connection/approval instructions on
-stderr. In JSON mode, stdout contains one final payment object when ready.
+Send `approval_url` to the user **before starting a blocking wait**. The user must
+approve the spending request. Then use `payment wait` on the same payment ID.
+Do not create another request to advance an existing payment. Never treat a browser
+redirect as proof of approval.
+
+`wait` prints approval/verification instructions on stderr. In JSON mode, stdout
+contains one final payment object when ready. Agents whose command tools buffer
+stderr until exit must use `payment status -o json` to obtain and relay any further
+verification URL before continuing to wait.
 A declined, expired, failed, or closed payment exits nonzero, as does a wait
 timeout. Ending the CLI does not cancel provisioning. Resume waiting with the
 same payment ID rather than creating another request.
@@ -69,14 +90,17 @@ and a combined expiration field; use the actual fields and submit button from
 notte page goto --session-id "$SESSION_ID" "$CHECKOUT_URL"
 notte page observe --session-id "$SESSION_ID"
 
-# Request the spending approval for this order.
+# Connect first. Relay the URL/phrase, then re-run to confirm connected.
+notte payment connect --mode live -o json
+
+# Only after connected, request the spending approval for this order.
 PAYMENT_ID=$(notte payment request --session-id "$SESSION_ID" --mode live \
   --amount 35.00 --currency usd \
   --merchant-url "$CHECKOUT_URL" --merchant-name "$MERCHANT_NAME" \
   --description "Purchase the item in the user's current shopping cart, with an authorized total of USD 35.00 including shipping and taxes, after explicit wallet approval." \
   --idempotency-key "$REQUEST_KEY" -o json | jq -er '.id')
 
-# Relay connection/approval instructions to the user. They complete these steps.
+# Relay approval_url to the user before waiting. They approve the spending.
 notte payment status "$PAYMENT_ID" -o json
 notte payment wait "$PAYMENT_ID" --wait-timeout 10m -o json
 ```
