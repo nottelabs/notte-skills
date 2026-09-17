@@ -60,6 +60,25 @@ numbers, security codes, or wallet tokens. Existing login credentials remain in
 the vault. An occupied card slot is rejected instead of overwritten. Verify the
 merchant purchase separately.
 
+## Switch wallet accounts
+
+To connect a different account in the same mode, disconnect the current wallet first:
+
+```bash
+notte payment disconnect --mode live -o json
+notte payment connect --mode live -o json
+```
+
+Disconnect revokes and forgets only the selected mode's connection; the other
+mode is unaffected. Use `--mode test` for a test wallet. Omitting `--mode` uses
+the API default. A successful disconnect returns `status=disconnected` and the
+affected `mode`.
+
+If the API returns `wallet_has_active_payments`, let active payments and card
+cleanup finish before retrying. Do not disconnect as a way to advance a pending
+payment. After reconnecting, relay the new connection URL and phrase to the user
+and confirm `connected` before requesting spending.
+
 ## Example: complete a merchant checkout
 
 As the agent, use `--vault-field` to fill card fields from the session vault.
