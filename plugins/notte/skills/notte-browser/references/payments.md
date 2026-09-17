@@ -65,13 +65,13 @@ merchant purchase separately.
 To connect a different account in the same mode, disconnect the current wallet first:
 
 ```bash
-notte payment disconnect --mode live -o json
-notte payment connect --mode live -o json
+notte payment disconnect -o json
+notte payment connect -o json
 ```
 
 Disconnect revokes and forgets only the selected mode's connection; the other
 mode is unaffected. Use `--mode test` for a test wallet. Omitting `--mode` uses
-the API default. A successful disconnect returns `status=disconnected` and the
+the API default (live). A successful disconnect returns `status=disconnected` and the
 affected `mode`.
 
 If the API returns `wallet_has_active_payments`, let active payments and card
@@ -110,10 +110,10 @@ notte page goto --session-id "$SESSION_ID" "$CHECKOUT_URL"
 notte page observe --session-id "$SESSION_ID"
 
 # Connect first. Relay the URL/phrase, then re-run to confirm connected.
-notte payment connect --mode live -o json
+notte payment connect -o json
 
 # Only after connected, request the spending approval for this order.
-PAYMENT_ID=$(notte payment request --session-id "$SESSION_ID" --mode live \
+PAYMENT_ID=$(notte payment request --session-id "$SESSION_ID" \
   --amount 35.00 --currency usd \
   --merchant-url "$CHECKOUT_URL" --merchant-name "$MERCHANT_NAME" \
   --description "Purchase the item in the user's current shopping cart, with an authorized total of USD 35.00 including shipping and taxes, after explicit wallet approval." \
