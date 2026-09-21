@@ -157,6 +157,12 @@ that behavior separately against the selected version.
   timeout, CDP connect timeout, and per-action timeout. Convert seconds or
   milliseconds explicitly; resolve fractional-minute requirements with the user
   or a tested application-side deadline rather than silently changing behavior.
+- Set an explicit `idle_timeout_minutes` compatible with the maximum lifetime,
+  especially for short sessions. In live SDK 1.9.1 migration tests, a two-minute
+  maximum with the default idle timeout was rejected with HTTP 422; explicitly
+  setting idle to one or two minutes succeeded. Preserve required idle behavior
+  and keep it no greater than the maximum; do not increase the maximum merely
+  to bypass validation.
 - Access the provider's default context when using its persisted state. An
   additional context is isolated; its cookies/settings are not automatically
   inherited. Preserve multi-context behavior only after testing its requirements.

@@ -35,11 +35,27 @@ support as blocked unless current documentation and a representative test show
 that this restriction has been resolved. Do not downgrade, remove Stagehand, or
 rewrite `act`/`extract`/agent logic without the user's decision.
 
-Older tutorials use `env: "LOCAL"` and `localBrowserLaunchOptions`; these are not
-universal APIs across versions or Python packages. A supported Stagehand version
-using Notte as its actual browser host can complete a Browserbase infrastructure
-migration while retaining Stagehand. Verify any remaining Browserbase API/model
-or hosted-service usage and disclose it separately.
+For TypeScript Stagehand **3.7.3**, a live browser migration passed using
+`new Stagehand({env: "LOCAL", disableAPI: true, localBrowserLaunchOptions:
+{cdpUrl: await session.cdpUrl()}, ...})` followed by `init()`. The fixture retained
+Stagehand navigation, locators, browser-side evaluation, and its acceptance
+assertions. This is evidence for that release and workflow, not every v3 feature
+or Python package. Do not use the v4 blocker to reject an installed v3 application.
+
+Treat inference separately from browser hosting. Browserbase-hosted Stagehand
+`act`/`extract` can work without a separate model key in the application. Moving
+to local Stagehand execution against Notte requires the chosen model's credentials
+or a configured model client/gateway. In the live v3.7.3 AI fixture, the source
+passed natural-language actions and structured extraction; the migrated workflow
+stopped on missing `OPENAI_API_KEY` after creating a Notte session. Preserve AI calls,
+model intent, and schemas; a deterministic browser test does not validate them.
+Check [v3 browser configuration](https://docs.stagehand.dev/v3/configuration/browser)
+and [v3 model configuration](https://docs.stagehand.dev/v3/configuration/models).
+Disclose any retained Browserbase model/API service and its separate charges.
+
+The `env`/`localBrowserLaunchOptions` constructor is version-specific. Resolve
+against the installed language/package rather than applying TypeScript v3
+examples to Stagehand v4 or Python packages.
 
 If the user chooses a framework rewrite, map structured extraction schemas,
 nullability, model settings, action cache, step limits, retries, and human handoff

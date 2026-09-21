@@ -1,0 +1,185 @@
+{
+  "date": "2026-09-21",
+  "node": "26.8.1",
+  "initial_skill_revision": "73da9e6",
+  "method": "Each source ran live first. Seven separate subagents started with fork_turns=none, the selected source repository, migration request and skill only, without baseline results or sibling evaluations. Parent independently reran target acceptance, added a connection-failure probe for successful migrations, and queried Notte session status.",
+  "limitations": [
+    "Controlled DOM fixtures on example.com, not real authenticated workflows or tenant isolation",
+    "No model key was configured for local Stagehand AI execution; the Browserbase source used hosted inference",
+    "No reliability, performance, proxy or complete framework compatibility claims",
+    "Session creation HTTP 422 attempts in several initial converters returned no session; final explicit idle timeouts succeeded",
+    "Two initial parent verifier runs instrumented the CommonJS SDK while applications imported ESM; their connection-failure checks were invalid and were discarded. The corrected ESM harness produced the recorded results",
+    "Mock tests need Node experimental module/VM flags; unflagged parent invocations failed before the corrected test commands passed"
+  ],
+  "cases": [
+    {
+      "id": "kernel",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "playwright-core": "1.63.0",
+        "@onkernel/sdk": "0.81.0"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": true,
+      "mocked_tests_rerun_by_parent": 7,
+      "outcome": "passed",
+      "agent_live_acceptance": true,
+      "parent_live_acceptance": true,
+      "parent_connection_failure_rejected": true,
+      "parent_session_statuses": [
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "id": "browserbase",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "playwright-core": "1.63.0",
+        "@browserbasehq/sdk": "2.6.0"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": true,
+      "mocked_tests_rerun_by_parent": 7,
+      "outcome": "passed",
+      "agent_live_acceptance": true,
+      "parent_live_acceptance": true,
+      "parent_connection_failure_rejected": true,
+      "parent_session_statuses": [
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "id": "hyperbrowser",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "playwright-core": "1.63.0",
+        "@hyperbrowser/sdk": "0.71.0"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": true,
+      "mocked_tests_rerun_by_parent": 6,
+      "outcome": "passed",
+      "agent_live_acceptance": true,
+      "parent_live_acceptance": true,
+      "parent_connection_failure_rejected": true,
+      "parent_session_statuses": [
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "id": "steel",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "puppeteer-core": "25.11.0",
+        "steel-sdk": "0.18.0"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": null,
+      "mocked_tests_rerun_by_parent": 8,
+      "outcome": "passed",
+      "agent_live_acceptance": true,
+      "parent_live_acceptance": true,
+      "parent_connection_failure_rejected": true,
+      "parent_session_statuses": [
+        "closed",
+        "closed",
+        "closed"
+      ]
+    },
+    {
+      "id": "stagehand",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "@browserbasehq/stagehand": "4.1.0"
+      },
+      "unchanged_acceptance": null,
+      "unchanged_workflow_module": null,
+      "mocked_tests_rerun_by_parent": 0,
+      "outcome": "blocked_extension",
+      "source_app_unchanged": true,
+      "agent_live_blocker": true,
+      "parent_live_blocker": true,
+      "failed_phase": "localBrowser.connect",
+      "operation": "Extensions.loadUnpacked",
+      "parent_session_statuses": [
+        "closed"
+      ]
+    },
+    {
+      "id": "stagehand3",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "@browserbasehq/stagehand": "3.7.3"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": null,
+      "mocked_tests_rerun_by_parent": 8,
+      "outcome": "passed_browser_workflow",
+      "agent_live_acceptance": true,
+      "parent_live_acceptance": true,
+      "parent_connection_failure_rejected": true,
+      "parent_session_statuses": [
+        "closed",
+        "closed"
+      ],
+      "ai_calls_in_fixture": false
+    },
+    {
+      "id": "stagehand3-ai",
+      "fresh_context": true,
+      "source_live_passed": true,
+      "source_framework": {
+        "@browserbasehq/stagehand": "3.7.3",
+        "zod": "4.6.5"
+      },
+      "unchanged_acceptance": true,
+      "unchanged_workflow_module": null,
+      "mocked_tests_rerun_by_parent": 8,
+      "outcome": "blocked_model_credentials",
+      "source_ai_calls": [
+        "act: fill quantity",
+        "act: click Calculate",
+        "extract: total with string schema"
+      ],
+      "agent_live_acceptance": false,
+      "parent_live_acceptance": false,
+      "agent_live_blocker": true,
+      "parent_live_blocker": true,
+      "missing_variable": "OPENAI_API_KEY",
+      "parent_session_statuses": [
+        "closed"
+      ],
+      "target_ai_output_verified": false
+    }
+  ],
+  "offline_test_command": "node --experimental-test-module-mocks --experimental-vm-modules --test lifecycle.test.mjs",
+  "revised_skill_recheck": {
+    "id": "hyperbrowser-recheck",
+    "fresh_context": true,
+    "source_case": "hyperbrowser",
+    "skill_included_timeout_and_stagehand_findings": true,
+    "agent_live_acceptance": true,
+    "session_creation_attempts": 2,
+    "successful_sessions": 2,
+    "closed_statuses": [
+      "closed",
+      "closed"
+    ],
+    "workflow_unchanged": true,
+    "acceptance_unchanged": true,
+    "parent_reran_mocked_tests": 8,
+    "parent_additional_live_run": false
+  }
+}
