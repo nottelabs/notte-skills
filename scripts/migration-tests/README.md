@@ -58,9 +58,11 @@ The Python example ran with `notte-sdk` 1.9.1 and Playwright 1.63.0 on Python 3.
 
 ## Live coverage and remaining inputs
 
-Live probes use only temporary Notte sessions, synthetic state, and a public
-read-only target. No source-provider credentials or real authenticated account
-were used. Session cleanup was checked; temporary profiles were deleted.
+Live probes use temporary sessions, synthetic state, and a public read-only
+target. Initial Notte-only feature checks are in `live-results.json`; subsequent
+credentialed checks against all four source providers are in
+`source-live-results.json`. No real authenticated account was used. Temporary
+Notte profiles were deleted.
 
 | Path | Result |
 |---|---|
@@ -74,14 +76,30 @@ were used. Session cleanup was checked; temporary profiles were deleted.
 | Playwright set_content with default load wait | Timed out twice on the live public page. Installing the controlled DOM fixture through evaluate worked; cause not established. |
 | Explicit France proxy and 1200x800 viewport | Passed; diagnostic endpoint reported FR and viewport matched. One configuration only. |
 | Replay retrieval after stop | Passed; replay URL returned nonempty bytes. Playback and cross-user permissions not tested. |
-| Source-provider-to-Notte state transfer | Unverified: source credentials and representative application needed. |
+| Kernel, Browserbase, Hyperbrowser, Steel to Notte | Passed live create/CDP/navigation, synthetic cookie and exact-origin localStorage export/import, and Puppeteer reconnect on both sides. Browserbase and Hyperbrowser required their source keep-alive options for reconnect. All stop/release calls acknowledged; source terminal status was not polled. |
 | Real login/MFA, tenant isolation, other proxy configurations, CAPTCHA, extensions, replay/embed permissions | Unverified; require representative targets/accounts and feature configuration. |
 | Kernel VM execution, managed agents/jobs, self-hosted/private-network workflows | Contract assessment only; application/runtime fixtures and access needed. |
 | Cost/performance parity | Unverified; needs workload telemetry/invoices and equivalent source-provider runs. |
 
-To finish live provider comparisons, supply configured secret paths/account
-references for Notte, Kernel, Browserbase (including project ID), Hyperbrowser,
-and Steel. Use test projects and representative source repositories, locked SDK
-versions, permitted target URLs/test accounts, enabled features, and a bounded
-session/proxy budget. Do not put API keys or authentication state into fixtures,
-chat, or committed evidence.
+The source probes first connected with Playwright, navigated to example.com,
+set a synthetic cookie and localStorage value, and exported `storageState()`.
+They imported cookies with `addCookies()` into Notte's default context and
+installed an origin-scoped `addInitScript()` for localStorage before navigation.
+The target title, cookie value, and storage value matched. Both sides were also
+reconnected using Puppeteer after Playwright disconnected. State stayed in memory.
+
+Initial reconnect attempts failed for Browserbase and Hyperbrowser with default
+session settings. Repeating with Browserbase's session `keepAlive: true` and
+Hyperbrowser's CDP URL `keepAlive=true` passed. These settings belong to the source
+provider and must not be copied blindly onto Notte. See
+[Browserbase keep-alive](https://docs.browserbase.com/guides/long-running-sessions#keep-alive-sessions)
+and [Hyperbrowser lifecycle](https://www.hyperbrowser.ai/docs/sessions/lifecycle).
+The evidence retains unsuccessful attempts as well as successful retries.
+
+Provider credentials are available and have been validated. Remaining inputs
+are representative source applications with locked dependencies, permitted test
+accounts/URLs and expected authenticated assertions, the specific advanced
+features to preserve, and workload telemetry/invoices for cost or performance
+claims. Real account portability, source-imported profile persistence across a
+second Notte session, and managed-agent/VM contracts remain unverified. Do not
+put API keys or authentication state into fixtures, chat, or committed evidence.

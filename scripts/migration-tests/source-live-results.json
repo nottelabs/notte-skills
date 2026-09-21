@@ -1,0 +1,362 @@
+{
+  "date": "2026-09-21",
+  "scope": "Live synthetic cookie and exact-origin localStorage transfer from each provider to Notte on https://example.com",
+  "sdk_versions": {
+    "@onkernel/sdk": "0.81.0",
+    "@browserbasehq/sdk": "2.6.0",
+    "@hyperbrowser/sdk": "0.71.0",
+    "steel-sdk": "0.18.0",
+    "notte-sdk": "1.9.1",
+    "playwright-core": "1.63.0",
+    "puppeteer-core": "25.11.0"
+  },
+  "limitations": [
+    "Seven source sessions and five Notte sessions; all stop/release calls acknowledged successfully, source terminal status not polled",
+    "One successful configuration per source; no statistical reliability or performance claim",
+    "Playwright storageState cookies and localStorage only; no real login, MFA, IndexedDB, sessionStorage, full-profile transfer, or tenant isolation",
+    "Same-session driver reconnect tested; source-imported state was not persisted into a second Notte profile session in these probes"
+  ],
+  "runs": [
+    {
+      "configuration": "Provider defaults; Browserbase 120 seconds and Steel 120000 ms",
+      "results": [
+        {
+          "provider": "kernel",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_start",
+              "passed": true
+            },
+            {
+              "name": "target_title",
+              "passed": true
+            },
+            {
+              "name": "target_cookie",
+              "passed": true
+            },
+            {
+              "name": "target_localStorage",
+              "passed": true
+            },
+            {
+              "name": "target_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_stop",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ]
+        },
+        {
+          "provider": "browserbase",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ],
+          "failure": {
+            "stage": "source_puppeteer_reconnect",
+            "name": "ProviderError",
+            "status": null
+          }
+        },
+        {
+          "provider": "hyperbrowser",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ],
+          "failure": {
+            "stage": "source_puppeteer_reconnect",
+            "name": "ProviderError",
+            "status": null
+          }
+        },
+        {
+          "provider": "steel",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_start",
+              "passed": true
+            },
+            {
+              "name": "target_title",
+              "passed": true
+            },
+            {
+              "name": "target_cookie",
+              "passed": true
+            },
+            {
+              "name": "target_localStorage",
+              "passed": true
+            },
+            {
+              "name": "target_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_stop",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "configuration": "Browserbase keepAlive=true on create; Hyperbrowser reconnect failure recorded without skipping target import",
+      "results": [
+        {
+          "provider": "browserbase",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_start",
+              "passed": true
+            },
+            {
+              "name": "target_title",
+              "passed": true
+            },
+            {
+              "name": "target_cookie",
+              "passed": true
+            },
+            {
+              "name": "target_localStorage",
+              "passed": true
+            },
+            {
+              "name": "target_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_stop",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ]
+        },
+        {
+          "provider": "hyperbrowser",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "target_start",
+              "passed": true
+            },
+            {
+              "name": "target_title",
+              "passed": true
+            },
+            {
+              "name": "target_cookie",
+              "passed": true
+            },
+            {
+              "name": "target_localStorage",
+              "passed": true
+            },
+            {
+              "name": "target_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_stop",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ],
+          "reconnectObservation": {
+            "stage": "source_puppeteer_reconnect",
+            "name": "ProviderError",
+            "status": null
+          }
+        }
+      ]
+    },
+    {
+      "configuration": "Hyperbrowser keepAlive=true in CDP URL",
+      "results": [
+        {
+          "provider": "hyperbrowser",
+          "checks": [
+            {
+              "name": "source_create",
+              "passed": true
+            },
+            {
+              "name": "source_connect",
+              "passed": true
+            },
+            {
+              "name": "source_title",
+              "passed": true
+            },
+            {
+              "name": "source_state_export",
+              "passed": true
+            },
+            {
+              "name": "source_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_start",
+              "passed": true
+            },
+            {
+              "name": "target_title",
+              "passed": true
+            },
+            {
+              "name": "target_cookie",
+              "passed": true
+            },
+            {
+              "name": "target_localStorage",
+              "passed": true
+            },
+            {
+              "name": "target_puppeteer_reconnect",
+              "passed": true
+            },
+            {
+              "name": "target_stop",
+              "passed": true
+            },
+            {
+              "name": "source_release",
+              "passed": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
