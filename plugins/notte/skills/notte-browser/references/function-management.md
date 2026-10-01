@@ -646,9 +646,8 @@ vault = client.Vault("my-vault-id")
 
 
 def run(dashboard_url: str = "https://dashboard.example.com"):
-    # FileStorage is attached by default; passing use_file_storage=True here is
-    # explicit rather than required.
-    with client.Session(use_file_storage=True, vault=vault) as session:
+    # Session-scoped FileStorage is available automatically.
+    with client.Session(vault=vault) as session:
         session.execute(type="goto", url=f"{dashboard_url}/login")
 
         # The vault resolves sentinel placeholders into real credentials.

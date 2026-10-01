@@ -66,9 +66,7 @@ def run(max_stories: int = 10):  # CUSTOMIZE: business variables become paramete
     # annotation - cast anything you use numerically.
     max_stories = int(max_stories)
 
-    # A plain Session is right for scrape/extract. Use
-    # client.Session(use_file_storage=True) only for a Function that produces
-    # files you need to retrieve.
+    # Session-scoped file storage is available automatically.
     with client.Session() as session:
         # CUSTOMIZE: the path you validated during exploration goes here.
         session.execute(type="goto", url="https://news.ycombinator.com")
