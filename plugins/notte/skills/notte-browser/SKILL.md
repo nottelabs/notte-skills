@@ -93,7 +93,7 @@ For CI or an explicitly non-interactive environment, use an existing `NOTTE_API_
 
 ### Complete the requested task
 
-Use the user's existing task and project conventions. If they only asked to set up Notte, verify authentication and a browser session with the Quick Start below, using `https://docs.notte.cc/` as the target, then ask what they want to automate. Stop sessions you created when verification or the task is complete.
+Use the user's existing task and project conventions. If they only asked to set up Notte, verify authentication and a browser session with the read-only Quick Start below, then ask what they want to automate. Stop sessions you created when verification or the task is complete.
 
 For browser automation, inspect the live site with the CLI before writing code. Element IDs, selectors, and field mappings must come from current observations or inspected page content. Do not guess them from memory. Save the returned session ID and pass `--session-id` to subsequent commands.
 
@@ -101,30 +101,26 @@ For a code integration, use the project's language; ask Python or TypeScript onl
 
 ## Quick Start
 
+This read-only setup check verifies authentication, navigation, and observation without clicking or filling any page elements. The shell example uses `jq` to validate the returned session ID; use an available JSON parser if `jq` is not installed.
+
 ```bash
-# 1. Check authentication; follow Authentication Handling if login is needed.
-notte auth status
+(
+  set -euo pipefail
 
-# 2. Start a browser session and capture its ID
-SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+  # Follow Authentication Handling first if login is needed.
+  notte auth status
 
-# 3. Goto and observe
-notte page goto --session-id "$SESSION_ID" "https://example.com"
-notte page observe --session-id "$SESSION_ID"
-notte page screenshot --session-id "$SESSION_ID"
+  SESSION_ID=$(notte sessions start -o json | jq -er '.session_id | select(type == "string" and length > 0)')
+  # Release this session even if navigation or observation fails.
+  trap 'notte sessions stop --session-id "$SESSION_ID"' EXIT
 
-# 4. Execute actions (use IDs from observe, or Playwright selectors)
-notte page click --session-id "$SESSION_ID" "B3"
-notte page fill --session-id "$SESSION_ID" "I1" "hello world"
-# If observe IDs don't work, use Playwright selectors:
-# notte page click --session-id "$SESSION_ID" "button:has-text('Submit')"
-
-# 5. Scrape content
-notte page scrape --session-id "$SESSION_ID" --instructions "Extract all product names and prices"
-
-# 6. Stop the session
-notte sessions stop --session-id "$SESSION_ID"
+  notte page goto --session-id "$SESSION_ID" "https://docs.notte.cc/"
+  notte page observe --session-id "$SESSION_ID"
+  notte page screenshot --session-id "$SESSION_ID"
+)
 ```
+
+For an actual automation task, start a new session on the requested site, observe it, and choose actions from that live state. IDs shown in the command reference below are examples, not targets for the setup check.
 
 ## Command Categories
 
