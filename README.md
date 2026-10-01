@@ -133,34 +133,13 @@ session does not imply a working MCP connection. Run `codex mcp list` (Codex) or
 
 ## Prerequisites
 
-Before using this skill, ensure the agent can run the `notte` CLI and authenticate with a Notte API key.
+Use the [shared setup instructions](https://notte.cc/skill.md) to install or upgrade the CLI, authenticate, and verify a browser session. They are maintained in [the browser skill](plugins/notte/skills/notte-browser/SKILL.md), which is also the source served by the public URL.
 
-Install the CLI:
+To set up an AI coding agent, paste:
 
-```bash
-brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
-brew install notte
+```text
+Read https://notte.cc/skill.md and follow its setup instructions.
 ```
-
-Or install with Go:
-
-```bash
-go install github.com/nottelabs/notte-cli/cmd/notte@latest
-```
-
-Authenticate:
-
-```bash
-# Recommended for local development
-notte auth login
-
-# Or for CI/CD and non-interactive agents
-export NOTTE_API_KEY=...
-
-notte auth status
-```
-
-Once installed, your coding agent will automatically know how to use Notte.
 
 ## Available skills
 

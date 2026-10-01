@@ -37,7 +37,17 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+These are the shared setup instructions published at <https://notte.cc/skill.md> and used by the Notte console, documentation, and examples. Maintain setup here rather than copying these steps into another prompt.
+
+If this skill is not already installed in the assistant, install it with:
+
+```bash
+npx skills add nottelabs/notte-skills --skill notte-browser -y -g
+```
+
+If `npx` is unavailable, continue using this document directly. Do not install an unrelated runtime just to register the skill.
+
+Check `command -v notte` and `notte version` before installing. **This skill assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Upgrade an older CLI using the same installation method; the commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
@@ -45,13 +55,12 @@ If authentication is missing, run the interactive CLI login flow and wait for it
 # Install with Homebrew
 brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
 brew install notte
+# For an existing Homebrew installation: brew upgrade notte
 
 # Or install with Go
 go install github.com/nottelabs/notte-cli/cmd/notte@latest
 
-# Authenticate locally, or set NOTTE_API_KEY for CI/non-interactive agents
-notte auth login
-# export NOTTE_API_KEY=...
+# Check existing authentication before opening a login flow
 notte auth status
 
 # Install this skill into the assistant's config, and remove it again
@@ -80,11 +89,20 @@ notte auth status
 
 Do not write SDK code, switch to SDK docs, or build a fallback script because auth is missing. SDK code uses the same Notte authentication and does not solve this problem. Continue only after CLI authentication succeeds, or ask the user for help if login does not complete after 5 minutes.
 
+For CI or an explicitly non-interactive environment, use an existing `NOTTE_API_KEY` environment variable. Never print credentials or invent a key.
+
+### Complete the requested task
+
+Use the user's existing task and project conventions. If they only asked to set up Notte, verify authentication and a browser session with the Quick Start below, using `https://docs.notte.cc/` as the target, then ask what they want to automate. Stop sessions you created when verification or the task is complete.
+
+For browser automation, inspect the live site with the CLI before writing code. Element IDs, selectors, and field mappings must come from current observations or inspected page content. Do not guess them from memory. Save the returned session ID and pass `--session-id` to subsequent commands.
+
+For a code integration, use the project's language; ask Python or TypeScript only if it is not established. For Python, export the observed workflow with `notte sessions workflow-code --session-id <session-id>` and then adapt it using [Python SDK Interop](references/python-sdk-interop.md). For TypeScript, implement the verified interactions using the [TypeScript SDK documentation](https://docs.notte.cc/typescript-sdk-reference/manual/client). Install the selected SDK in the project's existing environment and follow its runtime requirements. Run the resulting integration and verify its actual output; a successful install alone does not verify the task.
+
 ## Quick Start
 
 ```bash
-# 1. Authenticate. If this opens a browser login, wait for the user to finish.
-notte auth login
+# 1. Check authentication; follow Authentication Handling if login is needed.
 notte auth status
 
 # 2. Start a browser session and capture its ID
