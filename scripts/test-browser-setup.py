@@ -19,7 +19,14 @@ case "$1 $2" in
   "sessions start") printf '%s\n' "$NOTTE_TEST_SESSION_RESPONSE" ;;
   "page goto") exit "${NOTTE_TEST_GOTO_EXIT:-0}" ;;
   "page observe") printf '%s\n' '{"url":"https://docs.notte.cc/","elements":[]}' ;;
-  "page screenshot"|"sessions stop") ;;
+  "page screenshot") ;;
+  "sessions stop")
+    # Model the real CLI's confirmation requirement without waiting for stdin.
+    case " $* " in
+      *" --yes "*) ;;
+      *) echo "Stop requires confirmation" >&2; exit 98 ;;
+    esac
+    ;;
   *) echo "Unexpected setup action: $*" >&2; exit 99 ;;
 esac
 '''
@@ -57,7 +64,7 @@ class BrowserSetupTests(unittest.TestCase):
         self.assertTrue(targeted)
         for command in targeted:
             self.assertIn("--session-id sess_setup", command)
-        self.assertEqual(commands[-1], "sessions stop --session-id sess_setup")
+        self.assertEqual(commands[-1], "sessions stop --session-id sess_setup --yes")
         self.assertEqual(sum(c.startswith("sessions stop ") for c in commands), 1)
 
     def test_failed_authentication_does_not_start_a_session(self) -> None:
@@ -68,7 +75,7 @@ class BrowserSetupTests(unittest.TestCase):
     def test_failed_navigation_still_releases_the_session(self) -> None:
         result, commands = self.run_setup(NOTTE_TEST_GOTO_EXIT="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(commands[-1], "sessions stop --session-id sess_setup")
+        self.assertEqual(commands[-1], "sessions stop --session-id sess_setup --yes")
         self.assertFalse(any(c.startswith("page observe") for c in commands))
 
     def test_invalid_session_ids_do_not_reach_page_commands(self) -> None:

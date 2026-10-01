@@ -112,7 +112,7 @@ This read-only setup check verifies authentication, navigation, and observation 
 
   SESSION_ID=$(notte sessions start -o json | jq -er '.session_id | select(type == "string" and length > 0)')
   # Release this session even if navigation or observation fails.
-  trap 'notte sessions stop --session-id "$SESSION_ID"' EXIT
+  trap 'notte sessions stop --session-id "$SESSION_ID" --yes' EXIT
 
   notte page goto --session-id "$SESSION_ID" "https://docs.notte.cc/"
   notte page observe --session-id "$SESSION_ID"
