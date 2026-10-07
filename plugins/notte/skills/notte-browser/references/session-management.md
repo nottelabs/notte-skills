@@ -59,6 +59,43 @@ See the main SKILL.md for the full flag list, including `--aspect-ratio`,
 `--screenshot-type`, `--chrome-args`, `--extra-http-headers`, `--web-bot-auth`,
 and the external/Tailscale proxy flags.
 
+### Route Through Your Own Connection (Tunnel)
+
+A tunnel sends a session's public traffic out through a machine you control,
+such as your laptop, instead of Notte's network or proxy pool. It uses that
+machine as a Tailscale exit node.
+
+Requirements on the machine that will be the exit:
+
+- Tailscale running and signed in (`brew install --cask tailscale` on macOS).
+- A Tailscale OAuth client with write access to `auth_keys`, tagged `tag:notte`.
+- A tailnet policy that lets `tag:notte` reach `autogroup:internet`.
+- The machine approved as an exit node (admin console, or
+  `autoApprovers.exitNode` in the policy).
+
+```bash
+# Offer this machine as an exit node and save it as a named tunnel.
+# The secret goes to the keyring; NOTTE_TAILNET_OAUTH_CLIENT_SECRET also works.
+notte tunnel up --name home-mac --oauth-client-id <id> --oauth-client-secret <secret>
+
+# Start a session that exits through it
+notte sessions start --tunnel home-mac
+
+# Saved tunnels, and whether this machine is approved as an exit node
+notte tunnel list
+
+# Stop offering this machine (the saved tunnel is kept; `up` restores it)
+notte tunnel down
+
+# Forget a tunnel and its stored secret
+notte tunnel remove home-mac
+```
+
+If `tunnel up` reports the machine is not approved yet, approve it and run
+`tunnel up` again. Session start fails, rather than falling back to Notte's
+network, if the machine is offline or not available as an exit node. Keep the
+machine awake while sessions use it.
+
 ### Browser Profiles
 
 Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Create one with `notte profiles create`, then start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
