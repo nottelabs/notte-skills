@@ -18,6 +18,14 @@ tracking the default branch.
 
 ### Behavior Changes
 
+* document the console Tailscale connection as the preferred way to set up
+  tunnels: with a client connected under Settings > Integrations, `notte
+  tunnel up` needs no OAuth flags and stores no secret on the machine
+  (`nottelabs/notte-cli#132`). Agents should ask the user to connect it there
+  rather than for the OAuth secret; the flags remain for keeping credentials
+  local. The OAuth client must carry `tag:notte` only
+* document `notte tunnel check`, which verifies a tunnel end to end with a
+  short session and explains each failure
 * update the file workflow for the session-scoped API introduced by
   `nottelabs/notte-cli@f0247c5`: `files upload`, `files list`, and
   `files download` now require `--session-id`; upload and browser-download

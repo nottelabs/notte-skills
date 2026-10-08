@@ -156,17 +156,20 @@ notte sessions start [flags]
   --proxy-external-server <url>        e.g. http://proxy:8080. Enables external proxy
   --proxy-external-username <user>
   --proxy-external-password <pass>
-  --proxy-tailnet-client-id <id>       Tailnet OAuth client ID. Enables Tailscale proxy
+  --proxy-tailnet-client-id <id>       Tailnet OAuth client ID. Enables Tailscale proxy (or connect Tailscale once in the console)
   --proxy-tailnet-client-secret <secret>
   --tunnel <name>                      Exit through a saved tunnel (this machine's connection)
 
 # Route sessions through this machine's internet connection (needs Tailscale
 # running and signed in here; see references/session-management.md)
-notte tunnel up --name home-mac --oauth-client-id <id> --oauth-client-secret <secret>
+# Needs Tailscale connected in the console (Settings > Integrations); if it
+# is not, ask the user to connect it there rather than for the OAuth secret
+notte tunnel up --name home-mac       # offer this machine as an exit node
+notte tunnel check --name home-mac    # verify end to end (starts a short session)
 notte sessions start --tunnel home-mac
-notte tunnel list                     # saved tunnels and whether this machine is approved
+notte tunnel list                     # saved tunnels, credential source, and whether this machine is approved
 notte tunnel down                     # stop offering this machine as an exit node
-notte tunnel remove home-mac          # delete the saved tunnel and its stored secret
+notte tunnel remove home-mac          # delete the saved tunnel and any stored secret
 
 # Get session status
 notte sessions status --session-id <session-id>

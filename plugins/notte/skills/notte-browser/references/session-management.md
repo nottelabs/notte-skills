@@ -65,34 +65,67 @@ A tunnel sends a session's public traffic out through a machine you control,
 such as your laptop, instead of Notte's network or proxy pool. It uses that
 machine as a Tailscale exit node.
 
-Requirements on the machine that will be the exit:
+Requirements:
 
-- Tailscale running and signed in (`brew install --cask tailscale` on macOS).
-- A Tailscale OAuth client with write access to `auth_keys`, tagged `tag:notte`.
+- Tailscale running and signed in on the machine that will be the exit
+  (`brew install --cask tailscale` on macOS).
+- A Tailscale OAuth client with write access to `auth_keys`, tagged with
+  `tag:notte` only. Any other tag on the client makes sessions fail to join.
 - A tailnet policy that lets `tag:notte` reach `autogroup:internet`.
 - The machine approved as an exit node (admin console, or
   `autoApprovers.exitNode` in the policy).
 
+Notte needs the OAuth client. The preferred way is to **connect it once in the
+console** (Settings > Integrations,
+https://console.notte.cc/settings/integrations): Notte checks it with
+Tailscale and stores the secret for the workspace, one client per workspace.
+Tunnels then need no credentials, and nothing secret is stored on the machine.
+If the workspace has no Tailscale connection, ask the user to connect one
+there; do not ask them to paste the OAuth secret.
+
+Passing `--oauth-client-id` and `--oauth-client-secret` (or
+`NOTTE_TAILNET_OAUTH_CLIENT_SECRET`) to `tunnel up` instead keeps the client
+on this machine, in the keyring. Use it only when the user prefers that.
+Credentials passed this way take precedence over the console connection.
+
 ```bash
-# Offer this machine as an exit node and save it as a named tunnel.
-# The secret goes to the keyring; NOTTE_TAILNET_OAUTH_CLIENT_SECRET also works.
-notte tunnel up --name home-mac --oauth-client-id <id> --oauth-client-secret <secret>
+# Offer this machine as an exit node and save it as a named tunnel
+notte tunnel up --name home-mac
+
+# Verify it end to end before relying on it (see below)
+notte tunnel check --name home-mac
 
 # Start a session that exits through it
 notte sessions start --tunnel home-mac
 
-# Saved tunnels, and whether this machine is approved as an exit node
+# Saved tunnels, their credential source (workspace or local), and whether
+# this machine is approved as an exit node
 notte tunnel list
 
 # Stop offering this machine (the saved tunnel is kept; `up` restores it)
 notte tunnel down
 
-# Forget a tunnel and its stored secret
+# Forget a tunnel and any secret stored for it
 notte tunnel remove home-mac
 ```
 
-If `tunnel up` reports the machine is not approved yet, approve it and run
-`tunnel up` again. Session start fails, rather than falling back to Notte's
+`notte tunnel check` starts a short session through the tunnel (billed like
+any other, usually under a minute), opens an IP lookup in it, and compares the
+session's public IP with this machine's. It closes the session when done, and
+exits non-zero with the fix when something is wrong:
+
+- No Tailscale connection: ask the user to connect one at Settings >
+  Integrations.
+- Credentials rejected: the OAuth client was deleted, lost its `auth_keys`
+  write scope, or carries a tag other than `tag:notte`.
+- Not available as an exit node: approve the machine, and let `tag:notte`
+  reach `autogroup:internet` in the tailnet policy.
+- Different IPs: traffic is not leaving through this machine. If this machine
+  routes its own traffic through a VPN or another exit node, its IP differs
+  even when the tunnel works.
+
+Run it on the tunnel's machine to compare IPs; elsewhere it only reports the
+session's IP. Session start fails, rather than falling back to Notte's
 network, if the machine is offline or not available as an exit node. Keep the
 machine awake while sessions use it.
 
