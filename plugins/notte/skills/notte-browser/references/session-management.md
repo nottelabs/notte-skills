@@ -131,7 +131,7 @@ machine awake while sessions use it.
 
 ### Browser Profiles
 
-Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Create one with `notte profiles create`, then start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
+Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Create one with `notte profiles create`, then start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes. To save a running session at any time, including one started without a profile, run `notte sessions save-profile --session-id <session-id>` with `--name <name>` for a new profile or `--profile-id <profile-id>` to overwrite one; the session keeps running.
 
 ```bash
 PROFILE_ID=$(notte profiles create -o json | jq -r '.profile_id')
