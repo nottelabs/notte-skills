@@ -47,18 +47,15 @@ npx skills add nottelabs/notte-skills --skill notte-browser -y -g
 
 If `npx` is unavailable, continue using this document directly. Do not install an unrelated runtime just to register the skill.
 
-Check `command -v notte` and `notte version` before installing. **This skill assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Upgrade an older CLI using the same installation method; the commands below will not all work otherwise.
+Check `command -v notte` and `notte version` before installing. **This skill assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Upgrade an older CLI with `notte upgrade`, which uses Homebrew for a Homebrew install and otherwise re-runs the install script; if the CLI is too old to have `upgrade`, use the same installation method instead. The commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
 ```bash
-# Install with Homebrew
-brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
-brew install notte
-# For an existing Homebrew installation: brew upgrade notte
-
-# Or install with Go
-go install github.com/nottelabs/notte-cli/cmd/notte@latest
+# Install (macOS and Linux)
+curl -fsSL https://notte.cc/install-cli.sh | sh
+# On Windows, download the zip from https://github.com/nottelabs/notte-cli/releases/latest
+# Upgrade an existing installation: notte upgrade
 
 # Check existing authentication before opening a login flow
 notte auth status

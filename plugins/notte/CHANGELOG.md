@@ -18,6 +18,12 @@ tracking the default branch.
 
 ### Behavior Changes
 
+* document `notte upgrade` as the way to upgrade an existing CLI. It runs
+  `brew upgrade notte` for a Homebrew install and otherwise re-runs the install
+  script over the running binary. Agents fall back to the original install
+  method on a CLI too old to have it
+* install the CLI with the install script (`curl -fsSL
+  https://notte.cc/install-cli.sh | sh`) instead of Homebrew or `go install`
 * document `notte sessions save-profile`, which saves a running session's
   browser state into a new or existing profile without stopping it. Agents can
   keep a login done in a session started without `--profile-persist` instead of
