@@ -52,13 +52,10 @@ Check `command -v notte` and `notte version` before installing. **This skill ass
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
 ```bash
-# Install with Homebrew
-brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
-brew install notte
+# Install (macOS and Linux)
+curl -fsSL https://notte.cc/install-cli.sh | sh
+# On Windows, download the zip from https://github.com/nottelabs/notte-cli/releases/latest
 # Upgrade an existing installation: notte upgrade
-
-# Or install with Go
-go install github.com/nottelabs/notte-cli/cmd/notte@latest
 
 # Check existing authentication before opening a login flow
 notte auth status
