@@ -196,7 +196,7 @@ pass it as `--session-id` to every `page`, targeted `sessions`, and session-file
 command. Do not rely on the CLI's current-session or environment-variable
 fallback behavior.
 
-**Browser profiles:** Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
+**Browser profiles:** Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes. To keep a login from a session that was started without `--profile-persist`, run `notte sessions save-profile --session-id <session-id> --name <name>` (or `--profile-id <profile-id>`) while it is still running.
 
 Session debugging:
 
@@ -646,7 +646,18 @@ notte profiles cookies-set --profile-id <profile-id> --file cookies.json
 
 # Sync cookies straight from your local browser into a profile
 notte profiles sync --browser firefox --domain github.com
+
+# Save a running session's state into a new profile, or overwrite one with --profile-id
+notte sessions save-profile --session-id <session-id> --name github
 ```
+
+`notte sessions save-profile` snapshots the running session right away and
+keeps it running. It works on any session, including one started without a
+profile or with a read-only one, and prints the profile with the
+`persisted_domains` that were saved. With neither `--name` nor `--profile-id`
+it saves into the profile the session was started with. It does not change the
+session's `--profile-persist` setting, so a session started with
+`--profile-persist` still saves again when it stops.
 
 `notte profiles cookies-set` takes either a bare array of cookies - what
 Playwright's `storageState` and the browser extensions export - or an object
@@ -674,6 +685,13 @@ notte sessions stop --session-id <session-id>
 
 # Later runs: start already authenticated, without persisting new changes
 notte sessions start --profile-id "$PROFILE_ID"
+```
+
+If you only decide to keep the login after logging in, save the running session
+instead of restarting it:
+
+```bash
+notte sessions save-profile --session-id <session-id> --name github -o json | jq -r '.profile_id'
 ```
 
 ### Web Search

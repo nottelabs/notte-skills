@@ -18,6 +18,10 @@ tracking the default branch.
 
 ### Behavior Changes
 
+* document `notte sessions save-profile`, which saves a running session's
+  browser state into a new or existing profile without stopping it. Agents can
+  keep a login done in a session started without `--profile-persist` instead of
+  redoing it in a new session
 * document the console Tailscale connection as the preferred way to set up
   tunnels: with a client connected under Settings > Integrations, `notte
   tunnel up` needs no OAuth flags and stores no secret on the machine
