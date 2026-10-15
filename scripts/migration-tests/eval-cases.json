@@ -1,0 +1,64 @@
+{
+  "scope": "Offline independent evaluations. Materialize one fixture in a fresh temporary repository, apply the skill, and inspect resulting artifacts. Do not provide expected conclusions to the evaluator. No live credentials or source account access.",
+  "cases": [
+    {
+      "id": "assessment",
+      "request": "Assess switching this repository from Browserbase to Notte. No credentials are available.",
+      "files": {
+        "package.json": "{\n  \"private\": true,\n  \"dependencies\": {\n    \"@browserbasehq/sdk\": \"^2\",\n    \"playwright\": \"^1.50\"\n  }\n}\n",
+        "session.ts": "import Browserbase from \"@browserbasehq/sdk\";\nimport { chromium } from \"playwright\";\nconst client = new Browserbase();\nexport async function withBrowser<T>(run: (browser: any) => Promise<T>): Promise<T> {\n  const session = await client.sessions.create({projectId:process.env.BROWSERBASE_PROJECT_ID});\n  try {\n    const browser = await chromium.connectOverCDP(session.connectUrl);\n    try { return await run(browser); }\n    finally { await browser.close(); }\n  } finally { await client.sessions.update(session.id,{status:'REQUEST_RELEASE'}); }\n}\n"
+      }
+    },
+    {
+      "id": "stagehand-v4",
+      "request": "Switch our Browserbase host to Notte and keep Stagehand v4.",
+      "files": {
+        "package.json": "{\n  \"private\": true,\n  \"dependencies\": {\n    \"@browserbasehq/stagehand\": \"^4\"\n  }\n}\n",
+        "app.ts": "// Minimal behavioral fixture; exact v4 construction was not supplied.\n// This declaration records the host contract without inventing constructor options.\nimport { Stagehand } from \"@browserbasehq/stagehand\";\nexport const browserHost = \"browserbase\";\nexport async function workflow(stagehand: Stagehand, action: string, instruction: string) {\n  await stagehand.act(action);\n  return await stagehand.extract(instruction);\n}\n"
+      }
+    },
+    {
+      "id": "cost-only",
+      "request": "Compare costs only from this invoice. No plan-allocation information is available.",
+      "files": {
+        "invoice.json": "{\n  \"runs_per_month\": 1000,\n  \"sessions_per_run\": 2,\n  \"duration_seconds_per_session\": 90,\n  \"retries\": 0,\n  \"currency\": \"USD\",\n  \"browser_charge\": 50,\n  \"proxy_charge\": 20,\n  \"plan_charge\": 30,\n  \"plan_allocation\": null\n}\n"
+      }
+    },
+    {
+      "id": "kernel",
+      "request": "Migrate this Kernel app to Notte while preserving automation and public functions.",
+      "files": {
+        "package.json": "{\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"check\": \"tsc --noEmit\",\n    \"test\": \"tsx --test app.test.ts\"\n  },\n  \"dependencies\": {\n    \"@onkernel/sdk\": \"0.110.0\",\n    \"playwright-core\": \"1.63.0\"\n  },\n  \"devDependencies\": {\n    \"typescript\": \"7.0.2\",\n    \"@types/node\": \"26.6.2\",\n    \"tsx\": \"4.21.0\"\n  }\n}\n",
+        "tsconfig.json": "{\"compilerOptions\":{\"target\":\"ES2022\",\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\",\"strict\":true,\"skipLibCheck\":true},\"include\":[\"*.ts\"]}\n",
+        "app.ts": "import Kernel from \"@onkernel/sdk\";\nimport { chromium } from \"playwright-core\";\nexport async function readTitle(url: string): Promise<string> {\n  const kernel = new Kernel();\n  const b = await kernel.browsers.create();\n  try {\n    const browser = await chromium.connectOverCDP(b.cdp_ws_url);\n    try {\n      const context = browser.contexts()[0];\n      const page = context.pages()[0] ?? await context.newPage();\n      await page.goto(url);\n      return await page.title();\n    } finally { await browser.close(); }\n  } finally { await kernel.browsers.deleteByID(b.session_id); }\n}\nexport async function runInBrowser(sessionId: string) {\n  return new Kernel().browsers.playwright.execute(sessionId, {code: \"return await page.title()\"});\n}\n"
+      }
+    },
+    {
+      "id": "hyperbrowser",
+      "request": "Migrate this Hyperbrowser Python worker to Notte. It resumes sessions across jobs and saves logins.",
+      "files": {
+        "requirements.txt": "hyperbrowser==1.4.3\nplaywright==1.63.0\n",
+        "worker.py": "import asyncio\nfrom hyperbrowser import Hyperbrowser\nfrom playwright.async_api import async_playwright\n\nclass Worker:\n    def __init__(self, account):\n        self.account = account\n        self.client = Hyperbrowser()\n        self.session = None\n\n    async def start(self):\n        self.session = await asyncio.to_thread(self.client.sessions.create, {\n            \"timeout_minutes\": 15,\n            \"profile\": {\"id\": self.account.profile_id, \"persist_changes\": True},\n        })\n\n    async def run_job(self, url):\n        async with async_playwright() as p:\n            browser = await p.chromium.connect_over_cdp(self.session.ws_endpoint + \"&keepAlive=true\")\n            context = browser.contexts[0]\n            page = context.pages[0] if context.pages else await context.new_page()\n            await page.goto(url)\n            return await page.title()\n\n    async def stop(self):\n        await asyncio.to_thread(self.client.sessions.stop, self.session.id)\n"
+      }
+    },
+    {
+      "id": "steel-mixed",
+      "request": "Migrate only the Steel Puppeteer report worker to Notte; preserve the Browserbase worker.",
+      "files": {
+        "package.json": "{\"name\":\"mixed-report-workers\",\"version\":\"1.0.0\",\"private\":true,\"type\":\"module\",\"scripts\":{\"check\":\"tsc --noEmit\",\"test\":\"node --test test/*.test.mjs\"},\"dependencies\":{\"steel-sdk\":\"0.18.0\",\"@browserbasehq/sdk\":\"2.20.0\",\"puppeteer-core\":\"25.11.0\",\"playwright-core\":\"1.63.0\"},\"devDependencies\":{\"typescript\":\"7.0.2\",\"@types/node\":\"24.10.0\"}}\n",
+        "tsconfig.json": "{\"compilerOptions\":{\"target\":\"ES2022\",\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\",\"strict\":true,\"skipLibCheck\":true,\"outDir\":\"dist\"},\"include\":[\"src/**/*.ts\"]}\n",
+        "src/account.ts": "// Application-owned stored context subset; contains cookies and origin-keyed localStorage.\nexport interface StoredContext {\n  cookies: Array<{name: string; value: string; domain: string; path: string;\n    expires?: number; httpOnly?: boolean; secure?: boolean;\n    sameSite?: \"Strict\" | \"Lax\" | \"None\"}>;\n  localStorage: Record<string, Record<string, string>>;\n}\nexport interface Account { steelContext: StoredContext }\n",
+        "src/report.ts": "import Steel from \"steel-sdk\";\nimport puppeteer from \"puppeteer-core\";\nimport type { Account } from \"./account.js\";\nexport async function report(account: Account, url: string): Promise<string> {\n  const client = new Steel({steelAPIKey: process.env.STEEL_API_KEY});\n  const session = await client.sessions.create({timeout: 90000, sessionContext: account.steelContext});\n  let browser;\n  try {\n    browser = await puppeteer.connect({browserWSEndpoint:\n      `wss://connect.steel.dev?apiKey=${process.env.STEEL_API_KEY}&sessionId=${session.id}`});\n    const context = browser.defaultBrowserContext();\n    const page = (await context.pages())[0] ?? await context.newPage();\n    await page.goto(url);\n    return await page.title();\n  } finally {\n    try { await browser?.disconnect(); }\n    finally { await client.sessions.release(session.id); }\n  }\n}\n",
+        "src/browserbase-worker.ts": "import Browserbase from \"@browserbasehq/sdk\";\nimport { chromium } from \"playwright-core\";\nexport async function secondWorker(url: string): Promise<string> {\n  const client = new Browserbase({apiKey: process.env.BROWSERBASE_API_KEY});\n  const projectId = process.env.BROWSERBASE_PROJECT_ID!;\n  const session = await client.sessions.create({projectId});\n  let browser;\n  try {\n    browser = await chromium.connectOverCDP(session.connectUrl);\n    const context = browser.contexts()[0];\n    const page = context.pages()[0] ?? await context.newPage();\n    await page.goto(url);\n    return await page.title();\n  } finally {\n    try { await browser?.close(); }\n    finally { await client.sessions.update(session.id, {projectId, status: \"REQUEST_RELEASE\"}); }\n  }\n}\n"
+      }
+    },
+    {
+      "id": "browserbase-python",
+      "request": "Migrate this synchronous Browserbase Playwright job to Notte while preserving read_title(url) -> str.",
+      "files": {
+        "requirements.txt": "browserbase==1.4.0\nplaywright==1.50.0\n",
+        "job.py": "import os\nfrom browserbase import Browserbase\nfrom playwright.sync_api import sync_playwright\n\n\ndef read_title(url: str) -> str:\n    client = Browserbase()\n    session = client.sessions.create(project_id=os.environ[\"BROWSERBASE_PROJECT_ID\"], api_timeout=120)\n    try:\n        with sync_playwright() as playwright:\n            browser = playwright.chromium.connect_over_cdp(session.connect_url)\n            try:\n                context = browser.contexts[0]\n                page = context.pages[0] if context.pages else context.new_page()\n                page.goto(url)\n                return page.title()\n            finally:\n                browser.close()\n    finally:\n        client.sessions.update(session.id, status=\"REQUEST_RELEASE\")\n"
+      }
+    }
+  ]
+}
