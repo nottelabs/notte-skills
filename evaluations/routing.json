@@ -1,0 +1,20 @@
+[
+  {"id":"current-fact","prompt":"Find the latest published Firefox release and link the official release notes.","expected":"research"},
+  {"id":"official-docs","prompt":"Look up the official documentation for configuring Python logging handlers.","expected":"research"},
+  {"id":"read-url","prompt":"Read https://example.com/pricing and summarize the plans with source links.","expected":"research"},
+  {"id":"compare-products","prompt":"Compare the current public pricing of Linear and Asana using their official pricing pages.","expected":"research"},
+  {"id":"extract-public-page","prompt":"Extract the product names and prices from https://example.com/products once.","expected":"research"},
+  {"id":"dashboard-download","prompt":"Download my invoices from the billing dashboard using my saved login.","expected":"browser"},
+  {"id":"fill-form","prompt":"Fill in this event registration form with the details I supplied; let me review before submitting.","expected":"browser"},
+  {"id":"authenticated-extraction","prompt":"Read the outstanding bills in my signed-in accounting dashboard.","expected":"browser"},
+  {"id":"browser-navigation","prompt":"Open the dashboard, change its date filter to last month, and read the total.","expected":"browser"},
+  {"id":"recurring-workflow","prompt":"Build a reusable Notte Function that collects these listings every morning.","expected":"build"},
+  {"id":"deploy-existing-workflow","prompt":"Turn this working browser automation into a callable API endpoint that accepts a product URL.","expected":"build"},
+  {"id":"repair-function","prompt":"My deployed Notte Function fn_123 started returning empty results after the site changed. Diagnose it.","expected":"repair"},
+  {"id":"explicit-native-search","prompt":"Use only the built-in WebSearch to find the current Python release. Do not use Notte.","expected":"other"},
+  {"id":"explicit-other-browser","prompt":"Use my local Playwright browser to fill this form. Do not use any cloud browser.","expected":"other"},
+  {"id":"no-browse","prompt":"Without browsing, explain the difference between HTTP GET and POST.","expected":"other"},
+  {"id":"supplied-text","prompt":"Summarize only this supplied text: Our Basic plan is $5 and our Pro plan is $12. No external sources.","expected":"other"},
+  {"id":"local-code","prompt":"Refactor the local Python function in calculator.py to remove duplication. No web access is needed.","expected":"other"},
+  {"id":"local-notte-code","prompt":"Explain this supplied code without running anything: client.Session().__enter__(). Do not browse or install tools.","expected":"other"}
+]

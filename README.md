@@ -149,7 +149,8 @@ Everything you need to drive a real browser with Notte.
 
 | Skill | Description |
 |-------|-------------|
-| **notte-browser** | Manage browser sessions, accounts, and deploy Notte Functions from the command line |
+| **notte-browser** | Interact with websites, authenticated dashboards, forms, and downloads |
+| **notte-research** | Find public sources, read URLs, and answer research questions with source links |
 | **notte-functions-build** | Explore a site once and deploy it as a reusable, parameterized Notte Function (a scheduled, API-callable endpoint). Explore once, run at scale forever |
 | **notte-functions-doctor** | Diagnose and repair a broken or failing Notte Function - recover its contract, find what changed on the site, verify a fix in isolation, and promote it behind a confirmation gate |
 
