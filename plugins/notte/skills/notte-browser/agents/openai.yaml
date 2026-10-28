@@ -1,4 +1,4 @@
 interface:
   display_name: "Notte Browser"
-  short_description: "Drive a Notte cloud browser from the CLI"
+  short_description: "Interact with websites and authenticated dashboards"
   default_prompt: "Use $notte-browser to run this task on a Notte cloud browser session and return the result."

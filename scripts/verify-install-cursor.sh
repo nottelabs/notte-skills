@@ -26,7 +26,7 @@ set -euo pipefail
 
 REPO_ROOT=${1:-$(git rev-parse --show-toplevel)}
 MANIFEST="$REPO_ROOT/.cursor-plugin/plugin.json"
-EXPECTED_SKILL=notte-browser
+EXPECTED_SKILLS=(notte-browser notte-research)
 EXPECTED_MCP_URL=https://anything.notte.cc/mcp
 
 fail() { echo "  FAIL  $*" >&2; exit 1; }
@@ -45,14 +45,16 @@ manifest=$(jq -e . "$MANIFEST") || fail ".cursor-plugin/plugin.json is not valid
 skill_roots=$(jq -r '.skills // empty | if type == "array" then .[] else . end' <<<"$manifest")
 [ -n "$skill_roots" ] || fail ".cursor-plugin/plugin.json declares no skills"
 
-found_skill=""
-while IFS= read -r root; do
-  candidate="$(resolve "$root")/$EXPECTED_SKILL/SKILL.md"
-  [ -f "$candidate" ] && found_skill=$candidate
-done <<<"$skill_roots"
-[ -n "$found_skill" ] \
-  || fail "no skills root in .cursor-plugin/plugin.json contains $EXPECTED_SKILL/SKILL.md"
-ok "skill $EXPECTED_SKILL resolves to ${found_skill#"$REPO_ROOT"/}"
+for skill in "${EXPECTED_SKILLS[@]}"; do
+  found_skill=""
+  while IFS= read -r root; do
+    candidate="$(resolve "$root")/$skill/SKILL.md"
+    [ -f "$candidate" ] && found_skill=$candidate
+  done <<<"$skill_roots"
+  [ -n "$found_skill" ] \
+    || fail "no skills root in .cursor-plugin/plugin.json contains $skill/SKILL.md"
+  ok "skill $skill resolves to ${found_skill#"$REPO_ROOT"/}"
+done
 
 # --- mcpServers -------------------------------------------------------------
 # `mcpServers` is either a path to an .mcp.json or an inline server map.
@@ -105,9 +107,11 @@ probe=$(cd "$(mktemp -d)" && cursor-agent \
   --output-format text \
   -p "List every skill name and every MCP server name available to you, one per line, nothing else.")
 
-grep -q "$EXPECTED_SKILL" <<<"$probe" \
-  || { echo "$probe" >&2; fail "live cursor-agent session does not see the $EXPECTED_SKILL skill"; }
-ok "live session sees the $EXPECTED_SKILL skill"
+for skill in "${EXPECTED_SKILLS[@]}"; do
+  grep -q "$skill" <<<"$probe" \
+    || { echo "$probe" >&2; fail "live cursor-agent session does not see the $skill skill"; }
+  ok "live session sees the $skill skill"
+done
 
 # Cursor namespaces plugin MCP servers as plugin-<Plugin>-<server>, so match on the server name.
 grep -qE 'anything-api' <<<"$probe" \
@@ -115,4 +119,4 @@ grep -qE 'anything-api' <<<"$probe" \
 ok "live session sees the anything-api MCP server ($EXPECTED_MCP_URL)"
 
 echo
-echo "PASSED: Cursor loads $EXPECTED_SKILL and $EXPECTED_MCP_URL."
+echo "PASSED: Cursor loads ${EXPECTED_SKILLS[*]} and $EXPECTED_MCP_URL."

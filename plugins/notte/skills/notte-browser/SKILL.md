@@ -1,18 +1,33 @@
 ---
 name: notte-browser
 description: >
-  Command-line interface for launching and controlling Notte cloud browser
-  sessions: start and stop remote browsers, navigate pages, observe/click/fill
-  elements, scrape web content, manage vaults and personas, capture replays,
-  and deploy browser workflows as Notte Functions for callable, scheduled, or
-  reusable automations such as endpoints, APIs, webhooks, jobs, workflows, and
-  services.
+  Interact with websites using Notte: navigate dashboards, fill forms, download
+  files, extract data behind login, and complete multi-page browser workflows.
+  Use for browser tasks even when the user does not mention Notte. Also covers
+  Notte CLI sessions, profiles, vaults, personas, and browser automation code.
+  Use notte-research for public web research and page reading, and the Functions
+  skills for building reusable automations or repairing deployed Functions.
+  Honor explicit requests for another tool or for no browsing.
 allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Read, Write
 ---
 
 # Notte Browser CLI Skill
 
 Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows as Notte Functions. A Function is the deployment form of a tested browser task: it can be invoked later as an HTTP API endpoint, run from the CLI/SDK, or scheduled.
+
+## Choose the workflow
+
+- Public research, source discovery, or reading a known URL: use
+  [notte-research](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-research/SKILL.md). Search needs no browser session.
+- Website interaction, authenticated pages, or downloads: continue here.
+- A reusable or scheduled automation: use
+  [notte-functions-build](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-build/SKILL.md).
+- A deployed Function returning errors or wrong results: use
+  [notte-functions-doctor](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-doctor/SKILL.md).
+
+An explicit tool choice or no-browse instruction takes precedence. Do not
+change provider preferences, install integrations, or create scheduled work
+merely because this skill was selected.
 
 ## General Documentation
 
@@ -37,21 +52,27 @@ Both servers authenticate independently of `notte auth login`; a working CLI ses
 
 ## Setup
 
-Use this skill after the `notte` CLI is installed. **It assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Check with `notte version` and upgrade if it is older; the commands below will not all work otherwise.
+These are the shared setup instructions published at <https://notte.cc/skill.md> and used by the Notte console, documentation, and examples. Maintain setup here rather than copying these steps into another prompt.
+
+If this skill is not already installed in the assistant, install it with:
+
+```bash
+npx skills add nottelabs/notte-skills --skill notte-browser -y -g
+```
+
+If `npx` is unavailable, continue using this document directly. Do not install an unrelated runtime just to register the skill.
+
+Check `command -v notte` and `notte version` before installing. **This skill assumes CLI v0.0.41 or newer.** v0.0.30 renamed the list filter flags (`--include-deleted`, `-a`/`--all`, `--running`) and made `notte functions runs` return the full history by default; v0.0.31 adds `--no-solve-captchas`; v0.0.33 adds named `--vault-field` credential fills; v0.0.41 makes file upload, listing, and download session-scoped and addresses files by immutable ID. Upgrade an older CLI with `notte upgrade`, which uses Homebrew for a Homebrew install and otherwise re-runs the install script; if the CLI is too old to have `upgrade`, use the same installation method instead. The commands below will not all work otherwise.
 
 If authentication is missing, run the interactive CLI login flow and wait for it to complete.
 
 ```bash
-# Install with Homebrew
-brew tap nottelabs/notte-cli https://github.com/nottelabs/notte-cli.git
-brew install notte
+# Install (macOS and Linux)
+curl -fsSL https://notte.cc/install-cli.sh | sh
+# On Windows, download the zip from https://github.com/nottelabs/notte-cli/releases/latest
+# Upgrade an existing installation: notte upgrade
 
-# Or install with Go
-go install github.com/nottelabs/notte-cli/cmd/notte@latest
-
-# Authenticate locally, or set NOTTE_API_KEY for CI/non-interactive agents
-notte auth login
-# export NOTTE_API_KEY=...
+# Check existing authentication before opening a login flow
 notte auth status
 
 # Install this skill into the assistant's config, and remove it again
@@ -80,33 +101,38 @@ notte auth status
 
 Do not write SDK code, switch to SDK docs, or build a fallback script because auth is missing. SDK code uses the same Notte authentication and does not solve this problem. Continue only after CLI authentication succeeds, or ask the user for help if login does not complete after 5 minutes.
 
+For CI or an explicitly non-interactive environment, use an existing `NOTTE_API_KEY` environment variable. Never print credentials or invent a key.
+
+### Complete the requested task
+
+Use the user's existing task and project conventions. If they only asked to set up Notte, verify authentication and a browser session with the read-only Quick Start below, then ask what they want to automate. Stop sessions you created when verification or the task is complete.
+
+For browser automation, inspect the live site with the CLI before writing code. Element IDs, selectors, and field mappings must come from current observations or inspected page content. Do not guess them from memory. Save the returned session ID and pass `--session-id` to subsequent commands.
+
+For a code integration, use the project's language; ask Python or TypeScript only if it is not established. For Python, export the observed workflow with `notte sessions workflow-code --session-id <session-id>` and then adapt it using [Python SDK Interop](references/python-sdk-interop.md). For TypeScript, implement the verified interactions using the [TypeScript SDK documentation](https://docs.notte.cc/typescript-sdk-reference/manual/client). Install the selected SDK in the project's existing environment and follow its runtime requirements. Run the resulting integration and verify its actual output; a successful install alone does not verify the task.
+
 ## Quick Start
 
+This read-only setup check verifies authentication, navigation, and observation without clicking or filling any page elements. The shell example uses `jq` to validate the returned session ID; use an available JSON parser if `jq` is not installed.
+
 ```bash
-# 1. Authenticate. If this opens a browser login, wait for the user to finish.
-notte auth login
-notte auth status
+(
+  set -euo pipefail
 
-# 2. Start a browser session and capture its ID
-SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
+  # Follow Authentication Handling first if login is needed.
+  notte auth status
 
-# 3. Goto and observe
-notte page goto --session-id "$SESSION_ID" "https://example.com"
-notte page observe --session-id "$SESSION_ID"
-notte page screenshot --session-id "$SESSION_ID"
+  SESSION_ID=$(notte sessions start -o json | jq -er '.session_id | select(type == "string" and length > 0)')
+  # Release this session even if navigation or observation fails.
+  trap 'notte sessions stop --session-id "$SESSION_ID" --yes' EXIT
 
-# 4. Execute actions (use IDs from observe, or Playwright selectors)
-notte page click --session-id "$SESSION_ID" "B3"
-notte page fill --session-id "$SESSION_ID" "I1" "hello world"
-# If observe IDs don't work, use Playwright selectors:
-# notte page click --session-id "$SESSION_ID" "button:has-text('Submit')"
-
-# 5. Scrape content
-notte page scrape --session-id "$SESSION_ID" --instructions "Extract all product names and prices"
-
-# 6. Stop the session
-notte sessions stop --session-id "$SESSION_ID"
+  notte page goto --session-id "$SESSION_ID" "https://docs.notte.cc/"
+  notte page observe --session-id "$SESSION_ID"
+  notte page screenshot --session-id "$SESSION_ID"
+)
 ```
+
+For an actual automation task, start a new session on the requested site, observe it, and choose actions from that live state. IDs shown in the command reference below are examples, not targets for the setup check.
 
 ## Command Categories
 
@@ -142,8 +168,20 @@ notte sessions start [flags]
   --proxy-external-server <url>        e.g. http://proxy:8080. Enables external proxy
   --proxy-external-username <user>
   --proxy-external-password <pass>
-  --proxy-tailnet-client-id <id>       Tailnet OAuth client ID. Enables Tailscale proxy
+  --proxy-tailnet-client-id <id>       Tailnet OAuth client ID. Enables Tailscale proxy (or connect Tailscale once in the console)
   --proxy-tailnet-client-secret <secret>
+  --tunnel <name>                      Exit through a saved tunnel (this machine's connection)
+
+# Route sessions through this machine's internet connection (needs Tailscale
+# running and signed in here; see references/session-management.md)
+# Needs Tailscale connected in the console (Settings > Integrations); if it
+# is not, ask the user to connect it there rather than for the OAuth secret
+notte tunnel up --name home-mac       # offer this machine as an exit node
+notte tunnel check --name home-mac    # verify end to end (starts a short session)
+notte sessions start --tunnel home-mac
+notte tunnel list                     # saved tunnels, credential source, and whether this machine is approved
+notte tunnel down                     # stop offering this machine as an exit node
+notte tunnel remove home-mac          # delete the saved tunnel and any stored secret
 
 # Get session status
 notte sessions status --session-id <session-id>
@@ -170,7 +208,7 @@ pass it as `--session-id` to every `page`, targeted `sessions`, and session-file
 command. Do not rely on the CLI's current-session or environment-variable
 fallback behavior.
 
-**Browser profiles:** Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes.
+**Browser profiles:** Profiles store browser state such as cookies, `localStorage`, and `sessionStorage`. Start a session with `--profile-id <profile-id>` to load that saved state; add `--profile-persist` when starting the session if changes should be saved back to the profile when the session closes. To keep a login from a session that was started without `--profile-persist`, run `notte sessions save-profile --session-id <session-id> --name <name>` (or `--profile-id <profile-id>`) while it is still running.
 
 Session debugging:
 
@@ -620,7 +658,18 @@ notte profiles cookies-set --profile-id <profile-id> --file cookies.json
 
 # Sync cookies straight from your local browser into a profile
 notte profiles sync --browser firefox --domain github.com
+
+# Save a running session's state into a new profile, or overwrite one with --profile-id
+notte sessions save-profile --session-id <session-id> --name github
 ```
+
+`notte sessions save-profile` snapshots the running session right away and
+keeps it running. It works on any session, including one started without a
+profile or with a read-only one, and prints the profile with the
+`persisted_domains` that were saved. With neither `--name` nor `--profile-id`
+it saves into the profile the session was started with. It does not change the
+session's `--profile-persist` setting, so a session started with
+`--profile-persist` still saves again when it stops.
 
 `notte profiles cookies-set` takes either a bare array of cookies - what
 Playwright's `storageState` and the browser extensions export - or an object
@@ -648,6 +697,13 @@ notte sessions stop --session-id <session-id>
 
 # Later runs: start already authenticated, without persisting new changes
 notte sessions start --profile-id "$PROFILE_ID"
+```
+
+If you only decide to keep the login after logging in, save the running session
+instead of restarting it:
+
+```bash
+notte sessions save-profile --session-id <session-id> --name github -o json | jq -r '.profile_id'
 ```
 
 ### Web Search

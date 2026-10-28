@@ -22,7 +22,8 @@ This is the difference between asking an agent to "scrape Indeed" every time (pa
 
 ## When to use this skill vs. notte-browser
 
-- **One-off task** ("scrape this page now") -> use `notte-browser` directly.
+- **One-off public research or page reading** -> use [notte-research](../notte-research/SKILL.md).
+- **One-off website interaction or authenticated task** -> use `notte-browser` directly.
 - **Reusable artifact** ("I'll run this across many inputs / on a schedule / from my backend") -> use this skill to build a Function.
 - **A built Function broke** (site changed, returns empty) -> use [notte-functions-doctor](../notte-functions-doctor/SKILL.md).
 

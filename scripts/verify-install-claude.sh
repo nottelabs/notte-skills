@@ -11,7 +11,7 @@
 set -euo pipefail
 
 REPO_ROOT=${1:-$(git rev-parse --show-toplevel)}
-EXPECTED_SKILL=notte-browser
+EXPECTED_SKILLS=(notte-browser notte-research)
 EXPECTED_MCP_URL=https://anything.notte.cc/mcp
 
 # A fresh config dir per run, so a developer's own plugins can never make this pass.
@@ -49,9 +49,11 @@ ok "MCP server $EXPECTED_MCP_URL contributed by notte@notte"
 
 # `plugin details` is the inventory Claude Code actually loads a session from.
 details=$(claude plugin details notte@notte)
-grep -qE "^ *Skills \([0-9]+\).*\b${EXPECTED_SKILL}\b" <<<"$details" \
-  || { echo "$details" >&2; fail "'$EXPECTED_SKILL' is not listed as a skill of notte@notte"; }
-ok "skill $EXPECTED_SKILL listed in the notte@notte component inventory"
+for skill in "${EXPECTED_SKILLS[@]}"; do
+  grep -qE "^ *Skills \([0-9]+\).*\b${skill}\b" <<<"$details" \
+    || { echo "$details" >&2; fail "'$skill' is not listed as a skill of notte@notte"; }
+  ok "skill $skill listed in the notte@notte component inventory"
+done
 
 grep -qE "^ *MCP servers \([0-9]+\)" <<<"$details" \
   || { echo "$details" >&2; fail "notte@notte reports no MCP servers"; }
@@ -59,9 +61,11 @@ ok "notte@notte reports MCP servers in its component inventory"
 
 # And the skill is really on disk in the installed copy, not just in the manifest.
 install_path=$(jq -er '.[] | select(.id == "notte@notte") | .installPath' <<<"$installed")
-[ -f "$install_path/skills/$EXPECTED_SKILL/SKILL.md" ] \
-  || fail "$install_path/skills/$EXPECTED_SKILL/SKILL.md is missing from the installed plugin"
-ok "SKILL.md present at $EXPECTED_SKILL in the installed plugin"
+for skill in "${EXPECTED_SKILLS[@]}"; do
+  [ -f "$install_path/skills/$skill/SKILL.md" ] \
+    || fail "$install_path/skills/$skill/SKILL.md is missing from the installed plugin"
+  ok "SKILL.md present at $skill in the installed plugin"
+done
 
 echo
-echo "PASSED: Claude Code loads $EXPECTED_SKILL and $EXPECTED_MCP_URL."
+echo "PASSED: Claude Code loads ${EXPECTED_SKILLS[*]} and $EXPECTED_MCP_URL."
