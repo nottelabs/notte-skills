@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notte Research"
+  short_description: "Research public sources and read web pages"
+  default_prompt: "Use $notte-research to research this question and return an answer with supporting source links."

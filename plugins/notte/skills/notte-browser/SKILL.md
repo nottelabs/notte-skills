@@ -1,18 +1,33 @@
 ---
 name: notte-browser
 description: >
-  Command-line interface for launching and controlling Notte cloud browser
-  sessions: start and stop remote browsers, navigate pages, observe/click/fill
-  elements, scrape web content, manage vaults and personas, capture replays,
-  and deploy browser workflows as Notte Functions for callable, scheduled, or
-  reusable automations such as endpoints, APIs, webhooks, jobs, workflows, and
-  services.
+  Interact with websites using Notte: navigate dashboards, fill forms, download
+  files, extract data behind login, and complete multi-page browser workflows.
+  Use for browser tasks even when the user does not mention Notte. Also covers
+  Notte CLI sessions, profiles, vaults, personas, and browser automation code.
+  Use notte-research for public web research and page reading, and the Functions
+  skills for building reusable automations or repairing deployed Functions.
+  Honor explicit requests for another tool or for no browsing.
 allowed-tools: Bash(notte:*), Bash(curl:*), Bash(jq:*), Read, Write
 ---
 
 # Notte Browser CLI Skill
 
 Command-line interface for launching and controlling Notte cloud browser sessions, scraping pages, managing browser credentials, and deploying reusable browser workflows as Notte Functions. A Function is the deployment form of a tested browser task: it can be invoked later as an HTTP API endpoint, run from the CLI/SDK, or scheduled.
+
+## Choose the workflow
+
+- Public research, source discovery, or reading a known URL: use
+  [notte-research](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-research/SKILL.md). Search needs no browser session.
+- Website interaction, authenticated pages, or downloads: continue here.
+- A reusable or scheduled automation: use
+  [notte-functions-build](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-build/SKILL.md).
+- A deployed Function returning errors or wrong results: use
+  [notte-functions-doctor](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-doctor/SKILL.md).
+
+An explicit tool choice or no-browse instruction takes precedence. Do not
+change provider preferences, install integrations, or create scheduled work
+merely because this skill was selected.
 
 ## General Documentation
 
