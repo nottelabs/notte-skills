@@ -1,0 +1,109 @@
+{
+  "date": "2026-09-21",
+  "sdk": "notte-sdk 1.9.1",
+  "limitations": [
+    "No source-provider credentials used",
+    "Synthetic state, no real authenticated account",
+    "Nine short-lived Notte sessions across smoke tests, retries, and feature probes; sessions stopped and temporary profiles deleted",
+    "set_content load wait timed out twice; controlled evaluate-based DOM fixture used for subsequent file checks"
+  ],
+  "python_state_files": {
+    "scope": "Python exact example plus synthetic profile/storage and files; no real account login",
+    "checks": [
+      {
+        "check": "profile_create",
+        "passed": true
+      },
+      {
+        "check": "playwright_file_upload",
+        "passed": true
+      },
+      {
+        "check": "playwright_file_download",
+        "passed": false
+      },
+      {
+        "check": "writer_closed",
+        "passed": true
+      },
+      {
+        "check": "profile_cookie_reload",
+        "passed": true
+      },
+      {
+        "check": "profile_localstorage_reload",
+        "passed": true
+      },
+      {
+        "check": "reader_closed",
+        "passed": true
+      },
+      {
+        "check": "temporary_profile_deleted",
+        "passed": true
+      }
+    ],
+    "stage": "verify_state"
+  },
+  "download_paths": {
+    "checks": [
+      {
+        "kind": "data",
+        "bytes": 0,
+        "matches": false,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "fixture_text": ""
+      },
+      {
+        "kind": "blob",
+        "bytes": 0,
+        "matches": false,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "fixture_text": ""
+      },
+      {
+        "kind": "managed_file_after_stop",
+        "bytes": 25,
+        "matches": true
+      },
+      {
+        "kind": "managed_file_after_stop",
+        "bytes": 25,
+        "matches": true
+      }
+    ],
+    "managed_file_count": 2,
+    "test_files_deleted": true,
+    "closed": true
+  },
+  "proxy_replay": {
+    "scope": "one explicit-France proxy session, viewport and replay check",
+    "checks": [
+      {
+        "check": "explicit_proxy_start",
+        "passed": true
+      },
+      {
+        "check": "requested_viewport",
+        "passed": true,
+        "observed": {
+          "width": 1200,
+          "height": 800
+        }
+      },
+      {
+        "check": "proxy_country",
+        "passed": true,
+        "observedCountry": "FR"
+      },
+      {
+        "check": "closed_status",
+        "passed": true
+      },
+      {
+        "check": "replay_bytes",
+        "passed": true
+      }
+    ]
+  }
+}
