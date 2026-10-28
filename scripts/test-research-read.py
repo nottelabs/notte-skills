@@ -4,7 +4,9 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -30,7 +32,7 @@ else:
 
 
 class ResearchReadTests(unittest.TestCase):
-    def run_example(self, **overrides):
+    def run_example(self, *, with_jq=True, **overrides):
         import json
 
         example = re.search(r"```bash\n(.*?)\n```", SKILL.read_text(), re.S)[1]
@@ -39,14 +41,43 @@ class ResearchReadTests(unittest.TestCase):
             cli = workdir / "notte"
             cli.write_text(MOCK)
             cli.chmod(0o755)
+            # Keep the mock runnable, but make jq genuinely unavailable even
+            # on CI machines that have it installed globally.
+            if not with_jq:
+                (workdir / "python3").symlink_to(sys.executable)
+            path = f"{temp}:{os.environ['PATH']}" if with_jq else temp
             log = workdir / "calls.jsonl"
             result = subprocess.run(
-                ["bash", "-c", example], cwd=workdir, capture_output=True,
+                [shutil.which("bash"), "-c", example], cwd=workdir, capture_output=True,
                 text=True, timeout=10, check=False,
-                env={**os.environ, "PATH": f"{temp}:{os.environ['PATH']}",
+                env={**os.environ, "PATH": path,
                      "NOTTE_TEST_LOG": str(log), **overrides},
             )
-            return result, [json.loads(line) for line in log.read_text().splitlines()]
+            calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+            return result, calls
+
+    def test_missing_parser_does_not_start_a_billed_session(self):
+        result, calls = self.run_example(with_jq=False)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("jq is required", result.stderr)
+        self.assertEqual(calls, [])
+
+    def test_standalone_skill_has_no_missing_sibling_links(self):
+        import contextlib
+        import importlib.util
+        import io
+
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("validator", ROOT / "scripts/validate-plugins.py")
+        validator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(validator)
+        with tempfile.TemporaryDirectory() as temp:
+            isolated = Path(temp)
+            shutil.copytree(SKILL.parent, isolated / "plugins/notte/skills/notte-research")
+            validator.REPO_ROOT = isolated
+            with contextlib.redirect_stdout(io.StringIO()):
+                validator.validate_skill_links()
+            self.assertEqual(validator.errors, [])
 
     def test_read_uses_explicit_session_and_releases_it(self):
         result, calls = self.run_example()

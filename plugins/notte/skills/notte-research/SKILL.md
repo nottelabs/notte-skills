@@ -25,11 +25,11 @@ be read directly; a single fact does not need an extensive investigation.
 - **Read a known URL:** use the page-reading example below. Do not search again
   unless the supplied page is insufficient or the user asks for other sources.
 - **Login, click, submit, or download:** switch to
-  [notte-browser](../notte-browser/SKILL.md) for sessions, profiles, and interaction.
+  [notte-browser](https://notte.cc/skill.md) for sessions, profiles, and interaction.
 - **Make it reusable or scheduled:** use
-  [notte-functions-build](../notte-functions-build/SKILL.md). To repair an
+  [notte-functions-build](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-build/SKILL.md). To repair an
   existing deployed Function, use
-  [notte-functions-doctor](../notte-functions-doctor/SKILL.md).
+  [notte-functions-doctor](https://raw.githubusercontent.com/nottelabs/notte-skills/main/plugins/notte/skills/notte-functions-doctor/SKILL.md).
 
 Explicit user tool preferences and no-browse instructions take precedence.
 Do not change global defaults, install integrations, or schedule monitoring as
@@ -38,8 +38,9 @@ other provider used rather than presenting its output as Notte's.
 
 ## Setup and authentication
 
-Reuse the [browser skill's setup and authentication instructions](../notte-browser/SKILL.md#setup)
-when the CLI is unavailable or unauthenticated. Do not run the browser Quick
+Read the public [setup and authentication instructions](https://notte.cc/skill.md)
+when the CLI is unavailable or unauthenticated. This URL also works when only
+`notte-research` is installed. Do not run the browser Quick
 Start just to perform a search. Use an existing supplied API key when available;
 never print it or include it in a query. MCP-only clients should use their
 available Notte Browser tools to navigate and scrape; the curated Browser MCP
@@ -51,10 +52,14 @@ shell runtime to obtain one.
 The CLI reads pages through a browser session. Active sessions consume billed
 resources; stop every session you create, including when navigation or scraping
 fails. The CLI command is `notte page scrape`, not `notte scrape <url>`.
+The example requires `jq` and checks for it before starting a session. If it is
+unavailable, adapt the ID parsing to an available JSON parser before running
+the example; do not start a session until its ID can be parsed and validated.
 
 ```bash
 (
   set -euo pipefail
+  command -v jq >/dev/null || { printf '%s\n' 'jq is required to parse the session ID; no browser was started.' >&2; exit 1; }
   SESSION_ID=$(notte sessions start -o json | jq -er '.session_id | select(type == "string" and length > 0)')
   trap 'notte sessions stop --session-id "$SESSION_ID" --yes' EXIT
   notte page goto --session-id "$SESSION_ID" "https://docs.notte.cc/"
