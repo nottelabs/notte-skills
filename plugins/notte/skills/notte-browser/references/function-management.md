@@ -375,9 +375,13 @@ notte functions download previous_function.py \
   --version <version>
 ```
 
-`show` does not return the cron schedule. The CLI can set (`schedule`) and clear
-(`unschedule`) one but cannot read it back, so record a Function's cron
-elsewhere if you need to restore it after an update.
+`show` does not return the cron schedule. Read a Function's schedules, with
+their ids and variables, with `notte functions schedules list --function-id
+"$FUNCTION_ID"` (see [Several Schedules With Their Own
+Variables](#several-schedules-with-their-own-variables)). Updating the code
+keeps them, but if the new version adds a required input or drops one, their
+runs fail until you update them; `notte functions update` warns when that
+happens.
 
 ### Function Environment Secrets
 
