@@ -572,6 +572,33 @@ notte functions unschedule --function-id <function-id>
 
 Function remains but will no longer run automatically.
 
+### Several Schedules With Their Own Variables
+
+A function can run on up to 10 schedules, each passing its own variables, so the
+same function can run for several inputs without a copy per input. Variables
+use the same `--var key=value` and `--vars '<json>'` flags as `functions run`:
+
+```bash
+# Weekdays at 9 AM for Paris, every evening for Tokyo
+notte functions schedules add --function-id <function-id> --cron "0 9 ? * MON-FRI *" --var city=paris
+notte functions schedules add --function-id <function-id> --cron "0 18 ? * * *" --vars '{"city": "tokyo", "limit": 5}'
+
+# List them, with their ids
+notte functions schedules list --function-id <function-id>
+
+# Change one: what you leave out keeps its current value
+notte functions schedules update <schedule-id> --function-id <function-id> --cron "0 10 ? * MON-FRI *"
+
+# Remove one
+notte functions schedules remove <schedule-id> --function-id <function-id>
+
+# Resume a paused function's schedules without changing them
+notte functions schedules resume --function-id <function-id>
+```
+
+`notte functions schedule` replaces every schedule with one, and
+`notte functions unschedule` removes them all.
+
 ## Sharing Functions
 
 ### Make Public
