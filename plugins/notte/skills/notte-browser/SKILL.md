@@ -496,6 +496,13 @@ notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 # Remove a function schedule
 notte functions unschedule --function-id <function-id>
 
+# Run one function on several schedules, each with its own variables
+notte functions schedules add --function-id <function-id> --cron "0 9 ? * MON-FRI *" --var city=paris
+notte functions schedules list --function-id <function-id>
+notte functions schedules update <schedule-id> --function-id <function-id> --var city=tokyo
+notte functions schedules remove <schedule-id> --function-id <function-id>
+notte functions schedules resume --function-id <function-id>
+
 # Fork a shared function to your account
 notte functions fork --function-id <shared-function-id>
 ```
