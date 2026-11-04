@@ -598,7 +598,14 @@ notte vaults credentials list --vault-id <vault-id>
 notte vaults credentials add --vault-id <vault-id> --url "https://site.com" --password "pass" [--email "..."] [--username "..."] [--mfa-secret "..."]
 notte vaults credentials get --vault-id <vault-id> --url "https://site.com"
 notte vaults credentials delete --vault-id <vault-id> --url "https://site.com"
+
+# Connect the user's own Bitwarden vault to a running session (needs aac v0.11.0 and a logged-in bw)
+notte vaults connect --provider bitwarden --session-id <session-id>   # runs `aac listen` here until the user quits it
+AAC_TOKEN=<token> notte vaults connect --provider bitwarden --session-id <session-id>   # listener run elsewhere; keep the token out of argv
+notte vaults disconnect --session-id <session-id>
 ```
+
+`notte vaults connect` lets `--vault-field` fills use logins from the user's Bitwarden Password Manager, through Agent Access (aac). The user approves each login request in `aac listen` within 30 seconds. Without a token, the command occupies the terminal until the user quits aac, so ask the user to run it themselves rather than running it in your own shell. The fill asks Bitwarden first, then the session's Notte vault. Nothing is imported into a Notte vault.
 
 ### Files: upload and download
 
