@@ -194,12 +194,15 @@ notte page fill 'input[name=username]' --vault-field username --session-id <sess
 notte page fill 'input[name=password]' --vault-field password --session-id <session-id>
 ```
 
-To run the listener yourself (another terminal or machine), start `aac listen --reusable-psk`, copy the token it prints, and connect with it. The command then returns at once:
+To run the listener yourself (another terminal or machine), start `aac listen --reusable-psk`, copy the token it prints, and pass it in `AAC_TOKEN`. The command then returns at once:
 
 ```bash
-notte vaults connect --provider bitwarden --session-id <session-id> --token "$AAC_TOKEN"
+export AAC_TOKEN=<token printed by aac listen --reusable-psk>
+notte vaults connect --provider bitwarden --session-id <session-id>
 notte vaults disconnect --session-id <session-id>
 ```
+
+> **Security note:** the token keeps pairing with your listener across restarts, though every login request still needs your approval. Pass it in `AAC_TOKEN` rather than `--token`: a flag value lands in `argv`, where `ps` can read it while the command runs. Use a machine and shell you control, not a shared host.
 
 - Only the reusable PSK token works (`<64 hex>_<64 hex>`): a pairing code from `/pair` pairs once.
 - Each request must be approved within 30 seconds, or the fill fails and types nothing.
