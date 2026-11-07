@@ -79,27 +79,29 @@ notte auth status
 notte skill add
 # notte skill remove
 
-# Clear the stored credentials when handing the machine over
-# notte auth logout
+# Revoke this machine's key and clear it when handing the machine over
+# notte logout          (older CLIs: notte auth logout)
 ```
 
 ## Authentication Handling
 
 Missing authentication is an interactive setup step, not a blocker and not a reason to switch to SDK code.
 
-If `notte auth status` reports that authentication is missing, you MUST run:
+If `notte auth status` (or `notte whoami`) reports that authentication is missing, you MUST run:
 
 ```bash
-notte auth login
+notte login
 ```
 
-Tell the user to complete the browser login flow. Then poll authentication status every 5 seconds for up to 5 minutes:
+It prints a console link and a code such as `HNVS-GHLG`, then waits until the user approves, for up to 15 minutes. With `-o json` the link goes to stderr. Show the user the link and the code right away. They can open the link on any device; ask them to check that the page shows the same code, choose a workspace and approve. The command exits once they approve, and stores a new API key named after this machine. If your shell tool cannot wait that long, run `notte login --no-browser` in the background and poll authentication status every 5 seconds:
 
 ```bash
 notte auth status
 ```
 
-Do not write SDK code, switch to SDK docs, or build a fallback script because auth is missing. SDK code uses the same Notte authentication and does not solve this problem. Continue only after CLI authentication succeeds, or ask the user for help if login does not complete after 5 minutes.
+Never approve a code yourself, and never forward a code to anyone but the user who asked for the login. An older CLI without `notte login` uses `notte auth login`, which opens a browser on this machine.
+
+Do not write SDK code, switch to SDK docs, or build a fallback script because auth is missing. SDK code uses the same Notte authentication and does not solve this problem. Continue only after CLI authentication succeeds, or ask the user for help if login does not complete after 15 minutes.
 
 For CI or an explicitly non-interactive environment, use an existing `NOTTE_API_KEY` environment variable. Never print credentials or invent a key.
 

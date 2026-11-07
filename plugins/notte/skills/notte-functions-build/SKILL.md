@@ -50,7 +50,7 @@ Confirm the CLI is authenticated before anything else:
 notte auth status
 ```
 
-If authentication is missing, follow the auth handling in the [notte-browser skill](../notte-browser/SKILL.md#authentication-handling) (run `notte auth login`, wait for the browser flow, poll `notte auth status`). Do not fall back to SDK code because auth is missing.
+If authentication is missing, follow the auth handling in the [notte-browser skill](../notte-browser/SKILL.md#authentication-handling) (run `notte login`, show the user its link and code, wait for their approval). Do not fall back to SDK code because auth is missing.
 
 ---
 
