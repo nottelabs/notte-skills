@@ -338,7 +338,8 @@ notte page upload --session-id <session-id> "#file-input" --file report.pdf
 - **The returned value is printed alone on stdout** (objects and arrays as JSON,
   a JS `null` as `null`), with the status line on stderr - so it captures into a
   shell variable and pipes without post-processing. Use `-o json` when you want
-  the whole execution result instead.
+  the whole execution result instead. With `NOTTE_OUTPUT=json` set, pass
+  `-o text` to get the bare value.
 - A failing script exits non-zero and reports the actual JavaScript error, so
   `set -e` and `||` fallbacks behave.
 
@@ -354,10 +355,11 @@ notte page eval-js --session-id <session-id> '
 }
 '
 
-# Capture the value, or pipe it - the value is all stdout carries
-title=$(notte page eval-js --session-id <session-id> 'document.title')
+# Capture the value, or pipe it - the value is all stdout carries.
+# -o text keeps that true when NOTTE_OUTPUT=json is set.
+title=$(notte page eval-js -o text --session-id <session-id> 'document.title')
 
-notte page eval-js --session-id <session-id> \
+notte page eval-js -o text --session-id <session-id> \
   'JSON.stringify([...document.querySelectorAll("a")].map(a => a.href))' | jq length
 ```
 
@@ -781,7 +783,9 @@ it. For scripts and agents, ask for JSON once with `NOTTE_OUTPUT=json` (or pass
 `-o json`):
 
 - Data goes to stdout as the API's own JSON: an object for one item, an array
-  for a list. Errors, progress and notes go to stderr.
+  for a list. Errors, progress and notes go to stderr. `page eval-js` is the
+  exception to rely on: its bare returned value is the text output, so pass
+  `-o text` to it when `NOTTE_OUTPUT=json` is set.
 - An error is one JSON object on stderr with a stable `code`, for example
   `{"code":"not_found","error":"...","status_code":404}`.
 - When a list has more rows, stderr says `More results: add --page 2`.
