@@ -191,6 +191,13 @@ notte sessions status --session-id <session-id>
 # Stop a session
 notte sessions stop --session-id <session-id>
 
+# Stop every active session (asks first in a terminal; pass --yes without one)
+notte sessions stop --all --yes
+
+# Pin a session as the default one for people typing commands (marked "*" in
+# `sessions list`). Agents should keep passing --session-id instead.
+notte sessions pin <session-id-or-unique-prefix>
+
 # List sessions (with optional pagination and filters)
 notte sessions list [--page N] [--page-size N] [-a|--all]   # running only; -a includes stopped
 ```
@@ -764,8 +771,41 @@ Available on all commands:
 --timeout       API request timeout in seconds (default: 60)
 --no-color      Disable color output
 --verbose, -v   Verbose output
---yes, -y       Skip confirmation prompts
+--yes, -y       Skip confirmation prompts (needed to delete without a terminal)
 ```
+
+### Output and exit codes
+
+Text output is written for people and may change between releases: never parse
+it. For scripts and agents, ask for JSON once with `NOTTE_OUTPUT=json` (or pass
+`-o json`):
+
+- Data goes to stdout as the API's own JSON: an object for one item, an array
+  for a list. Errors, progress and notes go to stderr.
+- An error is one JSON object on stderr with a stable `code`, for example
+  `{"code":"not_found","error":"...","status_code":404}`.
+- When a list has more rows, stderr says `More results: add --page 2`.
+
+The exit code says what kind of failure it was, so branch on it instead of the
+message:
+
+| Exit | `code` | What to do |
+| --- | --- | --- |
+| 0 | | Success |
+| 1 | `error`, `api_error` | Read the message |
+| 2 | `usage` | Fix the flags or arguments; nothing was sent |
+| 3 | `unauthorized` | Run `notte login`, or check `NOTTE_API_KEY` |
+| 4 | `not_found` | The ID is wrong or already deleted; re-list |
+| 5 | `confirmation_required` | A command that deletes needs `--yes` |
+| 6 | `rate_limited` | Wait and retry |
+| 7 | `run_failed` | The function run you waited for failed; its data is still on stdout |
+
+Commands that delete ask for confirmation in a terminal. Without one they do
+not wait for input: pass `--yes` or they exit with code 5. `notte functions run`
+and `functions run-metadata --wait` print the run and then exit with code 7 when
+it failed, so check the exit code, not just whether output appeared.
+
+Older CLIs print different text and only use exit codes 0 and 1.
 
 ## Environment Variables
 
@@ -773,6 +813,7 @@ Available on all commands:
 |----------|-------------|
 | `NOTTE_API_KEY` | API key for authentication |
 | `NOTTE_API_URL` | Custom API endpoint URL |
+| `NOTTE_OUTPUT` | Default output format, `text` or `json` (`-o` overrides it) |
 
 ## Explicit Resource IDs
 
