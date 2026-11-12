@@ -18,6 +18,11 @@ tracking the default branch.
 
 ### Behavior Changes
 
+* document `notte sessions start --dialog-policy client|auto` and the SDK's
+  `dialog_policy` session option. `auto`, the default, lets Notte answer
+  JavaScript dialogs; `client` leaves them to the caller's own CDP client, and
+  Notte dismisses one nobody answers within 10 seconds. The migrate skill tells
+  agents to set `dialog_policy="client"` for code that handles dialogs itself
 * document `notte upgrade` as the way to upgrade an existing CLI. It runs
   `brew upgrade notte` for a Homebrew install and otherwise re-runs the install
   script over the running binary. Agents fall back to the original install
