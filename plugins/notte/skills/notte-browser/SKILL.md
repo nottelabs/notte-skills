@@ -610,13 +610,14 @@ notte vaults credentials add --vault-id <vault-id> --url "https://site.com" --pa
 notte vaults credentials get --vault-id <vault-id> --url "https://site.com"
 notte vaults credentials delete --vault-id <vault-id> --url "https://site.com"
 
-# Connect the user's own Bitwarden vault to a running session (needs aac v0.11.0 and a logged-in bw)
-notte vaults connect --provider bitwarden --session-id <session-id>   # runs `aac listen` here until the user quits it
-AAC_TOKEN=<token> notte vaults connect --provider bitwarden --session-id <session-id>   # listener run elsewhere; keep the token out of argv
-notte vaults disconnect --session-id <session-id>
+# Connect the user's own Bitwarden vault once (experimental; needs aac v0.11.0 and a logged-in bw)
+notte vaults connect --provider bitwarden   # runs `aac listen --reusable-psk` here until the user quits it
+AAC_TOKEN=<token> notte vaults connect --provider bitwarden   # listener run elsewhere; keep the token out of argv
+notte sessions start --aac-vault            # this session fills logins from that vault first
+notte vaults disconnect --provider bitwarden
 ```
 
-`notte vaults connect` lets `--vault-field` fills use logins from the user's Bitwarden Password Manager, through Agent Access (aac). The user approves each login request in `aac listen` within 30 seconds. Without a token, the command occupies the terminal until the user quits aac, so ask the user to run it themselves rather than running it in your own shell. The fill asks Bitwarden first, then the session's Notte vault. Nothing is imported into a Notte vault.
+`notte vaults connect` connects the user's Bitwarden Password Manager to their Notte account once, through Agent Access (aac). Sessions started with `--aac-vault` then fill `--vault-field` logins from it first, then from the session's Notte vault. The user's `aac listen --reusable-psk` must be running when a fill happens, and the user approves each request there within 30 seconds (`[a]` approves that site for 10 minutes). Without a token, `notte vaults connect` occupies the terminal until the user quits aac, so ask the user to run it themselves rather than running it in your own shell. Notte never stores a password.
 
 ### Files: upload and download
 
