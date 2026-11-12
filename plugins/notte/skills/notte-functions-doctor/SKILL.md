@@ -50,9 +50,14 @@ Phase 6  Promote          show diff + root cause; update the live Function      
 
 ## Phase 0 - Setup
 
+Install the CLI if it is missing, then confirm it is authenticated:
+
 ```bash
+command -v notte >/dev/null || curl -fsSL https://notte.cc/install-cli.sh | sh
 notte auth status
 ```
+
+With `NOTTE_API_KEY` set, the CLI is already authenticated: skip `notte login`.
 
 If auth is missing, follow the [notte-browser auth handling](../notte-browser/SKILL.md#authentication-handling).
 
@@ -235,7 +240,9 @@ Only after the verification copy passes the contract:
 
    Summarize plainly, e.g. *"Indeed moved the salary field from `.salary-snippet` to `[data-testid=salary]`; updated the selector. Verified: 25/25 listings returned salary."*
 
-2. **On explicit approval, update the live Function:**
+2. **On explicit approval, update the live Function.** If the user's request already explicitly asks you to repair and update the live Function, that request is the approval: show the diff and root cause in one message and continue.
+
+   Then update it:
 
    ```bash
    notte functions update --function-id "{function_id}" --file repaired_function.py

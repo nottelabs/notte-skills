@@ -38,6 +38,12 @@ other provider used rather than presenting its output as Notte's.
 
 ## Setup and authentication
 
+If `notte` is not on the PATH, install it first:
+
+```bash
+command -v notte >/dev/null || curl -fsSL https://notte.cc/install-cli.sh | sh
+```
+
 Read the public [setup and authentication instructions](https://notte.cc/skill.md)
 when the CLI is unavailable or unauthenticated. This URL also works when only
 `notte-research` is installed. Do not run the browser Quick
