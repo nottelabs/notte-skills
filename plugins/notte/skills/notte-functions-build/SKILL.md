@@ -44,11 +44,14 @@ Phases 2 and 3 may loop per capability when a task spans several stages (search 
 
 ## Phase 0 - Setup
 
-Confirm the CLI is authenticated before anything else:
+Install the CLI if it is missing, then confirm it is authenticated before anything else:
 
 ```bash
+command -v notte >/dev/null || curl -fsSL https://notte.cc/install-cli.sh | sh
 notte auth status
 ```
+
+With `NOTTE_API_KEY` set, the CLI is already authenticated: skip `notte login`.
 
 If authentication is missing, follow the auth handling in the [notte-browser skill](../notte-browser/SKILL.md#authentication-handling) (run `notte login`, show the user its link and code, wait for their approval). Do not fall back to SDK code because auth is missing.
 
@@ -87,6 +90,8 @@ If the MCP server is not wired up, say so once and proceed; it is an optimizatio
 ### 1d. Confirm the plan - GATE
 
 Present a single plan and wait for approval. Do not ask one question per field afterward.
+
+If the request already names the target, the parameters and (for scheduling) the cadence, or explicitly asks you to deploy, schedule or update, that request is the approval: state the plan in one message and continue. Stop only for what the request leaves open.
 
 ```
 Function name:  {display name, e.g. "Indeed Jobs"}
@@ -225,7 +230,7 @@ A built Function that is broadly useful (not tied to one user's private inputs) 
 
 This skill drives real browser sessions, deploys cloud Functions, and can schedule unattended runs. Honor these gates even if earlier steps were approved - prior approval does not carry over:
 
-- **Before exploring** - confirm the plan (Phase 1d).
+- **Before exploring** - confirm the plan (Phase 1d). A request that already specifies the plan counts as approval.
 - **Before scheduling** - confirm the cron cadence.
 - **Sensitive site actions** (login, form submission, purchases, anything that writes) follow the `notte-browser` security notes and need explicit user confirmation.
 
