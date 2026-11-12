@@ -191,10 +191,12 @@ notte vaults connect --provider bitwarden
 # Whenever sessions fill logins, keep the listener running (same token after restarts)
 aac listen --reusable-psk
 
-# In another terminal (or a script): start a session that uses it, and fill with placeholders
-notte sessions start --aac-vault
-notte page fill 'input[name=username]' --vault-field username
-notte page fill 'input[name=password]' --vault-field password
+# In another terminal (or a script): start a session that uses it, open the login page,
+# and fill with placeholders
+SESSION_ID=$(notte sessions start --aac-vault -o json | jq -r '.session_id')
+notte page goto --session-id "$SESSION_ID" "https://github.com/login"
+notte page fill --session-id "$SESSION_ID" 'input[name=login]' --vault-field username
+notte page fill --session-id "$SESSION_ID" 'input[name=password]' --vault-field password
 
 # Delete the connection
 notte vaults disconnect --provider bitwarden
