@@ -161,6 +161,10 @@ notte sessions start [flags]
                              explicit --viewport-width/--viewport-height
   --user-agent               Custom user agent string
   --cdp-url                  CDP URL of remote session provider
+  --dialog-policy client|auto
+                             client: your own CDP client answers JS dialogs
+                             (unanswered after 10 s: dismissed). auto
+                             (default): Notte answers them
   --screenshot-type <type>   raw, full, or last_action
   --chrome-args              Override the Chrome instance arguments (repeatable)
   --extra-http-headers       Extra HTTP headers as JSON

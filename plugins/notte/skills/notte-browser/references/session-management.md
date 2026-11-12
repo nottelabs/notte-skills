@@ -52,6 +52,7 @@ notte sessions start \
   --profile-persist \             # Save browser state on session close
   --viewport-width 1920 \         # Custom viewport
   --viewport-height 1080 \
+  --dialog-policy client \        # Leave JS dialogs to your own CDP client
   --user-agent "Custom UA"        # Custom user agent
 ```
 
@@ -147,6 +148,17 @@ Connect to an external browser via CDP (Chrome DevTools Protocol):
 ```bash
 notte sessions start --cdp-url "ws://localhost:9222/devtools/browser/..."
 ```
+
+### JavaScript Dialogs
+
+By default (`--dialog-policy auto`) Notte answers JavaScript dialogs itself: it
+dismisses `alert`, `confirm` and `prompt` and accepts `beforeunload`. When your
+own Playwright, Puppeteer or raw CDP code handles dialogs, start the session
+with `--dialog-policy client` (SDK: `client.Session(dialog_policy="client")` in
+Python, `client.Session({ dialog_policy: 'client' })` in TypeScript) and register
+the handler before the page opens a dialog. A dialog nobody answers within 10
+seconds is dismissed, and while one is open `notte page` commands on the
+session wait. This works for Notte browsers and `--cdp-url` sessions alike.
 
 ## Session ID Management
 
