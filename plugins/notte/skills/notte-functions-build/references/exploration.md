@@ -42,7 +42,7 @@ In the downloaded logs (or the `--urls-only` list), look for the request that re
 Confirm the endpoint reproduces the data directly. You can replay a discovered fetch from the page context to verify it returns what you expect:
 
 ```bash
-notte page eval-js --session-id <session-id> '
+notte page eval-js -o text --session-id <session-id> '
 async () => {
   const r = await fetch("/api/search?q=laptop&page=1", { headers: { "accept": "application/json" } });
   const j = await r.json();
@@ -51,7 +51,7 @@ async () => {
 '
 ```
 
-The evaluated value is all stdout carries, so pipe it straight into `jq` while
+The evaluated value is all stdout carries (pass `-o text` if `NOTTE_OUTPUT=json` is set), so pipe it straight into `jq` while
 exploring - `... | jq '.count'` - and capture it with `$(...)` when a later
 command needs it.
 
