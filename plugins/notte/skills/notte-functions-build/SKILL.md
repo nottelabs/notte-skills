@@ -199,7 +199,7 @@ Once the self-test passes, report to the user:
      -H "Authorization: Bearer $NOTTE_API_KEY" \
      -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"function_id": "{function_id}", "variables": {"keyword": "AI engineer"}}'
+     -d '{"workflow_id": "{function_id}", "variables": {"keyword": "AI engineer"}}'
    ```
 
 2. **Parameters** (with defaults) and the **returned schema**.

@@ -485,7 +485,7 @@ curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "function_id": "{function_id}",
+    "workflow_id": "{function_id}",
     "variables": {
       "url": "https://example.com",
       "max_items": 10
