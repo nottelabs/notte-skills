@@ -501,7 +501,7 @@ notte functions run-stop --function-id <function-id> --run-id <run-id>
 # Get run logs and results
 notte functions run-metadata --function-id <function-id> --run-id <run-id>
 
-# Schedule a function with cron expression
+# Replace every schedule with one cron expression, without variables
 notte functions schedule --function-id <function-id> --cron "0 9 ? * * *"
 
 # Remove a function schedule

@@ -210,8 +210,10 @@ Once the self-test passes, report to the user:
 If the user wanted recurrence, confirm the cadence, then:
 
 ```bash
-notte functions schedule --function-id {function_id} --cron "<cron expression>"
+notte functions schedules add --function-id {function_id} --cron "<cron expression>" --var keyword="AI engineer"
 ```
+
+Pass the variables each scheduled run needs with `--var` (or `--vars '{json}'`). `notte functions schedule` takes no variables and replaces every schedule the Function has.
 
 The CLI passes the expression straight through and reports back the API's response. If the cron format is not accepted, the returned error states exactly what is required - follow that, or have the user copy a schedule from the Notte console. Scheduling makes the Function run unattended and bills each run, so confirm the cadence with the user first.
 

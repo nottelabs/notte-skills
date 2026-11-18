@@ -105,7 +105,7 @@ URL=$(notte functions show --function-id "{function_id}" -o json | jq -r '.url')
 curl -L "$URL" -o current_function.py
 ```
 
-**Capture the schedule now if there is one.** The CLI can set (`schedule`) and remove (`unschedule`) a cron, but it cannot read one back - `functions show` returns no cron field. If the Function is scheduled, get the exact cron expression from the user (or the Notte console) and record it now, so you can re-apply it verbatim after the repair (Phase 6).
+**Capture the schedules now if there are any.** Record each one's cron and variables from `notte functions schedules list --function-id "{function_id}" -o json`, so you can check them after the repair (Phase 6).
 
 ---
 
@@ -270,10 +270,10 @@ Only after the verification copy passes the contract:
    > form, makes a purchase, or otherwise mutates state, say so and let the user
    > decide whether to run it live - do not invoke it reflexively.
 
-   The CLI cannot read a cron back, so a cleared schedule is not detectable by inspection. If the Function was scheduled (Phase 1), re-apply the cron you recorded - re-applying the same cron is idempotent:
+   If the Function was scheduled (Phase 1), check its schedules are still there with `notte functions schedules list --function-id "{function_id}"`, and re-add any that is missing with its recorded cron and variables. Do not use `notte functions schedule`: it replaces every schedule with one that has no variables.
 
    ```bash
-   notte functions schedule --function-id "{function_id}" --cron "{recorded cron}"
+   notte functions schedules add --function-id "{function_id}" --cron "{recorded cron}" --var {name}={value}
    ```
 
 ---
