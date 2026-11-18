@@ -142,7 +142,7 @@ Reproduce the failure (re-running gives the cleanest read - the inline `result` 
 notte functions run --function-id "{function_id}" -o json | jq '{status, result}'
 ```
 
-Read `result` (not `status` alone): a valid object means it is currently healthy (was the failure transient?); an error string with a `Traceback`/`AssertionError` is the failure to classify. A failed run may report `status: "failed"`, but an error inside `run()` can also come back as `status: "closed"` with the error in `result`, so always inspect `result`.
+Read `result` (not `status` alone): a valid object means it is currently healthy (was the failure transient?); an error string with a `Traceback`/`AssertionError` is the failure to classify. A run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload, so always inspect `result`.
 
 For the full failure taxonomy - the exact signals that distinguish drift from an auth wall from a block, and what each one needs - read:
 
@@ -217,7 +217,7 @@ Produce the repaired code, then verify it **without touching the live Function**
    [Phase 6 step 3](#phase-6---promote-behind-a-gate---gate). Since a later run
    will not adopt it, an orphan left behind is one a human has to clear.
 
-   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` (`status` is `"closed"` either way): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
+   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` alone (a `closed` run can still return the wrong payload): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
 
    > **Alternative isolation:** if the Function is shared/forkable, `notte functions fork --function-id {function_id}` gives an isolated copy to test on instead of a throwaway. The throwaway-create path above works in all cases, so prefer it unless forking is clearly available.
 

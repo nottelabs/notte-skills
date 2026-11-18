@@ -28,7 +28,7 @@ The dependable pass/fail signal is `result`:
 
 `result` is the return value of `run()` serialized to JSON, so a `dict` return arrives as a real nested object you can address with `jq` directly. (`run-metadata`'s `result` is different - a Python `repr` - which is why contract validation should read `functions run`.)
 
-The run `status` is a weaker signal. A failed run may report `status: "failed"`, but a Python error inside `run()` (including a health-contract `AssertionError`) can also come back as `status: "closed"` with the error in `result`. So **never treat `status: "closed"` as proof of success** - always inspect `result`. Treat `status == "failed"` **or** a `result` that is an error string as a FAIL.
+The run `status` is a weaker signal. A Python error inside `run()` (including a health-contract `AssertionError`) comes back as `status: "failed"` with the traceback in `result`, and `functions run` exits nonzero. `status: "closed"` only means nothing raised: the payload can still be empty or out of bounds, so **always inspect `result`**. Treat `status == "failed"` **or** a `result` that is an error string as a FAIL.
 
 This is why the [health contract](health-contract.md) assertions matter: a broken run returns `result` as `"... AssertionError: health contract violated: 0 quotes ..."`, which tells you both that it broke and why, in the one field you already have.
 

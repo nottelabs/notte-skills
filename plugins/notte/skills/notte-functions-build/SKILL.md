@@ -168,7 +168,7 @@ notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 notte functions run --function-id "$FUNCTION_ID" --var keyword="AI engineer" -o json | jq '{status, result}'
 ```
 
-**The signal is `result`, not `status` alone.** A JSON payload matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so never treat `"closed"` as proof of success; inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
+**The signal is `result`, not `status` alone.** A JSON payload matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload, so always inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
 
 **Waiting on a slow run.** The CLI polls until the run ends; the global `--timeout` bounds each request, not the run. To bound the whole wait, pass `--wait-timeout`:
 

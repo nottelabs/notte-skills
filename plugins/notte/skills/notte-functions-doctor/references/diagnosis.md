@@ -11,7 +11,7 @@ The goal of diagnosis is to name the failure class correctly *before* touching c
 notte functions run --function-id "{function_id}" -o json | jq '{status, result}'
 ```
 
-**Read `result`, not `status` alone.** A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so `"closed"` does not guarantee success. The dependable read is **`result`**:
+**Read `result`, not `status` alone.** A run that raised comes back `status: "failed"`, but a `closed` run can still return an empty or wrong payload - so `"closed"` does not guarantee success. The dependable read is **`result`**:
 
 - a **JSON object** matching the schema -> the run produced data (if it is empty or violates a bound, that is drift; see class 1).
 - a **string** beginning `Script execution failed ...` with a `Traceback` -> the run raised; the exception or `AssertionError` message is in that string (classes 1, 2, 3, or 4 depending on what it says).

@@ -522,7 +522,7 @@ notte functions fork --function-id <shared-function-id>
 obtain it from `functions list`) and pass it as `--function-id` to every command
 that targets a Function. Do not rely on the CLI's current-Function fallback.
 
-**Reading a run result.** `notte functions run --function-id <function-id>` blocks server-side and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone - a successful run reports `status: "closed"`, and so does a run that raised inside `run()`, with the error text in `result`. `result` is the return value of `run()` serialized to JSON: a `dict` comes back as a real nested object, a `str` as a JSON string. A string containing `Script execution failed` or a `Traceback` is a failure.
+**Reading a run result.** `notte functions run --function-id <function-id>` waits for the run and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone - a run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload. `result` is the return value of `run()` serialized to JSON: a `dict` comes back as a real nested object, a `str` as a JSON string. A string containing `Script execution failed` or a `Traceback` is a failure.
 
 The response also carries `function_run_id`, `session_id`, and `workflow_run_id`:
 

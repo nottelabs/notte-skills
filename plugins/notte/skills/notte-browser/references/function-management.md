@@ -147,7 +147,7 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 - **Monitor logs**: The `logs` field in run-metadata shows print statements and errors
 - **Use variables**: Add function parameters for flexibility (e.g., `max_stories` in the example)
 - **Return data**: Always return structured data from your `run()` function for easy access via run-metadata
-- **Read `result`, not `status` alone**: `notte functions run --function-id <function-id> -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
+- **Read `result`, not `status` alone**: `notte functions run --function-id <function-id> -o json` waits until the run finishes and returns `status` and `result`. A run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
 - **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
 - **Run history is the default**: `notte functions runs --function-id <function-id>` lists every run, newest first; `--running` narrows to those still executing. The simplest path is still to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
 - **Mind the wait**: the CLI polls until the run ends, and the global `--timeout` bounds each request, not the run. Bound the whole wait with `--wait-timeout 10m`, or start with `--no-wait` and wait later with `notte functions run-metadata --wait --function-id <function-id> --run-id <run-id>`.
@@ -767,9 +767,7 @@ notte functions run-metadata --function-id <function-id> --run-id <run-id> -o js
 ### 3. Monitor Run History
 
 ```bash
-# Check for failed runs. A script error may report status "failed", but an error
-# inside run() can also come back as status "closed" with the error string in
-# `result`, so match both.
+# Check for failed runs: status "failed", or an error string in `result`.
 notte functions runs --function-id <function-id> -o json | jq '.[] | select(.status == "failed" or ((.result|type) == "string" and (.result|test("Script execution failed|Traceback"))))'
 ```
 
