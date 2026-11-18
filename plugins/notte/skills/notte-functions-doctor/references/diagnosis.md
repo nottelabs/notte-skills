@@ -85,7 +85,7 @@ If a fresh run's `result` is a valid object that satisfies the contract, the ori
 **Two cautions before you re-run.**
 
 1. **Check whether the Function has side effects.** Read the workflow file you downloaded in Phase 1. If `run()` submits a form, makes a purchase, or writes anything, reproducing the failure performs that action again. For those, prefer reading the last failed run from history (`notte functions runs --function-id "{function_id}"`) and confirm with the user before invoking it.
-2. **If the command times out, do not re-run.** The client giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Find the in-flight run with `notte functions runs --function-id "{function_id}" --running` and read its outcome from the full history once it leaves `active`.
+2. **If the wait stops, do not re-run.** The CLI giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Resume with the `notte functions run-metadata --wait` command the CLI prints, or find the run with `notte functions runs --function-id "{function_id}" --running`.
 
 ## Output of diagnosis
 

@@ -191,7 +191,7 @@ Produce the repaired code, then verify it **without touching the live Function**
    VERIFY_ID=$(notte functions create --file repaired_function.py \
      --name "$VERIFY_NAME" -o json | jq -r '.function_id')
 
-   # functions run blocks and returns status + result inline:
+   # functions run waits for the run and returns status + result:
    notte functions run --function-id "$VERIFY_ID" -o json | jq '{status, result}'
    ```
 

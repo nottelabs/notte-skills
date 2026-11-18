@@ -467,8 +467,8 @@ notte functions update --function-id <function-id> --file workflow.py
 # Delete a function
 notte functions delete --function-id <function-id>
 
-# Run a function. This BLOCKS until the run finishes and returns
-# `status` and `result` inline - there is no client-side polling.
+# Run a function. The CLI polls until the run finishes and returns
+# `status` and `result`; --wait-timeout bounds the wait, --no-wait returns the run id.
 notte functions run --function-id <function-id>
 notte functions run --function-id <function-id> --var page=2                # repeatable; values arrive as strings
 notte functions run --function-id <function-id> --vars '{"page": 2}'        # use JSON for real numbers/booleans
@@ -542,15 +542,15 @@ Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid 
 
 `notte functions runs --function-id <function-id>` returns the **full history** by default; add `--running` to narrow to runs still executing.
 
-**Long-running Functions.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function that takes longer fails the *command* while the run continues server-side. Set a generous timeout on the first invocation: `notte functions run --function-id <function-id> --timeout 600`.
+**Long-running Functions.** The CLI polls until the run ends; the global `--timeout` bounds each request, not the run. Bound the whole wait with `--wait-timeout 10m`, or start with `--no-wait` and wait later with `notte functions run-metadata --wait --function-id <function-id> --run-id <run-id>`.
 
-> **A command timeout is not a failed run - do not just re-run it.** The client giving up does not cancel the run; it keeps executing and completes normally. Re-running therefore invokes the Function a **second** time, duplicating any form submission, purchase, or write. Find the existing run instead:
+> **A stopped wait is not a failed run - do not just re-run it.** The CLI giving up does not cancel the run; it keeps executing and completes normally. Re-running therefore invokes the Function a **second** time, duplicating any form submission, purchase, or write. Resume waiting on the existing run instead:
 >
 > ```bash
-> # still executing?
+> # with the run id the CLI printed:
+> notte functions run-metadata --wait --function-id "$FUNCTION_ID" --run-id <run-id>
+> # lost the run id? list the runs still executing:
 > notte functions runs --function-id "$FUNCTION_ID" --running -o json | jq -c '.[] | {function_run_id, status}'
-> # once it is done, the newest entry in the full history carries the outcome:
-> notte functions runs --function-id "$FUNCTION_ID" -o json | jq -c '.[0]'
 > ```
 
 For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.

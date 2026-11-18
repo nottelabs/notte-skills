@@ -124,7 +124,7 @@ FUNCTION_ID=$(notte functions create \
   --description "Scrapes top stories from Hacker News" \
   -o json | jq -r '.function_id')
 
-# Test it. This blocks until the run completes - no sleep/poll needed.
+# Test it. The CLI waits until the run completes - no sleep/poll needed.
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 
 # If you need execution logs, take the run id from the run you just did.
@@ -150,8 +150,8 @@ notte functions schedule --function-id "$FUNCTION_ID" --cron "0 9 ? * * *"
 - **Read `result`, not `status` alone**: `notte functions run --function-id <function-id> -o json` blocks until the run finishes and returns `status` and `result` inline. A successful run reports `status: "closed"` - and so does a run that raised inside `run()`, with the error text in `result`. Treat a `result` that is a JSON payload as success and one that is an error string (`Script execution failed` / `Traceback`) as a failure. `result` is the return value of `run()` serialized to JSON, so a `dict` comes back as a real nested object.
 - **Get logs from `run-metadata`, using the run id `functions run` returned**: `functions run` does not include logs, but its response carries `function_run_id`. Note `run-metadata`'s own `result` is a Python `repr` (single-quoted, not valid JSON), so read logs there and take the result from `functions run`.
 - **Run history is the default**: `notte functions runs --function-id <function-id>` lists every run, newest first; `--running` narrows to those still executing. The simplest path is still to keep the `function_run_id` from the `functions run` response and skip the listing entirely.
-- **Mind the request timeout**: the run is synchronous, so it is bounded by the global `--timeout` (default 60 seconds). A Function slower than that fails the *command* while the run continues server-side. Set it generously on the first invocation: `notte functions run --function-id <function-id> --timeout 600`.
-- **Never re-run after a command timeout**: the client giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Find the in-flight run with `notte functions runs --function-id <id> --running`, read its outcome from the full history once it leaves `active`, and only start a fresh run if nothing is pending.
+- **Mind the wait**: the CLI polls until the run ends, and the global `--timeout` bounds each request, not the run. Bound the whole wait with `--wait-timeout 10m`, or start with `--no-wait` and wait later with `notte functions run-metadata --wait --function-id <function-id> --run-id <run-id>`.
+- **Never re-run after a stopped wait**: the CLI giving up does not cancel the run - it finishes normally server-side. Re-running invokes the Function a second time and repeats any write, submission, or purchase. Resume with the `run-metadata --wait` command the CLI prints, or find the run with `notte functions runs --function-id <id> --running`, and only start a fresh run if nothing is pending.
 
 ## Creating Functions
 
@@ -473,9 +473,10 @@ import that looks like it should be there.
 notte functions run --function-id <function-id>
 ```
 
-Runs the Function in the cloud and **blocks until it finishes**, returning
-`status` and `result` in one payload. There is no client-side polling, so the
-call is bounded by the global `--timeout` (default 60 seconds).
+Runs the Function in the cloud and **polls until it finishes**, returning
+`status` and `result` in one payload. The global `--timeout` bounds each
+request; `--wait-timeout` bounds the whole wait, and `--no-wait` returns the run
+id right after startup.
 
 This is the CLI equivalent of hitting the Function's HTTP invocation endpoint. Use the HTTP example in "Triggering with Parameters" when the user asks for an "endpoint" for a browser task; do not create a separate local web server unless they explicitly ask for one.
 
