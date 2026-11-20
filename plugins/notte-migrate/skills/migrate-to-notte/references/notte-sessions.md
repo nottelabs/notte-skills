@@ -1,6 +1,8 @@
 # Notte session integration
 
-SDK shapes checked against Python and npm `notte-sdk` 1.9.1 on 2026-09-21.
+SDK shapes checked against Python and npm `notte-sdk` 1.9.1 on 2026-09-21; the Python
+shapes still hold on 1.10.9. Install the current release rather than pinning
+the version checked here.
 Recheck the selected release's signatures/types before adapting these examples.
 The examples illustrate the browser boundary; they do not establish live feature
 parity. Keep the application's existing automation inside that boundary.

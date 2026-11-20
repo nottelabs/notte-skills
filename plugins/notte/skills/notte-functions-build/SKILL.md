@@ -166,22 +166,22 @@ FUNCTION_ID=$(notte functions create \
   -o json | jq -r '.function_id')
 ```
 
-Then **self-test in the cloud** and verify the result against the health contract. `notte functions run --function-id <function-id>` blocks until the run finishes and returns `status` and `result` inline. Pass non-default parameters with `--var key=value` (or `--vars '{json}'`):
+Then **self-test in the cloud** and verify the result against the health contract. `notte functions run --function-id <function-id>` starts the run, polls until it finishes, and returns `status` and `result`. Pass non-default parameters with `--var key=value` (or `--vars '{json}'`):
 
 ```bash
 notte functions run --function-id "$FUNCTION_ID" -o json | jq '{status, result}'
 notte functions run --function-id "$FUNCTION_ID" --var keyword="AI engineer" -o json | jq '{status, result}'
 ```
 
-**The signal is `result`, not `status` alone.** A JSON payload matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so never treat `"closed"` as proof of success; inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
+**The signal is `result`, not `status` alone.** A JSON payload matching your schema means success (then check the contract bounds); a string containing `Script execution failed` / a `Traceback` means the run failed (the exception or `AssertionError` is in that string). A run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload, so always inspect `result`. Repair and re-test until it passes - never declare done on an unverified Function.
 
-**Mind the request timeout.** Because the run is synchronous, it is bounded by the CLI's global `--timeout` (default **60 seconds**). A Function slower than that fails the *command* while the run keeps going server-side - which reads like a broken Function but is not one. Set the timeout generously on the **first** invocation:
+**Waiting on a slow run.** The CLI polls until the run ends; the global `--timeout` bounds each request, not the run. To bound the whole wait, pass `--wait-timeout`:
 
 ```bash
-notte functions run --function-id "$FUNCTION_ID" --timeout 600 -o json | jq '{status, result}'
+notte functions run --function-id "$FUNCTION_ID" --wait-timeout 10m -o json | jq '{status, result}'
 ```
 
-If a command does time out, **do not simply re-run it** - the original run is still executing, and a second invocation runs the Function twice. That is harmless for a scrape and not harmless for anything that writes. Recover the in-flight run instead, per [references/self-test.md](references/self-test.md#a-command-timeout-is-not-a-failed-run---do-not-re-run-it).
+If the wait stops (timeout or interrupt), **do not simply re-run it** - the original run is still executing, and a second invocation runs the Function twice. That is harmless for a scrape and not harmless for anything that writes. Resume waiting on the same run with the `run-metadata --wait` command the CLI prints, per [references/self-test.md](references/self-test.md#a-command-timeout-is-not-a-failed-run---do-not-re-run-it).
 
 For the full validation loop, test-case design, and the self-repair cycle (edit -> `notte functions update --function-id "$FUNCTION_ID" --file ...` -> re-run), read:
 
@@ -202,9 +202,8 @@ Once the self-test passes, report to the user:
    # HTTP (from any backend / CI) - the Python SDK wraps this same endpoint
    curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
      -H "Authorization: Bearer $NOTTE_API_KEY" \
-     -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"function_id": "{function_id}", "variables": {"keyword": "AI engineer"}}'
+     -d '{"variables": {"keyword": "AI engineer"}}'
    ```
 
 2. **Parameters** (with defaults) and the **returned schema**.
@@ -215,8 +214,10 @@ Once the self-test passes, report to the user:
 If the user wanted recurrence, confirm the cadence, then:
 
 ```bash
-notte functions schedule --function-id {function_id} --cron "<cron expression>"
+notte functions schedules add --function-id {function_id} --cron "<cron expression>" --var keyword="AI engineer"
 ```
+
+Pass the variables each scheduled run needs with `--var` (or `--vars '{json}'`). `notte functions schedule` takes no variables and replaces every schedule the Function has.
 
 The CLI passes the expression straight through and reports back the API's response. If the cron format is not accepted, the returned error states exactly what is required - follow that, or have the user copy a schedule from the Notte console. Scheduling makes the Function run unattended and bills each run, so confirm the cadence with the user first.
 

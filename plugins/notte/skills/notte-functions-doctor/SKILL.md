@@ -110,7 +110,7 @@ URL=$(notte functions show --function-id "{function_id}" -o json | jq -r '.url')
 curl -L "$URL" -o current_function.py
 ```
 
-**Capture the schedule now if there is one.** The CLI can set (`schedule`) and remove (`unschedule`) a cron, but it cannot read one back - `functions show` returns no cron field. If the Function is scheduled, get the exact cron expression from the user (or the Notte console) and record it now, so you can re-apply it verbatim after the repair (Phase 6).
+**Capture the schedules now if there are any.** Record each one's cron and variables from `notte functions schedules list --function-id "{function_id}" -o json`, so you can check them after the repair (Phase 6).
 
 ---
 
@@ -147,7 +147,7 @@ Reproduce the failure (re-running gives the cleanest read - the inline `result` 
 notte functions run --function-id "{function_id}" -o json | jq '{status, result}'
 ```
 
-Read `result` (not `status` alone): a valid object means it is currently healthy (was the failure transient?); an error string with a `Traceback`/`AssertionError` is the failure to classify. A failed run may report `status: "failed"`, but an error inside `run()` can also come back as `status: "closed"` with the error in `result`, so always inspect `result`.
+Read `result` (not `status` alone): a valid object means it is currently healthy (was the failure transient?); an error string with a `Traceback`/`AssertionError` is the failure to classify. A run that raised comes back `status: "failed"` with the error in `result`, and `functions run` exits nonzero; a `closed` run can still return an empty or out-of-bounds payload, so always inspect `result`.
 
 For the full failure taxonomy - the exact signals that distinguish drift from an auth wall from a block, and what each one needs - read:
 
@@ -196,7 +196,7 @@ Produce the repaired code, then verify it **without touching the live Function**
    VERIFY_ID=$(notte functions create --file repaired_function.py \
      --name "$VERIFY_NAME" -o json | jq -r '.function_id')
 
-   # functions run blocks and returns status + result inline:
+   # functions run waits for the run and returns status + result:
    notte functions run --function-id "$VERIFY_ID" -o json | jq '{status, result}'
    ```
 
@@ -222,7 +222,7 @@ Produce the repaired code, then verify it **without touching the live Function**
    [Phase 6 step 3](#phase-6---promote-behind-a-gate---gate). Since a later run
    will not adopt it, an orphan left behind is one a human has to clear.
 
-   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` (`status` is `"closed"` either way): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
+   Validate the result against the contract using the same loop as build-time: -> **[notte-functions-build self-test reference](../notte-functions-build/references/self-test.md)** (pass `$VERIFY_ID` as its target id). Read `result`, not `status` alone (a `closed` run can still return the wrong payload): a JSON object matching the schema is a pass; a string with a `Traceback`/`AssertionError` is a fail. Iterate with `notte functions update --function-id "$VERIFY_ID" --file repaired_function.py` until it passes.
 
    > **Alternative isolation:** if the Function is shared/forkable, `notte functions fork --function-id {function_id}` gives an isolated copy to test on instead of a throwaway. The throwaway-create path above works in all cases, so prefer it unless forking is clearly available.
 
@@ -277,10 +277,10 @@ Only after the verification copy passes the contract:
    > form, makes a purchase, or otherwise mutates state, say so and let the user
    > decide whether to run it live - do not invoke it reflexively.
 
-   The CLI cannot read a cron back, so a cleared schedule is not detectable by inspection. If the Function was scheduled (Phase 1), re-apply the cron you recorded - re-applying the same cron is idempotent:
+   If the Function was scheduled (Phase 1), check its schedules are still there with `notte functions schedules list --function-id "{function_id}"`, and re-add any that is missing with its recorded cron and variables. Do not use `notte functions schedule`: it replaces every schedule with one that has no variables.
 
    ```bash
-   notte functions schedule --function-id "{function_id}" --cron "{recorded cron}"
+   notte functions schedules add --function-id "{function_id}" --cron "{recorded cron}" --var {name}={value}
    ```
 
 ---

@@ -11,7 +11,7 @@ The goal of diagnosis is to name the failure class correctly *before* touching c
 notte functions run --function-id "{function_id}" -o json | jq '{status, result}'
 ```
 
-**Read `result`, not `status` alone.** A failed run may report `status: "failed"`, but an error inside `run()` can also return `status: "closed"` with the error in `result` - so `"closed"` does not guarantee success. The dependable read is **`result`**:
+**Read `result`, not `status` alone.** A run that raised comes back `status: "failed"`, but a `closed` run can still return an empty or wrong payload - so `"closed"` does not guarantee success. The dependable read is **`result`**:
 
 - a **JSON object** matching the schema -> the run produced data (if it is empty or violates a bound, that is drift; see class 1).
 - a **string** beginning `Script execution failed ...` with a `Traceback` -> the run raised; the exception or `AssertionError` message is in that string (classes 1, 2, 3, or 4 depending on what it says).
@@ -85,7 +85,7 @@ If a fresh run's `result` is a valid object that satisfies the contract, the ori
 **Two cautions before you re-run.**
 
 1. **Check whether the Function has side effects.** Read the workflow file you downloaded in Phase 1. If `run()` submits a form, makes a purchase, or writes anything, reproducing the failure performs that action again. For those, prefer reading the last failed run from history (`notte functions runs --function-id "{function_id}"`) and confirm with the user before invoking it.
-2. **If the command times out, do not re-run.** The client giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Find the in-flight run with `notte functions runs --function-id "{function_id}" --running` and read its outcome from the full history once it leaves `active`.
+2. **If the wait stops, do not re-run.** The CLI giving up does not cancel the run - it keeps executing server-side and completes normally, so a retry invokes the Function a second time. Resume with the `notte functions run-metadata --wait` command the CLI prints, or find the run with `notte functions runs --function-id "{function_id}" --running`.
 
 ## Output of diagnosis
 
