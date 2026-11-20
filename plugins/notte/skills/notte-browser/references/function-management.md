@@ -305,7 +305,6 @@ notte functions run --function-id <function-id>
 # Invoke the same Function over HTTP
 curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
   -H "Authorization: Bearer $NOTTE_API_KEY" \
-  -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "variables": {

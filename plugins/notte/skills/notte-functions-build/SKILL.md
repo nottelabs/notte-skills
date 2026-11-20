@@ -197,7 +197,6 @@ Once the self-test passes, report to the user:
    # HTTP (from any backend / CI) - the Python SDK wraps this same endpoint
    curl -L -X POST "https://api.notte.cc/functions/{function_id}/runs/start" \
      -H "Authorization: Bearer $NOTTE_API_KEY" \
-     -H "X-Notte-Api-Key: $NOTTE_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"variables": {"keyword": "AI engineer"}}'
    ```
