@@ -235,6 +235,10 @@ notte sessions viewer --session-id <session-id>
 
 # Get session offset info (the step index agents resume from)
 notte sessions offset --session-id <session-id>
+
+# List the steps taken in the session, oldest first, one page at a time.
+# When more steps follow, stderr prints the cursor for the next page.
+notte sessions steps --session-id <session-id> [--limit <n>] [--cursor <next-cursor>]
 ```
 
 Session export:
