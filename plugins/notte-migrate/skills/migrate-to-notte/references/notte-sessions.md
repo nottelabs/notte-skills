@@ -151,6 +151,20 @@ failures through sanitized application telemetry if needed. Never log a raw
 transport exception. The SDK owns rollback when `start()` itself fails; verify
 that behavior separately against the selected version.
 
+## JavaScript dialogs
+
+By default (`dialog_policy="auto"`) Notte answers JavaScript dialogs itself: it
+dismisses `alert`, `confirm` and `prompt` and accepts `beforeunload`, so an
+existing `page.on("dialog", ...)` handler competes with Notte for the answer.
+When the application handles dialogs itself, start the session with
+`dialog_policy="client"`: `NotteClient().Session(dialog_policy="client", ...)` in
+Python, `new NotteClient().Session({ dialog_policy: "client", ... })` in
+TypeScript. Keep registering the handler before the page opens a dialog. A
+dialog nobody answers within 10 seconds is dismissed (`beforeunload` is
+accepted), and while one is open Notte's own page actions on the session wait.
+`dialog_policy` needs an SDK release newer than the 1.9.1 shapes above; check the
+installed SDK's session options before using it.
+
 ## Configuration and lifecycle invariants
 
 - Distinguish `max_duration_minutes` from `idle_timeout_minutes`, HTTP request
