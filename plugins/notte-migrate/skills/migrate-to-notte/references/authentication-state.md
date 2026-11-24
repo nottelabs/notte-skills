@@ -35,9 +35,11 @@ Notte imports state into an existing profile. Live-checked on 2026-11-24 with
 - Raw Playwright `storage_state()` output is rejected with a 422 ("Browser
   snapshot contains unsupported fields"). Convert `origins[].localStorage`
   name/value lists into the `{origin: {key: value}}` map; pass cookies through.
-- `storage_state()` never includes sessionStorage. If the app needs it, use
-  `page.evaluate` in the tab the workflow uses before releasing the source
-  session. The import stores one map per origin, so it cannot preserve different
+- `storage_state()` never includes sessionStorage. If the app needs it, read it
+  in the tab the workflow uses before releasing the source session, with
+  `frame.evaluate` on each frame whose origin holds it: `page.evaluate` reads
+  only the main frame, so state in an embedded frame from another origin needs
+  that frame's own call. The import stores one map per origin, so it cannot preserve different
   values for the same key across tabs on that origin.
 - IndexedDB is neither saved in profiles nor imported. Apps that keep login in
   IndexedDB need a fresh login; say so in the assessment.
