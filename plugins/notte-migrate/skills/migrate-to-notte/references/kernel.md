@@ -1,6 +1,7 @@
 # Kernel to Notte
 
-Reviewed 2026-09-21. These are migration mappings, not a complete API reference.
+Reviewed 2026-09-21; timeout and profile rows rechecked live on 2026-11-24 with
+`notte-sdk` 1.10.15. These are migration mappings, not a complete API reference.
 Check installed versions and the linked docs before editing.
 
 ## Detect
@@ -16,9 +17,14 @@ and Kernel app entrypoints as well as direct SDK calls.
 | TypeScript `kernel.browsers.create()` / Python `kernel.browsers.create()` | Create a Notte Session; keep the existing automation client. |
 | `session_id` and `cdp_ws_url` | Notte session ID and SDK-provided CDP URL; see [shared examples](notte-sessions.md). |
 | TS `browsers.deleteByID(id)` / Python `browsers.delete_by_id(id)` | Stop the Notte session independently of disconnecting the automation client. |
-| `profile: {name/id, save_changes}` | Create/map a Notte profile ID and preserve write intent with `profile: {id, persist}`. Source IDs and names are not portable. |
+| `profile: {name/id, save_changes}` | Create/map a Notte profile ID and preserve write intent with `profile: {id, persist}`. Source IDs and names are not portable. A Kernel profile archive (full user-data dir) cannot be imported; move cookies and web storage with [authentication state](authentication-state.md). |
+| `timeout_seconds` (inactivity, up to 72 h) | `idle_timeout_minutes`, max 30. On Kernel an open CDP connection counts as activity; on Notte it does not: a quiet connection was closed at the 3-minute default idle timeout in a live check, while a CDP `Runtime.evaluate` every 60 s kept the session alive. Set the idle timeout explicitly, or add a keepalive only if the user accepts the extra traffic. Required idle periods above 30 min are **Blocked**. |
+| Standby (no billing while idle) | No equivalent. Pause/resume is not available on production workspaces without a feature flag (409). **Blocked** when required. |
+| `region` | No region selection on Notte. **Blocked** when required. |
+| `extensions` | No Chrome extensions on Notte. **Blocked** when the workflow depends on one. |
+| GPU, `headless`, `kiosk_mode` | No equivalent session options. Record them as gaps rather than dropping them silently. |
 | `webdriver_ws_url` / WebDriver BiDi | Separate compatibility check. A CDP URL is not a WebDriver/BiDi endpoint. |
-| Browser pool acquire/release | Verify lease, queue wait, warm capacity, and release semantics before selecting a Notte pool or application queue. |
+| Browser pool acquire/release | Notte has no browser pools. Verify lease, queue wait, warm capacity, and release semantics, then choose an application-side queue or record the gap. |
 
 Kernel has distinct control modes: CDP, remote Playwright execution, OS-level
 computer controls, and WebDriver BiDi. Only the CDP path is a browser-connection
