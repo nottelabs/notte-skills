@@ -22,6 +22,25 @@ passkeys, device binding, or missing storage may require reauthentication. A
 Profile persists state; it does not recreate a provider's managed-auth service,
 credential vault, account identity, or token-refresh policy.
 
+## Notte state import API
+
+Notte imports state into an existing profile. Live-checked on 2026-11-24 with
+`notte-sdk` 1.10.15:
+
+| Call | Accepts | Notes |
+|---|---|---|
+| Python `client.profiles.state_set(profile_id, ...)` / TS `client.profiles.stateSet(profileId, body)` (`POST /profiles/{id}/state`) | `cookies`, `local_storage` and `session_storage` as `{origin: {key: value}}`, `mode` (`replace` default, or `append`) | Cookies (including httpOnly), localStorage and sessionStorage all came back in a new session. |
+| Python `client.profiles.cookies_set(profile_id, ...)` / TS `cookiesSet` (`POST /profiles/{id}/cookies`) | `cookies` with `source_format` `playwright` or `chrome` | Takes Playwright's cookie list unchanged. Cookies only. |
+
+- Raw Playwright `storage_state()` output is rejected with a 422 ("Browser
+  snapshot contains unsupported fields"). Convert `origins[].localStorage`
+  name/value lists into the `{origin: {key: value}}` map; pass cookies through.
+- `storage_state()` never includes sessionStorage. Read it per origin with
+  `page.evaluate` before releasing the source session if the app needs it.
+- IndexedDB is neither saved in profiles nor imported. Apps that keep login in
+  IndexedDB need a fresh login; say so in the assessment.
+- Docs: [Import State from Another Browser](https://docs.notte.cc/features/sessions/browser-profiles#import-state-from-another-browser).
+
 ## Map persistence intent
 
 | Source | Notte |

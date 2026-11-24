@@ -1,6 +1,8 @@
 # Notte session integration
 
-SDK shapes checked against Python and npm `notte-sdk` 1.9.1 on 2026-09-21.
+SDK shapes checked against Python and npm `notte-sdk` 1.9.1 on 2026-09-21. Session
+creation, `cdp_url()`/`cdpUrl()`, stop, profiles and the defaults below were
+exercised live with 1.10.15 on 2026-11-24.
 Recheck the selected release's signatures/types before adapting these examples.
 The examples illustrate the browser boundary; they do not establish live feature
 parity. Keep the application's existing automation inside that boundary.
@@ -178,8 +180,57 @@ that behavior separately against the selected version.
   countries. Use explicit supported routing and verify observed egress when the
   source requires a particular country. Compute region and egress are distinct.
 - Map persistence with [authentication state](authentication-state.md).
-  CAPTCHA flags, viewport, extensions, and stealth settings require tests of the
+  CAPTCHA flags, viewport, and stealth settings require tests of the
   actual behavior; none is an automatic guarantee of target-site access.
+- An open CDP connection with no traffic does not count as activity, and neither
+  does polling session status. A client that holds the connection open and
+  waits is closed at the idle timeout (default 3 min). A CDP command such as
+  `Runtime.evaluate` resets it. Source code that relied on an open connection to
+  keep a browser alive (Kernel) needs an explicit idle timeout or a keepalive.
+
+## Defaults that differ
+
+These defaults change behavior without raising an error. Set each one explicitly
+when the source provider behaved differently, and list them in the mapping:
+
+| Option | Notte default | Typical source behavior to check |
+|---|---|---|
+| `proxies` | `True` (residential, billed per GB) | Direct egress by default on Browserbase and Kernel |
+| `block_ads` | `True` | Browserbase `blockAds` defaults to false |
+| `dialog_policy` | `"auto"`: dismisses alert, confirm and prompt | Client code that accepts or answers dialogs needs `"client"` |
+| `max_duration_minutes` | 15; plan caps 15/120/300 min (Free/Developer/Startup) | Longer source timeouts |
+| `idle_timeout_minutes` | 3, max 30 | Long inactivity timeouts, keep-alive |
+| `record_session` | `True` | Recording off by default on Kernel and Browser Use |
+| `profile.persist` | `False` | Browser Use writes profiles back by default |
+
+## Not available on Notte
+
+Classify as **Blocked** when the application requires them: region selection,
+Chrome extensions, a remote WebDriver URL (Selenium/BiDi), browser pools,
+standby or keep-alive beyond the 30-minute idle cap. Session pause/resume exists
+in the API but returns 409 on production workspaces without a feature flag; on
+workspaces where it works, the CDP connection drops on pause and must reconnect
+after resume. Do not plan a migration around it without checking the target
+workspace.
+
+## One-URL connect
+
+`wss://api.notte.cc/sessions/connect?token=<NOTTE_API_KEY>&<start fields>`
+creates a session when a client connects and stops it within about 3 s of the
+disconnect, including when the client process dies. It returns the session ID in
+the `X-Session-Id` handshake header. Live-checked with Playwright
+`connect_over_cdp` and Puppeteer `connect` on 2026-11-24.
+
+- Use it when the source hard-codes a provider WebSocket URL (for example
+  `wss://connect.browserbase.com?apiKey=`) or a third-party tool takes only a URL.
+- Accepted query fields include `proxies`, `max_duration_minutes`,
+  `idle_timeout_minutes`, `viewport_width`, `viewport_height`, `solve_captchas`,
+  `block_ads`, `dialog_policy` and `user_agent`. Unknown fields are ignored.
+- `profile`, proxy lists, headers, `record_session=false` and
+  `log_session=false` are refused. Use the SDK for those.
+- Every failure, including a bad key or a refused field, is a 403 with an empty
+  body. Start from a minimal URL when debugging.
+- The URL carries the API key. Never log or commit it.
 
 ## Remote downloads
 
@@ -216,9 +267,9 @@ server behavior unverified. A failed docs fetch is not proof a feature is absent
 | Lifecycle and settings | [Lifecycle](https://docs.notte.cc/features/sessions/lifecycle), [configuration](https://docs.notte.cc/features/sessions/configuration) |
 | Framework connection | [Playwright](https://docs.notte.cc/features/sessions/playwright), [Puppeteer](https://docs.notte.cc/features/sessions/puppeteer), [Stagehand compatibility](https://docs.notte.cc/integrations/stagehand) |
 | Authentication | [Profiles](https://docs.notte.cc/features/sessions/browser-profiles), [cookies](https://docs.notte.cc/features/sessions/cookies) |
-| Network/challenges | [Proxies](https://docs.notte.cc/features/sessions/proxies), [regions](https://docs.notte.cc/features/sessions/multi-region), [CAPTCHA](https://docs.notte.cc/features/sessions/captcha-solving) |
+| Network/challenges | [Proxies](https://docs.notte.cc/features/sessions/proxies), [CAPTCHA](https://docs.notte.cc/features/sessions/captcha-solving). There is no region page: region selection is not available |
 | Remote files | [Files](https://docs.notte.cc/concepts/file-storage); verify session ownership, upload paths, download availability after stop, and retention |
 | Debugging artifacts | [Live view](https://docs.notte.cc/features/sessions/live-view), [recordings](https://docs.notte.cc/features/sessions/recordings); verify access and artifact readiness |
-| Optional capabilities | [Extensions](https://docs.notte.cc/features/sessions/browser-extensions), [Functions](https://docs.notte.cc/concepts/functions), [Browser Use](https://docs.notte.cc/integrations/browser-use) |
+| Optional capabilities | [Functions](https://docs.notte.cc/concepts/functions), [Browser Use](https://docs.notte.cc/integrations/browser-use). Extensions are not available |
 | Cost/limits | [Pricing](https://docs.notte.cc/intro/pricing), [rate limits](https://docs.notte.cc/api-reference/rate-limits) |
 | Find an API not linked above | [Docs index](https://docs.notte.cc/llms.txt) |
