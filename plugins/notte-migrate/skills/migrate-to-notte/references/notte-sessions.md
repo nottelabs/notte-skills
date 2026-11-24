@@ -213,8 +213,9 @@ keeps sending CDP commands stays up until `max_duration_minutes`. Classify long
 waits by what the application needs:
 
 - More than 30 minutes with no CDP traffic: **Adapt** with a CDP keepalive if the
-  user accepts the extra traffic, or with pause/resume where the target workspace
-  supports it. Otherwise **Blocked**.
+  user accepts the extra traffic. Pause/resume is an option only if the client
+  can reconnect and the workspace and lifetime checks below pass, even if the
+  wait starts with an open connection. Otherwise **Blocked**.
 - Disconnected gaps of more than 30 minutes (the source used `keepAlive` or
   standby): pause/resume can hold the session, but it returns 409 on production
   workspaces without a feature flag. Per the backend code (expiry not tested
@@ -234,7 +235,11 @@ the `X-Session-Id` handshake header. Live-checked with Playwright
 `connect_over_cdp` and Puppeteer `connect` on 2026-11-24.
 
 - Use it when the source hard-codes a provider WebSocket URL (for example
-  `wss://connect.browserbase.com?apiKey=`) or a third-party tool takes only a URL.
+  `wss://connect.browserbase.com?apiKey=`) or a third-party tool takes only a URL,
+  and each connection can start with a fresh browser. Every connection creates
+  a new session, so a tool that disconnects between jobs and expects the same
+  browser back loses its tabs and login. In that case, start the session with
+  the SDK and pass its CDP URL to the tool.
 - Accepted query fields include `proxies`, `max_duration_minutes`,
   `idle_timeout_minutes`, `viewport_width`, `viewport_height`, `solve_captchas`,
   `block_ads`, `dialog_policy` and `user_agent`. Unknown fields are ignored.

@@ -37,12 +37,16 @@ Notte supports Stagehand v4 at **4.2.1**, the verified pin of its server-side
 layer. In live checks on 2026-11-24 (TypeScript, `notte-sdk` 1.10.15),
 4.2.1 connected and extracted; 4.3.0 and 4.4.0 failed at connect with
 `StagehandRuntimeIncompatibleError ... Protocol major mismatch: client 3.x, server 2.1.1`.
-Classify an installed v4 release:
+Classify an installed TypeScript v4 release:
 
 - 4.2.1: **Direct** for the browser connection; follow Notte's integration page.
 - 4.3 or later: **Blocked** unless the user approves pinning to 4.2.1. Recheck
   the integration page first, since the pin can move.
 - Earlier 4.x: **Unverified**; test before choosing.
+
+Notte's integration page also names Python `stagehand==4.2.1`, but the live check
+above covered TypeScript only. Treat Python releases as **Unverified** until a
+test covers the installed Python package.
 
 Do not downgrade, remove Stagehand, or rewrite `act`/`extract`/agent logic
 without the user's decision. Browserbase-managed services and experimental
