@@ -18,7 +18,7 @@ Look for `@browserbasehq/sdk`, Python `browserbase`, `BROWSERBASE_API_KEY`,
 | Hard-coded `wss://connect.browserbase.com?apiKey=...` | `wss://api.notte.cc/sessions/connect?token=...`: connecting creates a session, disconnecting stops it within about 3 s. Only flat start fields work as query parameters; `profile`, proxy lists, headers, `record_session=false` and `log_session=false` are refused. Every error, including a bad key, is an empty-body 403. See [one-URL connect](notte-sessions.md#one-url-connect). |
 | `sessions.update(id, {status: "REQUEST_RELEASE", ...})` | Stop Notte explicitly, including when CDP connection fails. |
 | `timeout` in seconds | Map maximum lifetime to `max_duration_minutes`; validate non-whole minutes rather than silently rounding. Python SDKs may call the session field `api_timeout`. Browserbase allows up to 6 h; Notte plans cap the maximum (15/120/300 min on Free/Developer/Startup). A required lifetime above the plan cap is **Blocked** on that plan. |
-| `keepAlive` | No equivalent flag. A disconnected session lives until stop, its idle timeout (max 30 min) or its maximum duration. Pause/resume is not available on production workspaces without a feature flag (409), so do not rely on it. Reconnecting gaps above 30 min are **Blocked**. Test both disconnect and explicit stop. |
+| `keepAlive` | No equivalent flag. A disconnected session lives until stop, its idle timeout (max 30 min) or its maximum duration. Classify gaps longer than 30 min with [long waits](notte-sessions.md#not-available-on-notte): pause/resume returns 409 on production workspaces without a feature flag. Test both disconnect and explicit stop. |
 | `browserSettings.context: {id, persist}` | Create/map a Notte profile and use `profile: {id, persist}`. Distinguish a persistent Browserbase Context from a Playwright BrowserContext. Contexts keep IndexedDB and service workers; Notte profiles do not. |
 | `region` | No region selection on Notte. **Blocked** when the application requires a region (data residency, latency). |
 | `extensionId` | No Chrome extensions on Notte. **Blocked** when the workflow depends on one. |
@@ -33,8 +33,8 @@ Playwright context does not automatically inherit a provider's persisted profile
 Check [Notte's Stagehand integration](https://docs.notte.cc/integrations/stagehand)
 and the installed Stagehand release before editing the application.
 
-Stagehand v4 runs on Notte only at **4.2.1**, through a server-side layer pinned
-to that release. In live checks on 2026-11-24 (TypeScript, `notte-sdk` 1.10.15),
+Notte supports Stagehand v4 at **4.2.1**, the verified pin of its server-side
+layer. In live checks on 2026-11-24 (TypeScript, `notte-sdk` 1.10.15),
 4.2.1 connected and extracted; 4.3.0 and 4.4.0 failed at connect with
 `StagehandRuntimeIncompatibleError ... Protocol major mismatch: client 3.x, server 2.1.1`.
 Classify an installed v4 release:

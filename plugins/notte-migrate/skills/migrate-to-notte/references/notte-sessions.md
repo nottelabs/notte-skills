@@ -206,12 +206,24 @@ when the source provider behaved differently, and list them in the mapping:
 ## Not available on Notte
 
 Classify as **Blocked** when the application requires them: region selection,
-Chrome extensions, a remote WebDriver URL (Selenium/BiDi), browser pools,
-standby or keep-alive beyond the 30-minute idle cap. Session pause/resume exists
-in the API but returns 409 on production workspaces without a feature flag; on
-workspaces where it works, the CDP connection drops on pause and must reconnect
-after resume. Do not plan a migration around it without checking the target
-workspace.
+Chrome extensions, a remote WebDriver URL (Selenium/BiDi), browser pools.
+
+The 30-minute cap applies to inactivity, not to session length. A session that
+keeps sending CDP commands stays up until `max_duration_minutes`. Classify long
+waits by what the application needs:
+
+- More than 30 minutes with no CDP traffic: **Adapt** with a CDP keepalive if the
+  user accepts the extra traffic, or with pause/resume where the target workspace
+  supports it. Otherwise **Blocked**.
+- Disconnected gaps of more than 30 minutes (the source used `keepAlive` or
+  standby): pause/resume can hold the session, but it returns 409 on production
+  workspaces without a feature flag. Per the backend code (expiry not tested
+  live), a session lives at most 24 hours from start, paused time included, and
+  a workspace can hold at most 10 paused sessions. **Adapt** only when the
+  required gap fits that window and a test on the target workspace shows pause,
+  resume after a representative gap, and CDP reconnection all working; otherwise
+  **Blocked**. The CDP connection drops on pause, so the client must reconnect
+  after resume.
 
 ## One-URL connect
 
