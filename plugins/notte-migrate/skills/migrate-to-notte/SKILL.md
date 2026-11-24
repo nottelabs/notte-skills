@@ -71,11 +71,11 @@ managed agents, jobs, callbacks, and self-hosting. Classify each used surface:
 | Unverified | A required capability has no adequate documentation or test yet. |
 
 Do not collapse blocked or unverified features into a claimed drop-in migration.
-Notte has no region selection, Chrome extensions, remote WebDriver URL, browser
-pools, or keep-alive beyond a 30-minute idle timeout, and an open CDP connection
-without traffic is not activity. Check these and the
-[defaults that differ](references/notte-sessions.md#defaults-that-differ) for
-every workflow.
+Notte has no region selection, Chrome extensions, remote WebDriver URL, or
+browser pools. The idle timeout is at most 30 minutes, and an open CDP connection
+without traffic is not activity. Check these, [long waits](references/notte-sessions.md#not-available-on-notte),
+and the [defaults that differ](references/notte-sessions.md#defaults-that-differ)
+for every workflow.
 For framework version constraints, especially Stagehand, check compatibility
 before implementation. Retain the user's framework unless they approve a
 necessary alternative; continue independent migration work while a choice is pending.
