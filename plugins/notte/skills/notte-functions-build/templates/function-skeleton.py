@@ -1,7 +1,7 @@
 """Notte Function skeleton (built).
 
 A complete, parameterized starting point for a Notte Function. Start from
-`notte sessions workflow-code --session-id <id>` to capture the path that
+`notte sessions function-code --session-id <id>` to capture the path that
 actually worked, then shape it to look like this file:
 
   - `run(...)` parameters are the business variables -> Function invocation variables
@@ -21,11 +21,11 @@ Leave out `from __future__ import annotations`. With PEP 563 the Pydantic field
 annotations become unresolved forward references, so a deployed Function fails at
 `response_format=Model` with `PydanticUserError: Model is not fully defined`
 (unless you also call `Model.model_rebuild()`). The `X | None` syntax below works
-without it, so the simplest fix is to omit it. (`notte sessions workflow-code`
+without it, so the simplest fix is to omit it. (`notte sessions function-code`
 may emit that import in its export - remove it before deploying.)
 
 The module-level `run()` call at the bottom is optional - the runtime invokes
-`run()` itself. It is kept here to match what `notte sessions workflow-code`
+`run()` itself. It is kept here to match what `notte sessions function-code`
 emits; removing it changes nothing.
 """
 

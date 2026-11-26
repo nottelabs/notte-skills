@@ -111,7 +111,7 @@ Use the user's existing task and project conventions. If they only asked to set 
 
 For browser automation, inspect the live site with the CLI before writing code. Element IDs, selectors, and field mappings must come from current observations or inspected page content. Do not guess them from memory. Save the returned session ID and pass `--session-id` to subsequent commands.
 
-For a code integration, use the project's language; ask Python or TypeScript only if it is not established. For Python, export the observed workflow with `notte sessions workflow-code --session-id <session-id>` and then adapt it using [Python SDK Interop](references/python-sdk-interop.md). For TypeScript, implement the verified interactions using the [TypeScript SDK documentation](https://docs.notte.cc/typescript-sdk-reference/manual/client). Install the selected SDK in the project's existing environment and follow its runtime requirements. Run the resulting integration and verify its actual output; a successful install alone does not verify the task.
+For a code integration, use the project's language; ask Python or TypeScript only if it is not established. For Python, export the observed workflow with `notte sessions function-code --session-id <session-id>` and then adapt it using [Python SDK Interop](references/python-sdk-interop.md). For TypeScript, implement the verified interactions using the [TypeScript SDK documentation](https://docs.notte.cc/typescript-sdk-reference/manual/client). Install the selected SDK in the project's existing environment and follow its runtime requirements. Run the resulting integration and verify its actual output; a successful install alone does not verify the task.
 
 ## Quick Start
 
@@ -244,19 +244,20 @@ notte sessions steps --session-id <session-id> [--limit <n>] [--cursor <next-cur
 Session export:
 
 ```bash
-# Export session steps as Python workflow code.
+# Export session steps as Python function code.
 # Use --session-id to export a specific session, including one that has been stopped.
-notte sessions workflow-code --session-id <session-id>
+# Older CLI versions name this command `workflow-code`.
+notte sessions function-code --session-id <session-id>
 
-# `notte sessions code --session-id <session-id>` hits the same endpoint without the workflow wrapper and
-# returns a plain replay script. Prefer `workflow-code` when the target is a
+# `notte sessions code --session-id <session-id>` hits the same endpoint without the Function wrapper and
+# returns a plain replay script. Prefer `function-code` when the target is a
 # Notte Function - it is the shape `notte functions create` expects.
 
 # example flow
 SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
 notte page goto --session-id "$SESSION_ID" news.ycombinator.com
 notte page scrape --session-id "$SESSION_ID" --instructions "Extract the top 10 stories from Hacker News. For each story return: rank, title, URL, points, author, number of comments" -o json
-notte sessions workflow-code --session-id "$SESSION_ID"
+notte sessions function-code --session-id "$SESSION_ID"
 
 # returns
 from __future__ import annotations
@@ -528,11 +529,11 @@ that targets a Function. Do not rely on the CLI's current-Function fallback.
 
 **Reading a run result.** `notte functions run --function-id <function-id>` blocks server-side and returns `status` and `result` together. Judge the run on **`result`**, not `status` alone - a successful run reports `status: "closed"`, and so does a run that raised inside `run()`, with the error text in `result`. `result` is the return value of `run()` serialized to JSON: a `dict` comes back as a real nested object, a `str` as a JSON string. A string containing `Script execution failed` or a `Traceback` is a failure.
 
-The response also carries `function_run_id`, `session_id`, and `workflow_run_id`:
+The response also carries `function_id`, `function_run_id` and `session_id`:
 
 ```json
 {"function_id": "...", "function_run_id": "...", "result": {"count": 1},
- "session_id": null, "status": "closed", "workflow_id": "...", "workflow_run_id": "..."}
+ "session_id": null, "status": "closed"}
 ```
 
 **Getting logs.** `functions run` does not return logs. Take the `function_run_id` from its response and read the metadata:
@@ -557,7 +558,7 @@ Note `run-metadata`'s `result` is a Python `repr` (single-quoted, **not** valid 
 > notte functions runs --function-id "$FUNCTION_ID" -o json | jq -c '.[0]'
 > ```
 
-For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported workflow code or writing Function files by hand.
+For reusable or repeated browser work, load and follow [Function Management Reference](references/function-management.md) before creating or updating a Function. Load [Python SDK Interop](references/python-sdk-interop.md) only when editing exported function code or writing Function files by hand.
 
 ### Account Management
 
@@ -906,7 +907,7 @@ before the keystrokes hit the page. Do not write sentinel strings directly.
 SESSION_ID=$(notte sessions start -o json | jq -r '.session_id')
 notte page goto --session-id "$SESSION_ID" "https://news.ycombinator.com"
 notte page scrape --session-id "$SESSION_ID" --instructions "Extract the top 10 stories with title, url, points"
-notte sessions workflow-code --session-id "$SESSION_ID" > collect_data.py
+notte sessions function-code --session-id "$SESSION_ID" > collect_data.py
 notte sessions stop --session-id "$SESSION_ID"
 
 # 2. Edit collect_data.py to add a run(...) entry point whose parameters are the
