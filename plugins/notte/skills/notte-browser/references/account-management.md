@@ -176,6 +176,46 @@ notte vaults update --vault-id <vault-id> --name "Personal Accounts"
 notte vaults delete --vault-id <vault-id>
 ```
 
+## Connecting Bitwarden (experimental)
+
+Instead of copying credentials into a Notte vault, sessions can read logins from the user's Bitwarden Password Manager through Agent Access (`aac`, in alpha). The user connects once; each login fill of a session started with `--aac-vault` then asks Bitwarden for the page's login, and the user approves it in `aac listen`. Notte never stores a password.
+
+Requirements on the machine with the vault: [aac v0.11.0](https://github.com/bitwarden/agent-access/releases/tag/v0.11.0) and the Bitwarden CLI (`bw`), logged in.
+
+```bash
+# Once: connect Bitwarden. This runs `aac listen --reusable-psk` in the terminal:
+# unlock the vault with /unlock and approve login requests there. Quitting aac
+# keeps the connection.
+notte vaults connect --provider bitwarden
+
+# Whenever sessions fill logins, keep the listener running (same token after restarts)
+aac listen --reusable-psk
+
+# In another terminal (or a script): start a session that uses it, open the login page,
+# and fill with placeholders
+SESSION_ID=$(notte sessions start --aac-vault -o json | jq -r '.session_id')
+notte page goto --session-id "$SESSION_ID" "https://github.com/login"
+notte page fill --session-id "$SESSION_ID" 'input[name=login]' --vault-field username
+notte page fill --session-id "$SESSION_ID" 'input[name=password]' --vault-field password
+
+# Delete the connection
+notte vaults disconnect --provider bitwarden
+```
+
+To run the listener yourself (another terminal or machine), start `aac listen --reusable-psk`, copy the token it prints, and pass it in `AAC_TOKEN`. The command then returns at once:
+
+```bash
+export AAC_TOKEN=<token printed by aac listen --reusable-psk>
+notte vaults connect --provider bitwarden
+```
+
+> **Security note:** the token pairs with your listener until the first fill, which replaces it with Notte's aac device; every login request still needs your approval. Pass it in `AAC_TOKEN` rather than `--token`: a flag value lands in `argv`, where `ps` can read it while the command runs. Use a machine and shell you control, not a shared host.
+
+- Only the reusable PSK token works (`<64 hex>_<64 hex>`): a pairing code from `/pair` pairs once.
+- Each request must be approved within 30 seconds, or the fill fails and types nothing. `[a]` approves that site for 10 minutes; restarting aac clears those approvals.
+- The fill asks Bitwarden first, then the session's Notte vault (`--vault-id`), if it has one.
+- Values Bitwarden filled stay masked in screenshots and observations.
+
 ## Credential Management
 
 ### Adding Credentials
