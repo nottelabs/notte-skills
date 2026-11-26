@@ -16,7 +16,7 @@ Functions are reusable Python workflows that can be:
 - Shared publicly and forked by others
 - Tracked with run history and metadata
 
-Think of a Function as the endpoint version of a browser task. A tested `notte page ...` session proves the task works; `notte sessions workflow-code` turns that task into code; `notte functions create` deploys that code behind a stable Function ID that can be triggered repeatedly.
+Think of a Function as the endpoint version of a browser task. A tested `notte page ...` session proves the task works; `notte sessions function-code` turns that task into code; `notte functions create` deploys that code behind a stable Function ID that can be triggered repeatedly.
 
 ## Development Workflow
 
@@ -35,15 +35,15 @@ Rank by the page, not by habit: a site with a public API or a fixed table should
 Building a function should start from a tested CLI session. The easiest and most reliable path is:
 
 1. Try the browser task directly with `notte sessions start` and `notte page ...` commands until it works.
-2. Export the successful session with `notte sessions workflow-code --session-id <session-id>`.
+2. Export the successful session with `notte sessions function-code --session-id <session-id>`.
 3. Use the exported script as the implementation base for the Function.
 
-For interactive, stateful, or authenticated flows - logins, multi-step forms, anything where the working sequence and session state are painful to reconstruct by hand - export `workflow-code` before hand-writing the Function. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser, which is precisely what is hard to guess back. For a stateless Function built on an endpoint or HTML structure you already confirmed, writing that request directly is fine.
+For interactive, stateful, or authenticated flows - logins, multi-step forms, anything where the working sequence and session state are painful to reconstruct by hand - export `function-code` before hand-writing the Function. The exported script captures the exact `goto`, `wait`, scrape settings, selectors, and session options that worked in the browser, which is precisely what is hard to guess back. For a stateless Function built on an endpoint or HTML structure you already confirmed, writing that request directly is fine.
 
 ### Step-by-Step Process
 
 1. **Build interactively** - Use `notte sessions start` and `notte page` commands to develop your automation step-by-step in the terminal
-2. **Export code** - Run `notte sessions workflow-code --session-id <session-id>` to generate a working Python script from your session.
+2. **Export code** - Run `notte sessions function-code --session-id <session-id>` to generate a working Python script from your session.
 3. **Parameterize the export** - Edit the generated script only as needed: add a `run(...)` entry point, replace hardcoded user inputs with function parameters, define response models, and add small cleanup logic
 4. **Create function** - Upload the edited export with `notte functions create --file my_function.py` and capture the returned ID
 5. **Test in cloud** - Run `notte functions run --function-id <function-id>`, which blocks until the run finishes and returns `status` and `result` inline
@@ -69,7 +69,7 @@ notte sessions stop --session-id "$SESSION_ID"
 
 # Export the session as Python code.
 # This still works after stop because the session ID is explicit.
-notte sessions workflow-code --session-id "$SESSION_ID" > hn_scraper.py
+notte sessions function-code --session-id "$SESSION_ID" > hn_scraper.py
 ```
 
 **Step 4 — edit the export to add a `run()` entry point and parameters.**
@@ -183,7 +183,7 @@ Function files define browser automation steps with the following requirements:
 - Must contain a `def run()` function - this is the entry point
 - Must create a session using `NotteClient().Session()`
 A trailing module-level `run()` call is **optional**. `notte sessions
-workflow-code` emits one and the examples below keep it for consistency with the
+function-code` emits one and the examples below keep it for consistency with the
 export, but the runtime invokes `run()` itself - leaving the call in or taking it
 out makes no difference to a deployed Function. Do not write logic that depends
 on either behaviour.
@@ -192,7 +192,7 @@ on either behaviour.
 Pydantic field annotations become unresolved forward references, and a deployed
 Function fails at `response_format=Model` with
 `PydanticUserError: Model is not fully defined`. The `X | None` syntax works
-without it. `notte sessions workflow-code` may emit that import - remove it
+without it. `notte sessions function-code` may emit that import - remove it
 before deploying.
 
 **Function Variables (Parameters):**
@@ -405,7 +405,7 @@ with the run.
 notte functions update --function-id <function-id> --file workflow_v2.py
 ```
 
-Updates the workflow code while preserving function ID and schedule.
+Updates the function code while preserving function ID and schedule.
 
 ### Document a Function for Its Callers
 

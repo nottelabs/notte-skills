@@ -177,7 +177,7 @@ Find the new stable path (API-first, DOM fallback). For the full method, read ->
 
 Produce the repaired code, then verify it **without touching the live Function** - it may be scheduled and serving traffic.
 
-1. **Patch.** Re-export the corrected path (`notte sessions workflow-code --session-id <id>`) and merge the changed selectors/endpoint into `current_function.py`, or hand-edit using the [Python SDK Interop reference](../notte-browser/references/python-sdk-interop.md). Save as `repaired_function.py`. Keep the same `run(...)` signature and response model so callers are unaffected.
+1. **Patch.** Re-export the corrected path (`notte sessions function-code --session-id <id>`) and merge the changed selectors/endpoint into `current_function.py`, or hand-edit using the [Python SDK Interop reference](../notte-browser/references/python-sdk-interop.md). Save as `repaired_function.py`. Keep the same `run(...)` signature and response model so callers are unaffected.
 
 2. **Verify on a throwaway copy.** Create a temporary verification Function, **capture its ID**, and from here on pass `--function-id "$VERIFY_ID"` on every command. This keeps testing fully isolated from the live Function:
 

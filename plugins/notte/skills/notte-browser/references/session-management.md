@@ -325,13 +325,13 @@ To watch a session live instead, use
 Export session steps as reusable code:
 
 ```bash
-notte sessions workflow-code --session-id <session-id>
+notte sessions function-code --session-id <session-id>
 ```
 
-Generates a workflow script from your session actions, in the shape
+Generates a Function script from your session actions, in the shape
 `notte functions create` expects. `notte sessions code --session-id <session-id>` hits the same endpoint
-without the workflow wrapper and returns a plain replay script - prefer
-`workflow-code` when the target is a Function.
+without the Function wrapper and returns a plain replay script - prefer
+`function-code` when the target is a Function.
 
 ## Cookie Management
 

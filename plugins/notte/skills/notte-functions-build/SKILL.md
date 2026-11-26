@@ -33,7 +33,7 @@ This is the difference between asking an agent to "scrape Indeed" every time (pa
 Phase 0  Setup          ensure the notte CLI is authenticated
 Phase 1  Describe       parse intent, check the marketplace, confirm a plan          [GATE]
 Phase 2  Explore        drive the site ONCE; find the stable path (API-first)
-Phase 3  Generate       export workflow-code; parameterize; stamp a health contract
+Phase 3  Generate       export function-code; parameterize; stamp a health contract
 Phase 4  Publish+Test   create the Function; self-test until green; self-repair
 Delivery                report Function ID + HTTP snippet + coverage; schedule      [GATE]
 ```
@@ -131,7 +131,7 @@ Keep the session ID. You will export it in Phase 3. Do not move on until a singl
 Export the successful session to Python instead of hand-writing it. The export captures the exact `goto`, waits, scrape settings, and response model that worked:
 
 ```bash
-notte sessions workflow-code --session-id "{session-id}" > built_function.py
+notte sessions function-code --session-id "{session-id}" > built_function.py
 ```
 
 **Clean the export before relying on it.** The export can emit Python that does not import as-is: an `instructions='...'` string may contain unescaped apostrophes (a `SyntaxError`), and it may include `from __future__ import annotations`, which breaks Pydantic `response_format` when the Function runs (`PydanticUserError: Model is not fully defined`). Remove that import and fix any quoting so the file imports cleanly.
